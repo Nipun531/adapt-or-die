@@ -43,9 +43,9 @@ describe('label v2: intended style', () => {
   });
 });
 
-describe('feature schema v2', () => {
-  it('is v2 and every feature name is produced', () => {
-    expect(FEATURE_SCHEMA_VERSION).toBe('v2');
+describe('feature schema v3', () => {
+  it('is v3 and every feature name is produced', () => {
+    expect(FEATURE_SCHEMA_VERSION).toBe('v3');
     expect(Object.keys(buildFeatures([round({ hand1: 'pike' })])).sort()).toEqual([...FEATURE_NAMES].sort());
   });
   it('weapon family one-hot and pierce EV of the last weapon', () => {
@@ -66,5 +66,12 @@ describe('feature schema v2', () => {
     expect(f.last_ranged_share).toBeNull();
     expect(f.hist_mean_ranged_share).toBeNull();
     expect(f.hist_ranged_round_frac).toBe(0); // unarmed-only loadout ⇒ style known (melee)
+  });
+
+  it('persistence features: a melee player who could afford a bow and stayed melee', () => {
+    const r1 = round({ hand1: 'sword' }, { gold: 20, inventory: ['sword'] });
+    const r2 = { ...round({ hand1: 'sword' }, { gold: 30, inventory: ['sword'] }), roundNumber: 2 };
+    const f = buildFeatures([r1, r2]);
+    expect(f).toMatchObject({ hist_style_switches: 0, last_style_streak: 2, hist_feasible_rounds: 1, hist_feasible_melee_rounds: 1, hist_ranged_when_feasible: 0 });
   });
 });

@@ -19,6 +19,8 @@
  *   adaptive       – starts melee, switches style (melee → ranged → pierce → …) after two consecutive losses
  *   piercer        – STR/HP, pierce weapons (Spear → Lance/Flail → Pike) + shield, armour-breaking melee
  *   duelist        – DEX/STR, fast blades (Knife → Sabre → Rapier) + armour
+ *   opportunist    – melee; goes ranged after a loss when a bow is affordable, back to melee after two wins
+ *   switcher       – flips melee ↔ ranged with 35% probability each round (seeded)
  *   random         – random legal allocations, purchases, loadouts and mode choices (exploration/noise)
  */
 import { getItem, ITEMS, requireItem } from '../game/catalog.js';
@@ -34,8 +36,9 @@ import { STAT_KEYS } from '../game/types.js';
  *  sim-1.0.0 — engine 1.0.0 (no initial stat points).
  *  sim-1.1.0 — engine 1.1.0: agents spend the 2 initial stat points before round 1 with their normal allocation pattern.
  *  sim-2.0.0 — engine 2.0.0: V2 catalogue wishlists; new `piercer` and `duelist` agents; adaptive cycles 3 styles.
+ *  sim-2.1.0 — adds style-switching `opportunist` and `switcher` agents (existing agents unchanged).
  */
-export const SIMULATOR_VERSION = 'sim-2.0.0';
+export const SIMULATOR_VERSION = 'sim-2.1.0';
 
 export interface RoundOutcome {
   roundNumber: number;
@@ -273,6 +276,52 @@ export const duelist: Agent = {
   chooser: () => preferChooser('melee'),
 };
 
+// --- Style-switching agents (sim-2.1.0) ---------------------------------------------------------------------------
+// Fixed-style agents only teach a model "which agent is this" (V2 model s3 failed leave-one-strategy-out). These two
+// change style for reasons visible in the features (losses, gold, what they own) or at random, so the data contains
+// real decisions to switch — the thing the transparent baseline cannot predict.
+
+const RANGED_WISHLIST = ['bow', 'leather_armour', 'crossbow', 'longbow'];
+const MELEE_WISHLIST = ['knuckle', 'sword', 'leather_armour', 'longsword', 'mace'];
+
+const ownsRanged = (s: CombatantState) => s.inventory.some((id) => requireItem(id).category === 'ranged');
+const usedRanged = (s: CombatantState) => [s.loadout.hand1, s.loadout.hand2].some((id) => id !== null && requireItem(id).category === 'ranged');
+const canFieldRanged = (s: CombatantState) => ownsRanged(s) || s.gold >= Math.min(...ITEMS.filter((i) => i.category === 'ranged').map((i) => i.cost));
+
+/** Build the round's decision for a chosen style (falls back to melee when ranged is not affordable). */
+function styledDecision(state: CombatantState, wanted: 'melee' | 'ranged', note: string): AgentDecision {
+  const style = wanted === 'ranged' && canFieldRanged(state) ? 'ranged' : 'melee';
+  const purchases = buyInOrder(state, style === 'ranged' ? RANGED_WISHLIST : MELEE_WISHLIST);
+  const inv = after(state, purchases);
+  const loadout = style === 'ranged' && bestOwned(inv, 'ranged')
+    ? loadoutFrom(inv, ['ranged'], true, { str: 0, def: 0.2, dex: 1 })
+    : loadoutFrom(inv, ['melee'], true, { str: 1, def: 0.3, dex: 0.1 });
+  return { allocations: allocateByPattern(state, style === 'ranged' ? ['dex', 'hp'] : ['str', 'hp']), purchases, loadout, note: `${note}; style=${style}` };
+}
+
+export const opportunist: Agent = {
+  name: 'opportunist',
+  description: 'Melee by default; goes ranged after a loss when it can afford/owns a bow, keeps ranged until it wins twice in a row.',
+  decide({ state, history }) {
+    const lastLost = history.length > 0 && history[history.length - 1].winner === 'boss';
+    const wonTwice = history.length >= 2 && history.slice(-2).every((h) => h.winner === 'player');
+    const wanted = (lastLost && canFieldRanged(state)) || (usedRanged(state) && !wonTwice) ? 'ranged' : 'melee';
+    return styledDecision(state, wanted, 'opportunist');
+  },
+  chooser: () => expectedDamageChooser,
+};
+
+export const switcher: Agent = {
+  name: 'switcher',
+  description: 'Keeps its current style but switches (melee ↔ ranged) with 35% probability each round (seeded); buys for the chosen style.',
+  decide({ state, rng }) {
+    const current = usedRanged(state) ? 'ranged' : 'melee';
+    const wanted = rng.next() < 0.35 ? (current === 'ranged' ? 'melee' : 'ranged') : current;
+    return styledDecision(state, wanted, 'switcher');
+  },
+  chooser: () => expectedDamageChooser,
+};
+
 export const randomAgent: Agent = {
   name: 'random',
   description: 'Random legal choices: allocations, at most one affordable purchase, loadout and attack modes.',
@@ -298,7 +347,7 @@ export const randomAgent: Agent = {
 };
 
 export const AGENTS: Record<string, Agent> = Object.fromEntries(
-  [meleeBruiser, archer, shieldTurtle, hybrid, adaptive, piercer, duelist, randomAgent].map((a) => [a.name, a]),
+  [meleeBruiser, archer, shieldTurtle, hybrid, adaptive, piercer, duelist, opportunist, switcher, randomAgent].map((a) => [a.name, a]),
 );
 
 export const STRATEGY_NAMES = Object.keys(AGENTS);

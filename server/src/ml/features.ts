@@ -15,12 +15,16 @@
  *  - missing ≠ zero: shares are null (→ NaN in training) when the player made no attacks / no style is known;
  *  - label = INTENDED style: share of ranged attacks among the player's non-opening attacks (the opening shot is
  *    forced and, since engine 2.0.0, depends on the boss's DEX); with none, a single-style loadout decides.
+ * Schema v3 vs v2: PERSISTENCE features — how often the player switched style, how long the current style has
+ * lasted, and what they did in rounds where a ranged weapon was within reach. They separate "a melee player who never
+ * switches" from "one who switches when they can", which fixed-style history alone cannot (model s3 failed
+ * leave-one-strategy-out for exactly that reason).
  */
 import { catalogFor, cheapestCost, getItem, itemForHistory } from '../game/catalog.js';
 import type { CombatSummary } from '../game/summary.js';
 import type { CombatantState, FighterSnapshot, Item, Side } from '../game/types.js';
 
-export const FEATURE_SCHEMA_VERSION = 'v2';
+export const FEATURE_SCHEMA_VERSION = 'v3';
 export const ML_TASK = 'predict_next_round_player_mostly_ranged';
 /** Label threshold: player's ranged share of (non-opening) attacks in the label round. */
 export const RANGED_LABEL_THRESHOLD = 0.5;
@@ -51,6 +55,7 @@ export const FEATURE_NAMES = [
   'last_boss_dmg_ranged_share',
   'p_eff_dex_last', 'p_net_atk_last',
   'boss_eff_dex_last', 'boss_net_def_last', 'boss_net_atk_last', 'boss_has_ranged_last', 'boss_has_shield_last',
+  'hist_style_switches', 'last_style_streak', 'hist_feasible_rounds', 'hist_feasible_melee_rounds', 'hist_ranged_when_feasible',
 ] as const;
 export type FeatureName = (typeof FEATURE_NAMES)[number];
 /** null = missing (no evidence), never silently 0. Exported as an empty CSV cell → NaN for XGBoost. */
@@ -108,6 +113,24 @@ export function buildFeatures(history: RoundRecord[], engineVersion?: string | n
   const feasible = rangedFeasibility(post, engineVersion).rangedFeasible;
   const shares = history.map((h) => h.summary.player.rangedShare).filter((x): x is number => x !== null);
   const styles = history.map(roundStyle).filter((x): x is 0 | 1 => x !== null);
+  // Persistence (v3): style per round, and whether a ranged weapon was within reach at that round's start
+  // (round 1: never — 0 gold; round k: the player's post-round state of round k−1).
+  const seq = history.map(roundStyle);
+  const knownSeq = seq.filter((x): x is 0 | 1 => x !== null);
+  let switches = 0;
+  for (let i = 1; i < knownSeq.length; i++) if (knownSeq[i] !== knownSeq[i - 1]) switches++;
+  let streak = 0;
+  for (let i = knownSeq.length - 1; i >= 0 && knownSeq[i] === knownSeq[knownSeq.length - 1]; i--) streak++;
+  let feasibleRounds = 0;
+  let feasibleMelee = 0;
+  let feasibleRanged = 0;
+  history.forEach((h, i) => {
+    const couldRange = i > 0 && rangedFeasibility(history[i - 1].playerPost, engineVersion).rangedFeasible;
+    if (!couldRange || seq[i] === null) return;
+    feasibleRounds++;
+    if (seq[i] === 0) feasibleMelee++;
+    else feasibleRanged++;
+  });
   const wins = history.filter((h) => h.winner === 'player').length;
   let lossStreak = 0;
   for (let i = history.length - 1; i >= 0 && history[i].winner === 'boss'; i--) lossStreak++;
@@ -155,6 +178,11 @@ export function buildFeatures(history: RoundRecord[], engineVersion?: string | n
     boss_net_atk_last: b.derived.netAtk,
     boss_has_ranged_last: b.derived.rangedWeaponId ? 1 : 0,
     boss_has_shield_last: handItems(b, engineVersion).some((i) => i.category === 'shield') ? 1 : 0,
+    hist_style_switches: knownSeq.length ? switches : null,
+    last_style_streak: knownSeq.length ? streak : null,
+    hist_feasible_rounds: feasibleRounds,
+    hist_feasible_melee_rounds: feasibleMelee,
+    hist_ranged_when_feasible: feasibleRounds ? feasibleRanged / feasibleRounds : null,
   };
 }
 
