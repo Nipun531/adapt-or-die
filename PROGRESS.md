@@ -50,7 +50,18 @@ Spec: `docs/V2_DEMANDS.md` (user answers Q-1..Q-5 in §11.1). Plan: `docs/V2_IMP
   - **Bench:** `npm run boss:bench`. v2 costs 1.27× v1 per decision, is far stronger (boss vs mirror 58%; v1 loses 87% against a v2 player), and late builds are about twice as varied. Round 1 is still +2 STR, which is provably the best split against every player allocation (`docs/V2_BALANCE.md` §6).
   - **Tests:** `npm test` = **143/143** (new `tests/unit/policy.test.ts`).
   - **Browser check** (API on the test DB via `npm run dev:testdb` / launch `api-testdb`): new run → allocate → round 1 → decision panel shows "Rule", "bruiser", the reasoning and the 4 scenarios. The V2 shop renders grouped by family.
-- **Not done:** Phase 6 (ML schema v2, data, retrain), Phase 7 (UI redesign). No V2 data has been generated in the dev DB. The active model `…-s2` falls back automatically (engine mismatch).
+- **Phase 6 (DONE, 2026-10-16):**
+  - **Code** (commit `ad8b255`):
+    - `FEATURE_SCHEMA_VERSION v2` (39 features, catalogue-agnostic, nulls for missing).
+    - Label = intended style: non-opening attacks, else a single-style loadout.
+    - Rule-determined rows are flagged (`label_detail.rangedFeasible`) and excluded from export.
+    - `player_strategy` is exported as provenance.
+    - `train.py` keeps NaN and adds leave-one-strategy-out evaluation plus an eligibility rule. `infer_worker.py` accepts null.
+    - `buildMissingExamples` covers the current engine only (`allEngines` opt-in).
+  - **Data** (dev DB, appended): batch 5 `v2-train-1`, 320 runs / 3,200 rounds / 2,880 v2 rows, 0 failed, 317 s. Boss win rate 99–100% against every agent.
+  - **Model** `m20261016-220122-s3`: held-out acc 0.990 / log loss 0.027 vs baseline 0.932 / 0.288, **but leave-one-strategy-out fails (2/8) → NOT eligible, not activated**. The boss uses the baseline. Details: `docs/ML_WALKTHROUGH.md` §10b.
+  - **Tests:** `npm test` = **149/149**.
+- **Not done:** Phase 7 (UI redesign), Phase 8 (final verification). The old active model `…-s2` is still flagged active but falls back automatically (engine mismatch). Deactivating it (`npm run ml:activate -- --none`) is only cosmetic and needs your OK.
 
 ## 1b. Change log — engine 1.1.0: 2 initial stat points (user request, 2026-10-10) — DONE + verified
 
@@ -131,6 +142,6 @@ Artifacts in `artifacts/` (git-ignored); both model directories present.
 ## 8. Resume instructions
 
 1. `docker ps` (start Docker Desktop if needed) → `npm run db:up`.
-2. `npm test` should report 143 passing; `npm run typecheck` clean. `npm run balance` re-runs the balance study (no DB).
+2. `npm test` should report 149 passing; `npm run typecheck` clean. `npm run balance` re-runs the balance study (no DB).
 3. `npm run dev` → http://localhost:5173. `npm run ml:status` for ML state.
 4. Read `docs/FILE_GUIDE.md` to locate code. Never change mechanics without updating tests + `docs/GAME_MECHANICS.md`.

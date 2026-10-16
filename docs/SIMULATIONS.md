@@ -108,4 +108,9 @@ npm run ml:train -- --activate    # same, and activate if eligible
 npm run ml:activate -- <version>  # or --none to go back to the baseline
 ```
 
-Eligibility needs ≥ 200 valid rows from ≥ 20 runs (plus held-out improvement over the baseline) — about 40+ ten-round runs under engine 1.1.0 (≈32% of rows are invalid because the player never attacked).
+Eligibility rules:
+- **Data:** ≥ 200 valid, feasible rows from ≥ 20 runs.
+- **Held-out:** improvement over the baseline.
+- **Generalisation (schema v2):** not worse than the baseline on most unseen strategies (leave-one-strategy-out).
+
+Engine 2.0.0 reference batch (`v2-train-1`, 320 runs): 2,880 rows, of which 3% are invalid and 41% are rule-determined and excluded. See `docs/ML_WALKTHROUGH.md` §10b.
