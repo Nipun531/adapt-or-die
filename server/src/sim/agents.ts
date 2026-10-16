@@ -21,13 +21,14 @@
  *   duelist        – DEX/STR, fast blades (Knife → Sabre → Rapier) + armour
  *   opportunist    – melee; goes ranged after a loss when a bow is affordable, back to melee after two wins
  *   switcher       – flips melee ↔ ranged with 35% probability each round (seeded)
+ *   reactive       – randomised per-run persona; style evolves from observed results and the boss's visible gear
  *   random         – random legal allocations, purchases, loadouts and mode choices (exploration/noise)
  */
 import { getItem, ITEMS, requireItem } from '../game/catalog.js';
 import type { Chooser } from '../game/combat.js';
 import { isLegalLoadout } from '../game/equipment.js';
 import { bestMode } from '../game/expected.js';
-import type { Rng } from '../game/rng.js';
+import { hashSeed, Rng } from '../game/rng.js';
 import type { AttackMode, CombatantState, ItemCategory, Loadout, Side, StatKey } from '../game/types.js';
 import { STAT_KEYS } from '../game/types.js';
 
@@ -37,12 +38,16 @@ import { STAT_KEYS } from '../game/types.js';
  *  sim-1.1.0 — engine 1.1.0: agents spend the 2 initial stat points before round 1 with their normal allocation pattern.
  *  sim-2.0.0 — engine 2.0.0: V2 catalogue wishlists; new `piercer` and `duelist` agents; adaptive cycles 3 styles.
  *  sim-2.1.0 — adds style-switching `opportunist` and `switcher` agents (existing agents unchanged).
+ *  sim-2.2.0 — adds the randomised, conditional `reactive` agent; agents also observe the boss's last gear and their HP left.
  */
-export const SIMULATOR_VERSION = 'sim-2.1.0';
+export const SIMULATOR_VERSION = 'sim-2.2.0';
 
+/** What the player saw of a finished round (all visible in the round view: result, the boss's gear, own HP left). */
 export interface RoundOutcome {
   roundNumber: number;
   winner: Side;
+  bossLoadout?: Loadout;
+  playerHpEndFrac?: number;
 }
 
 export interface AgentContext {
@@ -50,6 +55,8 @@ export interface AgentContext {
   state: CombatantState;
   history: RoundOutcome[];
   rng: Rng;
+  /** The run's seed — lets an agent fix a per-run "persona" (randomised parameters) reproducibly. */
+  runSeed?: string;
 }
 
 export interface AgentDecision {
@@ -289,15 +296,93 @@ const usedRanged = (s: CombatantState) => [s.loadout.hand1, s.loadout.hand2].som
 const canFieldRanged = (s: CombatantState) => ownsRanged(s) || s.gold >= Math.min(...ITEMS.filter((i) => i.category === 'ranged').map((i) => i.cost));
 
 /** Build the round's decision for a chosen style (falls back to melee when ranged is not affordable). */
-function styledDecision(state: CombatantState, wanted: 'melee' | 'ranged', note: string): AgentDecision {
+function styledDecision(
+  state: CombatantState, wanted: 'melee' | 'ranged', note: string,
+  opts: { meleeWishlist?: string[]; meleePattern?: StatKey[]; rangedPattern?: StatKey[] } = {},
+): AgentDecision {
   const style = wanted === 'ranged' && canFieldRanged(state) ? 'ranged' : 'melee';
-  const purchases = buyInOrder(state, style === 'ranged' ? RANGED_WISHLIST : MELEE_WISHLIST);
+  const purchases = buyInOrder(state, style === 'ranged' ? RANGED_WISHLIST : (opts.meleeWishlist ?? MELEE_WISHLIST));
   const inv = after(state, purchases);
   const loadout = style === 'ranged' && bestOwned(inv, 'ranged')
     ? loadoutFrom(inv, ['ranged'], true, { str: 0, def: 0.2, dex: 1 })
-    : loadoutFrom(inv, ['melee'], true, { str: 1, def: 0.3, dex: 0.1 });
-  return { allocations: allocateByPattern(state, style === 'ranged' ? ['dex', 'hp'] : ['str', 'hp']), purchases, loadout, note: `${note}; style=${style}` };
+    : loadoutFrom(inv, ['melee'], true, { str: 1, def: 0.3, dex: 0.1, pierce: 20 });
+  const pattern = style === 'ranged' ? (opts.rangedPattern ?? ['dex', 'hp']) : (opts.meleePattern ?? ['str', 'hp']);
+  return { allocations: allocateByPattern(state, pattern), purchases, loadout, note: `${note}; style=${style}` };
 }
+
+/** Per-run persona of the `reactive` agent: every parameter is drawn once from the run seed. */
+export interface ReactivePersona {
+  start: 'melee' | 'ranged';
+  /** Consecutive losses after which it changes style (99 = never). */
+  lossesToSwitch: number;
+  /** Probability of answering the boss's last visible gear (boss had a bow → close in with melee; boss was a slow
+   *  heavy fighter, Eff. DEX ≤ 5 is not visible, so: boss carried a shield or heavy armour → go ranged). */
+  counterBoss: number;
+  /** Probability per round of an unexplained style change. */
+  noise: number;
+  meleeFamily: 'blade' | 'blunt' | 'polearm';
+  /** Third stat in the allocation pattern (adds variety to the stat features). */
+  extraStat: StatKey;
+}
+
+const MELEE_BY_FAMILY: Record<ReactivePersona['meleeFamily'], string[]> = {
+  blade: ['knife', 'sword', 'leather_armour', 'longsword', 'sabre', 'rapier'],
+  blunt: ['wooden_club', 'leather_armour', 'iron_club', 'mace', 'warhammer'],
+  polearm: ['spear', 'leather_armour', 'lance', 'pike'],
+};
+
+export function reactivePersona(runSeed: string): ReactivePersona {
+  const r = new Rng(hashSeed(`${runSeed}::reactive-persona`));
+  return {
+    start: r.next() < 0.6 ? 'melee' : 'ranged',
+    lossesToSwitch: r.pick([1, 2, 2, 3, 99]),
+    counterBoss: r.pick([0, 0.3, 0.6, 0.9]),
+    noise: r.pick([0, 0.05, 0.15]),
+    meleeFamily: r.pick(['blade', 'blunt', 'polearm'] as const),
+    extraStat: r.pick(['str', 'dex', 'def', 'hp'] as StatKey[]),
+  };
+}
+
+/**
+ * Style the reactive agent wants for round `history.length + 1`, replayed from what it has SEEN (results, the
+ * boss's gear) plus its persona; per-round randomness is seeded by run + round, so the replay is reproducible.
+ */
+export function reactiveStyle(p: ReactivePersona, history: RoundOutcome[], runSeed: string): 'melee' | 'ranged' {
+  let style = p.start;
+  let losses = 0;
+  history.forEach((h, k) => {
+    const rr = new Rng(hashSeed(`${runSeed}::reactive:${k + 1}`));
+    losses = h.winner === 'boss' ? losses + 1 : 0;
+    if (losses >= p.lossesToSwitch) {
+      style = style === 'melee' ? 'ranged' : 'melee';
+      losses = 0;
+    }
+    const lo = h.bossLoadout;
+    if (lo && rr.next() < p.counterBoss) {
+      const ids = [lo.hand1, lo.hand2, lo.armour].filter((x): x is string => x !== null).map(requireItem);
+      if (ids.some((i) => i.category === 'ranged')) style = 'melee';
+      else if (ids.some((i) => i.category === 'shield' || i.id === 'heavy_armour')) style = 'ranged';
+    }
+    if (rr.next() < p.noise) style = style === 'melee' ? 'ranged' : 'melee';
+  });
+  return style;
+}
+
+export const reactive: Agent = {
+  name: 'reactive',
+  description: 'Randomised per-run persona (start style, losses before switching, how often it counters the boss\'s visible gear, noise, weapon family); style evolves from what it observed.',
+  decide({ state, history, runSeed }) {
+    const seed = runSeed ?? 'reactive';
+    const p = reactivePersona(seed);
+    const wanted = reactiveStyle(p, history, seed);
+    return styledDecision(state, wanted, `reactive(${p.start},L${p.lossesToSwitch},c${p.counterBoss},n${p.noise},${p.meleeFamily})`, {
+      meleeWishlist: MELEE_BY_FAMILY[p.meleeFamily],
+      meleePattern: ['str', 'hp', p.extraStat],
+      rangedPattern: ['dex', 'hp', p.extraStat],
+    });
+  },
+  chooser: () => expectedDamageChooser,
+};
 
 export const opportunist: Agent = {
   name: 'opportunist',
@@ -347,7 +432,7 @@ export const randomAgent: Agent = {
 };
 
 export const AGENTS: Record<string, Agent> = Object.fromEntries(
-  [meleeBruiser, archer, shieldTurtle, hybrid, adaptive, piercer, duelist, opportunist, switcher, randomAgent].map((a) => [a.name, a]),
+  [meleeBruiser, archer, shieldTurtle, hybrid, adaptive, piercer, duelist, opportunist, switcher, reactive, randomAgent].map((a) => [a.name, a]),
 );
 
 export const STRATEGY_NAMES = Object.keys(AGENTS);

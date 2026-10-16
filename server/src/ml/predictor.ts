@@ -33,6 +33,9 @@ export interface Prediction {
   baselineProbability: number | null;
   /** Whether the player can field a ranged weapon next round, and why (rule-level, decision-time information). */
   feasibility: { rangedFeasible: boolean; reason: string };
+  /** Ensemble models only: the raw XGBoost probability and the blend weight (p = w·model + (1−w)·baseline). */
+  modelProbability?: number;
+  blendWeight?: number;
   modelVersion: string | null;
   fallbackReason: string | null;
   featureSchemaVersion: string;
@@ -105,11 +108,34 @@ export interface ActiveModel {
   feature_schema_version: string;
   engine_version: string;
   eligible: boolean;
+  params: { blend_weight?: number } | null;
+}
+
+/** Ensemble blend (V2 ensemble candidate): p = w·model + (1−w)·baseline; a baseline with no evidence counts as 0.5. */
+export function blendProbability(modelP: number, baseline: number | null, weight: number): number {
+  return weight * modelP + (1 - weight) * (baseline ?? 0.5);
+}
+
+/**
+ * Score one feature vector with a model artifact through the shared Python worker (no database).
+ * Used by predictPlayerStyle and by offline evaluation (ml/decision-check.ts).
+ */
+export async function scoreWithModel(modelPath: string, cacheKey: string, features: FeatureVector): Promise<{ ok: true; p: number } | { ok: false; error: string }> {
+  if (worker.loadedVersion !== cacheKey) {
+    const res = await worker.send({ cmd: 'load', model_path: modelPath, features: FEATURE_NAMES });
+    if (!res.ok) return { ok: false, error: `Could not load model ${cacheKey}: ${res.error}` };
+    worker.loadedVersion = cacheKey;
+  }
+  const res = await worker.send({ cmd: 'predict', features });
+  if (!res.ok || typeof res.probability !== 'number' || !Number.isFinite(res.probability)) {
+    return { ok: false, error: `Model inference failed: ${res.error ?? 'invalid probability'}` };
+  }
+  return { ok: true, p: res.probability };
 }
 
 export async function getActiveModel(db: Db): Promise<ActiveModel | null> {
   const r = await db.query(
-    `SELECT version, artifact_path, feature_schema_version, engine_version, eligible FROM model_versions WHERE is_active LIMIT 1`,
+    `SELECT version, artifact_path, feature_schema_version, engine_version, eligible, params FROM model_versions WHERE is_active LIMIT 1`,
   );
   return r.rows[0] ?? null;
 }
@@ -145,16 +171,16 @@ export async function predictPlayerStyle(
   }
   const modelPath = path.resolve(REPO_ROOT, model.artifact_path, 'model.json');
   if (!fs.existsSync(modelPath)) return fallback(`Model artifact missing at ${model.artifact_path}`);
-  if (worker.loadedVersion !== model.version) {
-    const res = await worker.send({ cmd: 'load', model_path: modelPath, features: FEATURE_NAMES });
-    if (!res.ok) return fallback(`Could not load model ${model.version}: ${res.error}`);
-    worker.loadedVersion = model.version;
-  }
-  const res = await worker.send({ cmd: 'predict', features });
-  if (!res.ok || typeof res.probability !== 'number' || !Number.isFinite(res.probability)) {
-    return fallback(`Model inference failed: ${res.error ?? 'invalid probability'}`);
+  const res = await scoreWithModel(modelPath, modelPath, features);
+  if (!res.ok) return fallback(res.error);
+  const w = model.params?.blend_weight;
+  if (typeof w === 'number') {
+    return {
+      ...base, kind: 'model', basis: 'model', probabilityRanged: blendProbability(res.p, baseline, w), modelProbability: res.p, blendWeight: w,
+      modelVersion: model.version, fallbackReason: null,
+    };
   }
   return {
-    ...base, kind: 'model', basis: 'model', probabilityRanged: res.probability, modelVersion: model.version, fallbackReason: null,
+    ...base, kind: 'model', basis: 'model', probabilityRanged: res.p, modelVersion: model.version, fallbackReason: null,
   };
 }

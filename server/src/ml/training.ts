@@ -9,10 +9,12 @@
  */
 import { spawn } from 'node:child_process';
 import path from 'node:path';
+import fs from 'node:fs';
 import { env, REPO_ROOT } from '../config/env.js';
 import type { Db } from '../db/pool.js';
 import { ENGINE_VERSION } from '../game/constants.js';
 import { datasetStats, exportDataset } from './dataset.js';
+import { baselineInMemory, decisionOutcomes, decisionVerdict, modelPredictor } from './decision-check.js';
 import { buildMissingExamples } from './examples.js';
 import { FEATURE_NAMES, FEATURE_SCHEMA_VERSION, ML_TASK } from './features.js';
 import { getActiveModel, pingPython } from './predictor.js';
@@ -21,6 +23,15 @@ const TRAIN_TIMEOUT_MS = 10 * 60_000;
 let trainingInProgress = false;
 
 export class MlError extends Error {}
+
+interface EnsembleResult {
+  blend_weight: number;
+  weight_selection: string;
+  heldout: { ensemble: Record<string, number | null>; model: Record<string, number | null>; baseline: Record<string, number | null> };
+  eligible: boolean;
+  eligibility_reasons: string[];
+  [k: string]: unknown;
+}
 
 interface TrainScriptResult {
   ok: boolean;
@@ -96,12 +107,39 @@ export async function trainModel(db: Db, opts: { activate?: boolean; seed?: numb
         JSON.stringify({ ...result.data_stats, feature_importance_gain: result.feature_importance_gain }),
         !!result.eligible, JSON.stringify(result.eligibility_reasons ?? []), result.training_seconds ?? 0],
     );
+    // ENSEMBLE CANDIDATE (w·model + (1−w)·baseline): a separate model_versions row with its own eligibility —
+    // train.py's statistical checks (held-out runs, unseen styles) AND boss decision outcomes on identical games.
+    let ensembleRow: Record<string, unknown> | null = null;
+    const ens = result.ensemble as EnsembleResult | null | undefined;
+    if (ens) {
+      const modelPath = path.resolve(REPO_ROOT, outDirRel, 'model.json');
+      const outcomes = await decisionOutcomes({
+        baseline: baselineInMemory,
+        model: modelPredictor(modelPath, 1),
+        ensemble: modelPredictor(modelPath, ens.blend_weight),
+      });
+      const verdict = decisionVerdict(outcomes, 'ensemble');
+      const eligible = ens.eligible && verdict.ok;
+      const reasons = [...ens.eligibility_reasons, ...verdict.reasons];
+      const r2 = await db.query(
+        `INSERT INTO model_versions (version, model_type, task, feature_schema_version, engine_version, dataset_snapshot_id, artifact_path, params, metrics,
+           baseline_metrics, data_stats, eligible, eligibility_reasons, training_seconds)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+        [`${version}-ens`, 'xgboost+baseline ensemble', ML_TASK, FEATURE_SCHEMA_VERSION, snapshot.engineVersion, snapshot.snapshotId, outDirRel,
+          JSON.stringify({ ...result.params, blend_weight: ens.blend_weight, base_model: version, weight_selection: ens.weight_selection }),
+          JSON.stringify(ens.heldout.ensemble), JSON.stringify(ens.heldout.baseline),
+          JSON.stringify({ ...result.data_stats, ensemble: ens, decisionOutcomes: outcomes }),
+          eligible, JSON.stringify(reasons), result.training_seconds ?? 0],
+      );
+      ensembleRow = r2.rows[0];
+      fs.writeFileSync(path.resolve(REPO_ROOT, outDirRel, 'ensemble.json'), JSON.stringify({ version: `${version}-ens`, ...ens, decisionOutcomes: outcomes, eligible, eligibility_reasons: reasons }, null, 2));
+    }
     let activated = false;
     if (opts.activate && result.eligible) {
       await activateModel(db, version);
       activated = true;
     }
-    return { trained: true as const, model: ins.rows[0], activated, snapshot, examplesBuilt: built.inserted };
+    return { trained: true as const, model: ins.rows[0], ensemble: ensembleRow, activated, snapshot, examplesBuilt: built.inserted };
   } finally {
     trainingInProgress = false;
   }

@@ -61,6 +61,17 @@ Spec: `docs/V2_DEMANDS.md` (user answers Q-1..Q-5 in §11.1). Plan: `docs/V2_IMP
   - **Data** (dev DB, appended): batch 5 `v2-train-1`, 320 runs / 3,200 rounds / 2,880 v2 rows, 0 failed, 317 s. Boss win rate 99–100% against every agent.
   - **Model** `m20261016-220122-s3`: held-out acc 0.990 / log loss 0.027 vs baseline 0.932 / 0.288, **but leave-one-strategy-out fails (2/8) → NOT eligible, not activated**. The boss uses the baseline. Details: `docs/ML_WALKTHROUGH.md` §10b.
   - **Tests:** `npm test` = **149/149**.
+- **ML follow-up (2026-10-16, user request: an active model only if it genuinely beats the baseline):**
+  - **Agents:** `opportunist`, `switcher`, and the randomised conditional `reactive` agent (sim-2.1.0 / 2.2.0).
+  - **Features:** schema v3 adds persistence features.
+  - **Data:** batches 6–7 (540 more runs, 0 failed).
+  - **Ensemble candidate:** `w·model + (1−w)·baseline`, with the weight chosen on training runs only, its own pre-declared gate (`train.py ENSEMBLE_ELIGIBILITY`) and a boss decision-outcome check (`ml/decision-check.ts`). The predictor supports `params.blend_weight`.
+  - **Result:**
+    - Pure model `m20261016-223043-s6`: held-out log loss 0.315 vs baseline 0.568, but unseen styles fail → not eligible.
+    - Ensemble `…-s6-ens`: held-out 0.425 vs 0.568, unseen pooled a tie, melee_bruiser +0.150 (> +0.10) → not eligible.
+    - On identical games, the boss decides equally well with all three (HP margin 0.659–0.661).
+  - **Not activated; no rule was relaxed.** Root cause: the balance (one hybrid build beats both styles) plus 44% rule-determined rounds. Details: `docs/ML_WALKTHROUGH.md` §10c.
+  - **Tests:** `npm test` = **157/157**.
 - **Not done:** Phase 7 (UI redesign), Phase 8 (final verification). The old active model `…-s2` is still flagged active but falls back automatically (engine mismatch). Deactivating it (`npm run ml:activate -- --none`) is only cosmetic and needs your OK.
 
 ## 1b. Change log — engine 1.1.0: 2 initial stat points (user request, 2026-10-10) — DONE + verified
@@ -142,6 +153,6 @@ Artifacts in `artifacts/` (git-ignored); both model directories present.
 ## 8. Resume instructions
 
 1. `docker ps` (start Docker Desktop if needed) → `npm run db:up`.
-2. `npm test` should report 149 passing; `npm run typecheck` clean. `npm run balance` re-runs the balance study (no DB).
+2. `npm test` should report 157 passing; `npm run typecheck` clean. `npm run balance` re-runs the balance study (no DB).
 3. `npm run dev` → http://localhost:5173. `npm run ml:status` for ML state.
 4. Read `docs/FILE_GUIDE.md` to locate code. Never change mechanics without updating tests + `docs/GAME_MECHANICS.md`.

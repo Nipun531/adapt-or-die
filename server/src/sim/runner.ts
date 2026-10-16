@@ -80,16 +80,20 @@ export async function playSimulatedRun(opts: {
       await withTransaction(async (c) => {
         const state = await loadCombatant(c, runId, 'player');
         const decision = agent.decide({
-          roundNumber, state, history: [...history], rng: new Rng(deriveSeed(opts.runSeed, `agent:${roundNumber}`)),
+          roundNumber, state, history: [...history], rng: new Rng(deriveSeed(opts.runSeed, `agent:${roundNumber}`)), runSeed: opts.runSeed,
         });
         for (const a of decision.allocations) await allocate(runId, a.stat, a.points, 'agent', c);
         for (const id of decision.purchases) await buy(runId, id, 'agent', c);
         await setLoadout(runId, decision.loadout, 'agent', c);
         const chooser = agent.chooser(new Rng(deriveSeed(opts.runSeed, `agent-choice:${roundNumber}`)));
         const roundId = await startRound(runId, { db: c, playerChooser: chooser });
-        const r = await c.query('SELECT status, winner FROM rounds WHERE id = $1', [roundId]);
+        const r = await c.query('SELECT status, winner, boss_snapshot, player_snapshot, player_hp_end FROM rounds WHERE id = $1', [roundId]);
         if (r.rows[0].status !== 'completed') throw new Error(`Round ${roundNumber} did not complete (agent chooser paused)`);
-        history.push({ roundNumber, winner: r.rows[0].winner });
+        const row = r.rows[0];
+        history.push({
+          roundNumber, winner: row.winner, bossLoadout: row.boss_snapshot.loadout,
+          playerHpEndFrac: Math.max(0, row.player_hp_end) / row.player_snapshot.derived.maxHp,
+        });
       });
     }
   } catch (err) {

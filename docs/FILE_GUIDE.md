@@ -94,6 +94,7 @@ Purpose of every project file, and where to make common changes. Keep this in sy
 | `src/sim/agents.ts` | Simulated player strategies + `SIMULATOR_VERSION`. |
 | `src/sim/runner.ts` | Batch create/execute, per-run failure handling, counters, summaries, interrupted-batch cleanup. |
 | `src/sim/cli.ts` | `npm run sim` command. |
+| `src/ml/decision-check.ts` | Boss decision outcomes for model candidates: identical seeded in-memory games with baseline / model / ensemble predictors, plus the pass rule. |
 | `src/boss/bench.ts` | `npm run boss:bench`: policy v1 vs v2, covering round-1 diversity, boss win rates and ms per decision (no DB). |
 | `src/dev-testdb.ts` | `npm run dev:testdb` (launch config `api-testdb`): the API on the **test** DB, for click-testing without touching dev data. |
 | `src/sim/balance.ts` | Balance harness: in-memory runs vs the real boss, weapon matrix, pierce tuning, item-override experiments. |
@@ -108,6 +109,8 @@ Purpose of every project file, and where to make common changes. Keep this in sy
 | `tests/unit/rules.test.ts` | Stats, catalogue, formulas, clamp, bonus thresholds, XP, rewards, slots, purchases. |
 | `tests/unit/combat.test.ts` | Opening-shot rule (engine 2.0.0), turn order, bonus attacks, piercing on any weapon, reproducibility, pause/resume. |
 | `tests/unit/balance.test.ts` | Balance harness determinism and catalogue restoration. |
+| `tests/unit/ensemble.test.ts` | Blend arithmetic, decision-outcome verdict, reactive agent persona/observability, paired-run reproducibility. |
+| `tests/unit/features.test.ts` | Label v2, schema v3 features, nulls for missing values. |
 | `tests/unit/policy.test.ts` | Feasibility, prediction basis, baseline semantics, reachable scenarios, policy legality/band/reproducibility, archetypes. |
 | `tests/integration/legacy-compat.test.ts` | Engine 1.x runs still load (V1 catalogue) and are view-only under 2.0.0. |
 | `tests/integration/lifecycle.test.ts` | Round lifecycle, persistence across pool restart, boss legality over a run, ML fallback honesty. |

@@ -37,6 +37,8 @@ validated allocation service; the boss spends its points in round-1 preparation.
 | `sim-1.0.0` | 1.0.0 | Original agents; runs started with 0 stat points (batches 1–3 in the dev DB — historical). |
 | `sim-1.1.0` | 1.1.0 | Same agent logic; runs start with 2 initial points per side that agents/boss spend before round 1. |
 | `sim-2.0.0` | 2.0.0 | V2 catalogue wishlists; new `piercer` and `duelist` agents; `adaptive` cycles melee → ranged → pierce. |
+| `sim-2.1.0` | 2.0.0 | Adds the style-switching `opportunist` and `switcher` agents. |
+| `sim-2.2.0` | 2.0.0 | Adds the randomised, conditional `reactive` agent; agents also see the boss's last gear and their own HP left (`RoundOutcome`). |
 
 
 | Name | Behaviour |
@@ -48,6 +50,9 @@ validated allocation service; the boss spends its points in round-1 preparation.
 | `adaptive` | Starts melee; after two consecutive losses switches style (melee → ranged → pierce → …), re-gears and re-allocates. |
 | `piercer` | Allocates STR/HP/STR; buys Spear → Leather Armor → Wood Shield → Lance → Flail → Pike; pierce melee + shield. |
 | `duelist` | Allocates DEX/STR/DEX; buys Knife → Leather Armor → Sabre → Rapier → Light Armor; fast blade. |
+| `opportunist` | Melee; goes ranged after a loss when it owns or can afford a bow; back to melee after two wins. |
+| `switcher` | Keeps its style but flips melee ↔ ranged with 35% probability per round (seeded). |
+| `reactive` | Randomised per-run persona: start style, losses before switching, how often it counters the boss's visible gear, noise, weapon family, extra stat. Its style evolves from observed results. |
 | `random` | Random stat, ≤1 random affordable purchase (60%), random legal loadout, random attack mode. Adds noise/exploration. |
 
 Agents buy wishlist items strictly in order (saving up when the next one is unaffordable) and only use information a human would have:

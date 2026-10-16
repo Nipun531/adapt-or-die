@@ -37,6 +37,10 @@ export interface RoundResult {
   bossArchetype: BossArchetype;
   /** Number of equally strong plans the boss drew from (policy v2; 1 = clear best). */
   bossBandSize: number;
+  /** Boss HP left fraction if it won, −(player HP left fraction) if it lost. */
+  bossMargin: number;
+  /** P(ranged) the boss used for this round's preparation (null = no evidence). */
+  pRanged: number | null;
   events: CombatEvent[];
 }
 
@@ -55,8 +59,21 @@ export interface RunResult {
  */
 export const MIRROR = 'mirror';
 
-/** One complete run without the database. Mirrors sim/runner.ts → services/rounds.ts (baseline predictor). */
-export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 10, opts: { policyVersion?: PolicyVersion } = {}): RunResult {
+/** What the boss's predictor is asked before each round (decision-time information only). */
+export interface PredictionRequest { records: RoundRecord[]; observed: CombatantState }
+/** Returns P(player mostly ranged) or null (no evidence). */
+export type InMemoryPredictor = (req: PredictionRequest) => Promise<number | null>;
+
+/** Same as boss/prepare.ts with the baseline predictor: rule-level feasibility first, then the baseline. */
+export function baselinePredict({ records, observed }: PredictionRequest): number | null {
+  return rangedFeasibility(observed).rangedFeasible ? baselineProbability(records) : 0;
+}
+
+/**
+ * The run loop as a generator: it yields a PredictionRequest before every boss preparation and expects
+ * P(ranged) back, so the same loop serves the synchronous baseline driver and the async model driver.
+ */
+function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: { policyVersion?: PolicyVersion }): Generator<PredictionRequest, RunResult, number | null> {
   let previousArchetype: BossArchetype | null = null;
   const agent = strategy === MIRROR ? requireAgent('hybrid') /* chooser only */ : requireAgent(strategy);
   let player = initialCombatant('player');
@@ -73,15 +90,14 @@ export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 1
       const plan = choosePlan({ boss: player, observedPlayer: { ...bossSeen, side: 'player' }, pRanged: pBossRanged, seed: String(deriveSeed(runSeed, `mirror:${n}`)) });
       player = applyPlan(player, plan.selected);
     } else {
-      const d = agent.decide({ roundNumber: n, state: player, history: [...history], rng: new Rng(deriveSeed(runSeed, `agent:${n}`)) });
+      const d = agent.decide({ roundNumber: n, state: player, history: [...history], rng: new Rng(deriveSeed(runSeed, `agent:${n}`)), runSeed });
       for (const a of d.allocations) player = allocateStat(player, a.stat, a.points);
       for (const id of d.purchases) player = purchase(player, id);
       player = equip(player, d.loadout);
     }
 
-    // Same as boss/prepare.ts with the baseline predictor: rule-level feasibility first, then the baseline.
     const observed = records.length ? records[records.length - 1].playerPost : initialCombatant('player');
-    const pRanged = rangedFeasibility(observed).rangedFeasible ? baselineProbability(records) : 0;
+    const pRanged = yield { records: [...records], observed };
     const policy = choosePlan({
       boss, observedPlayer: observed, pRanged, seed: String(deriveSeed(runSeed, `boss:${n}`)), previousArchetype, version: opts.policyVersion,
     });
@@ -100,10 +116,30 @@ export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 1
       roundNumber: n, winner, playerSnapshot: pSnap, bossSnapshot: bSnap, playerPost: player,
       playerHpEnd: state.hp.player, bossHpEnd: state.hp.boss, summary: summarizeCombat(events),
     });
-    history.push({ roundNumber: n, winner });
-    rounds.push({ roundNumber: n, winner, playerLoadout: pSnap.loadout, bossLoadout: bSnap.loadout, bossAllocation: policy.selected.allocation, bossArchetype: policy.selected.archetype, bossBandSize: policy.band?.length ?? 1, events });
+    history.push({ roundNumber: n, winner, bossLoadout: bSnap.loadout, playerHpEndFrac: Math.max(0, state.hp.player) / pSnap.derived.maxHp });
+    const bossMargin = winner === 'boss' ? Math.max(0, state.hp.boss) / bSnap.derived.maxHp : -Math.max(0, state.hp.player) / pSnap.derived.maxHp;
+    rounds.push({
+      roundNumber: n, winner, playerLoadout: pSnap.loadout, bossLoadout: bSnap.loadout, bossAllocation: policy.selected.allocation,
+      bossArchetype: policy.selected.archetype, bossBandSize: policy.band?.length ?? 1, bossMargin, pRanged, events,
+    });
   }
   return { strategy, seed: runSeed, rounds, player, boss };
+}
+
+/** One complete run without the database. Mirrors sim/runner.ts → services/rounds.ts (baseline predictor). */
+export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 10, opts: { policyVersion?: PolicyVersion } = {}): RunResult {
+  const it = runSteps(strategy, runSeed, maxRounds, opts);
+  let step = it.next();
+  while (!step.done) step = it.next(baselinePredict(step.value));
+  return step.value;
+}
+
+/** Same run, but the boss's P(ranged) comes from `predict` (e.g. a trained model or ensemble). Identical seeds → paired comparison. */
+export async function playInMemoryRunWith(strategy: string, runSeed: string, predict: InMemoryPredictor, maxRounds = 10, opts: { policyVersion?: PolicyVersion } = {}): Promise<RunResult> {
+  const it = runSteps(strategy, runSeed, maxRounds, opts);
+  let step = it.next();
+  while (!step.done) step = it.next(await predict(step.value));
+  return step.value;
 }
 
 export interface RunBatchSummary {

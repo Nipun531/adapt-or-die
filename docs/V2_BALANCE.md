@@ -115,3 +115,5 @@ What this means:
 - **Q-3 target (boss 55–70%).** Against the mirror player v2 is inside the band (58%). Against scripted agents it is about 100%, because the agents do not adapt. Making the boss easier would only hide that. Better agents and the deferred DEX fixes are the right levers.
 
 **Deferred balance item (next version):** #8 round-1 STR dominance. Before any gear, +2 STR beats every other split against every player allocation.
+
+**Deferred balance item #9 (found while evaluating the ML candidates, ML_WALKTHROUGH §10c):** the boss's best build (hybrid Crossbow + melee weapon) is the best answer to *both* player styles. Predicting the player's style therefore barely changes the boss's plan: on identical games the boss scored the same with the baseline, the model and the ensemble. An active ML model only adds value once styles need different counters, so fix #1–#4 first.

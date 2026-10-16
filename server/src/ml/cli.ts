@@ -45,6 +45,20 @@ async function main() {
       console.log(`[ml]   held-out baseline: acc ${fmt(m.baseline_metrics.accuracy)}  logloss ${fmt(m.baseline_metrics.log_loss)}  auc ${fmt(m.baseline_metrics.roc_auc)}  brier ${fmt(m.baseline_metrics.brier)}`);
       for (const reason of m.eligibility_reasons) console.log(`[ml]   ${reason}`);
       console.log(`[ml] eligible: ${m.eligible ? 'YES' : 'NO'}${r.activated ? ' — ACTIVATED (boss will use it from the next decision)' : m.eligible ? ` — activate with: npm run ml:activate -- ${m.version}` : ''}`);
+      if (r.ensemble) {
+        const e = r.ensemble as any;
+        const ens = e.data_stats.ensemble;
+        console.log(`[ml] ensemble candidate ${e.version}: p = ${ens.blend_weight}·model + ${(1 - ens.blend_weight).toFixed(1)}·baseline (${ens.weight_selection})`);
+        console.log('[ml]   weight sweep (identical rows)   held-out runs: logloss / acc     unseen styles: logloss / acc');
+        for (const w of ens.weight_sweep) {
+          console.log(`[ml]     w=${w.weight.toFixed(1)}${w.weight === 0 ? ' (baseline)' : w.weight === 1 ? ' (model)   ' : '           '}            ${fmt(w.heldout_runs.log_loss)} / ${fmt(w.heldout_runs.accuracy)}            ${fmt(w.unseen_styles.log_loss)} / ${fmt(w.unseen_styles.accuracy)}`);
+        }
+        for (const [name, o] of Object.entries(e.data_stats.decisionOutcomes as Record<string, { pooledMargin: number; pooledWinRate: number }>)) {
+          console.log(`[ml]   boss decisions with ${name.padEnd(8)}: pooled HP margin ${o.pooledMargin.toFixed(3)}, boss win rate ${(o.pooledWinRate * 100).toFixed(1)}%`);
+        }
+        for (const reason of e.eligibility_reasons) console.log(`[ml]   ${reason}`);
+        console.log(`[ml] ensemble eligible: ${e.eligible ? `YES — activate with: npm run ml:activate -- ${e.version}` : 'NO'}`);
+      }
       break;
     }
     case 'activate': {

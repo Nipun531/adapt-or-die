@@ -218,6 +218,88 @@ Of the 1,591 training rows, 750 are labelled from attacks and 841 from the loado
 2. Agents that survive long enough to act. Today 53% of labels come from the loadout because the boss wins about 100% (V2_BALANCE §3/§6).
 3. Retrain and re-check LOSO before any activation.
 
+## 10c. Ensemble candidate and richer data (schema v3, 2026-10-16)
+
+The user asked for an active model, but only through genuine adaptive performance: no weakened rules and no activation just to have one active. This section records everything tried.
+
+### Data: from fixed personalities to conditional, randomised agents
+
+| Batch | Runs | Agents | Why |
+|---|---:|---|---|
+| 5 `v2-train-1` (sim-2.0.0) | 320 | all 8 fixed-style agents | first V2 data |
+| 6 `v2-train-2` (sim-2.1.0) | 240 | `opportunist` (goes ranged after a loss when a bow is affordable), `switcher` (35% seeded flip), adaptive, random | real style switches |
+| 7 `v2-train-3` (sim-2.2.0) | 300 | **`reactive`** ×3, opportunist, switcher, adaptive | per-run randomised persona; style evolves from what it saw |
+
+`reactive` draws its persona once per run from the run seed:
+- the style it starts with;
+- how many losses it takes before switching (1, 2, 3 or never);
+- how often it counters the boss's **visible** gear from last round (boss had a bow → melee; boss had a shield or Heavy Armor → ranged);
+- a noise rate;
+- its melee weapon family;
+- a third allocation stat.
+
+Agents now also see the boss's last loadout and their own HP left. A human sees both in the round view.
+
+**Decision-time only.** Features are still built from rounds 1..N (leakage test passes). Agents only use their own state and past round outcomes.
+
+### Features, schema v3
+
+Schema v3 adds persistence features: `hist_style_switches`, `last_style_streak`, `hist_feasible_rounds`, `hist_feasible_melee_rounds` and `hist_ranged_when_feasible`. They capture what a player did when a bow was within reach.
+
+**Measured ceiling.** At the first round a player *can* afford a ranged weapon, whether they take it is 0% or 100% per agent (switcher 35%). No decision-time feature predicts that for a style never seen before.
+
+### Evaluation (identical rows for every predictor)
+
+| Predictor (snapshot 6: 4,646 feasible rows, 860 runs) | Held-out runs: log loss / acc | Unseen styles (LOSO) pooled: log loss / acc |
+|---|---|---|
+| Baseline only (w = 0) | 0.568 / 0.807 | 0.560 / 0.806 |
+| Ensemble w = 0.3 (weight chosen on training runs) | **0.425** / 0.807 | 0.539 / 0.807 (nested, weight re-chosen per held-out style: 0.5601 vs 0.5603) |
+| Ensemble w = 0.5 | 0.377 / 0.812 | 0.545 / 0.799 |
+| Model only (w = 1) | **0.315 / 0.845** | 0.631 / 0.717 |
+
+Full sweep: `artifacts/models/m20261016-223043-s6/ensemble.json` and the `ml:train` output.
+
+### Boss decision outcomes (same seeded games; only the P(ranged) source differs)
+
+| Predictor | Pooled boss HP margin per round | Boss win rate |
+|---|---:|---:|
+| Baseline | 0.661 | 91.5% |
+| Model | 0.660 | 91.5% |
+| Ensemble 0.3 | 0.659 | 91.5% |
+
+Why the boss performs the same (480 paired rounds):
+- 44% of rounds are rule-determined (P = 0 whatever the predictor).
+- The model's P differs from the baseline's by more than 0.3 in only 7% of rounds.
+- The boss's plan changes in 18% of rounds with the model and 4% with the ensemble, and those plans end with the same outcome.
+- Under the V2 balance the hybrid Crossbow + melee build is the best answer to *both* styles (V2_BALANCE §2–4), so knowing the player's style barely changes the best plan.
+
+### Eligibility of the ensemble candidate (its own rule, declared before the results)
+
+| Rule | Result |
+|---|---|
+| Data rules (as for the pure model) | PASS |
+| Weight ≥ 0.1, chosen on the training runs only | PASS (0.3) |
+| Held-out runs: log loss < baseline, accuracy ≥ baseline | PASS (0.425 < 0.568; 0.807 = 0.807) |
+| Unseen styles pooled (nested): log loss ≤ baseline | PASS (0.5601 ≤ 0.5603, a tie in practice) |
+| No unseen style worse than baseline by more than +0.10 log loss | **FAIL** (melee_bruiser +0.150) |
+| Boss decisions: pooled HP margin ≥ baseline − 0.01; unseen mirror style ≥ baseline − 0.02 | PASS (no measurable difference) |
+
+**Verdict:**
+- Pure model `m20261016-223043-s6`: **not eligible** (beats the baseline on only 3 of 11 unseen styles).
+- Ensemble `m20261016-223043-s6-ens`: **not eligible** (one style regresses beyond the limit).
+- **Nothing was activated, and no rule was changed after seeing the results.** Even a passing candidate would not have made the boss measurably better in these games.
+
+The safeguards are unchanged and keep rollback:
+- `activateModel` refuses ineligible models.
+- `npm run ml:activate -- <version>` and `npm run ml:activate -- --none` switch models.
+- Every decision stores its predictor and blend weight.
+
+### What would make a model genuinely useful
+
+1. **Balance first** (deferred list in V2_BALANCE): while one hybrid build answers both styles, predicting the style has nothing to act on. Once melee and ranged need different counters, the gap between the model and the baseline on held-out runs (0.315 vs 0.568) can turn into better boss decisions.
+2. **Human play data.** Manual rounds are tracked separately (`source = 'manual'`). Unseen-style evaluation on real players is the real test.
+3. Re-run `npm run ml:train`, which gives both candidates, the weight sweep and the decision outcomes. Activate only an eligible candidate.
+
 ## 11. Debugging
 
 - `npm run ml:status` — dataset counts, active model, Python availability, latest decision model-vs-fallback with reason.

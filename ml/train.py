@@ -52,6 +52,20 @@ ELIGIBILITY = {
 # Baseline probability is null when the baseline had no evidence ("unknown"); for METRICS only it is scored as 0.5.
 BASELINE_UNKNOWN = 0.5
 
+# ENSEMBLE CANDIDATE (p = w·model + (1−w)·baseline) — a separate model candidate with its OWN eligibility rule.
+# w is chosen on the TRAINING runs only (inner leave-one-strategy-out, i.e. for robustness to unseen styles); it is
+# then judged on (a) held-out runs and (b) fully unseen styles (nested LOSO: for each held-out style the weight is
+# re-chosen without it). All of the following must hold (none is looser than "beats the baseline"):
+ENSEMBLE_ELIGIBILITY = {
+    "weights": [round(0.1 * i, 1) for i in range(11)],  # candidate weights (0 = baseline only, 1 = model only)
+    "min_weight": 0.1,              # a weight of 0 is the baseline, not a model
+    # (a) held-out runs: ensemble log loss < baseline and accuracy ≥ baseline
+    # (b) unseen styles, pooled over all held-out styles: ensemble log loss ≤ baseline (no tolerance)
+    # (c) no unacceptable regression on any single unseen style:
+    "max_style_regression": 0.10,   # ensemble log loss ≤ baseline + 0.10 on every held-out style
+    # (d) boss decision outcomes on identical seeded games are checked by the Node side (ml/training.ts)
+}
+
 PARAMS = {
     "n_estimators": 200,
     "max_depth": 3,
@@ -77,6 +91,81 @@ def metrics(y, p):
     if len(set(y)) == 2:
         out["roc_auc"] = float(roc_auc_score(y, p))
     return out
+
+
+def fit_model(frame, features, seed):
+    m = xgb.XGBClassifier(**PARAMS, random_state=seed)
+    m.fit(frame[features], frame["label"])
+    return m
+
+
+def strategy_groups(frame):
+    return [s for s, part in frame.groupby("player_strategy")
+            if len(part) >= ELIGIBILITY["loso_min_rows"] and frame[frame["player_strategy"] != s]["label"].nunique() == 2]
+
+
+def loso_predictions(frame, features, seed, styles=None):
+    """Out-of-style predictions: for every style, a model trained on all OTHER styles predicts it."""
+    out = {}
+    for s in (styles if styles is not None else strategy_groups(frame)):
+        part = frame[frame["player_strategy"] == s]
+        rest = frame[frame["player_strategy"] != s]
+        out[s] = (part["label"].to_numpy(), fit_model(rest, features, seed).predict_proba(part[features])[:, 1],
+                  part["baseline_probability"].to_numpy())
+    return out
+
+
+def blend(w, pm, pb):
+    return w * np.asarray(pm) + (1 - w) * np.asarray(pb)
+
+
+def choose_weight(preds):
+    """Weight with the lowest POOLED out-of-style log loss (ties → smaller weight = closer to the baseline)."""
+    if not preds:
+        return 0.0
+    y = np.concatenate([v[0] for v in preds.values()])
+    pm = np.concatenate([v[1] for v in preds.values()])
+    pb = np.concatenate([v[2] for v in preds.values()])
+    best = min(ENSEMBLE_ELIGIBILITY["weights"], key=lambda w: (round(metrics(y, blend(w, pm, pb))["log_loss"], 6), w))
+    return float(best)
+
+
+def ensemble_candidate(df, features, train, test, seed):
+    """Weight sweep + honest evaluation of the ensemble candidate (see ENSEMBLE_ELIGIBILITY)."""
+    styles = strategy_groups(df)
+    if len(styles) < 3 or len(strategy_groups(train)) < 3:
+        return None
+    # 1. weight chosen on the TRAINING runs only (inner LOSO across the styles present in the training split)
+    w = choose_weight(loso_predictions(train, features, seed))
+    # 2. held-out runs: model trained on the training split, identical test rows for every predictor
+    pm_te = fit_model(train, features, seed).predict_proba(test[features])[:, 1]
+    pb_te = test["baseline_probability"].to_numpy()
+    y_te = test["label"].to_numpy()
+    # 3. fully unseen styles (nested): for each style, the weight is re-chosen WITHOUT that style
+    outer = loso_predictions(df, features, seed, styles)
+    by_style, ys, pes, pbs, pms = {}, [], [], [], []
+    for s in styles:
+        rest = df[df["player_strategy"] != s]
+        w_s = choose_weight(loso_predictions(rest, features, seed))
+        y, pm, pb = outer[s]
+        pe = blend(w_s, pm, pb)
+        by_style[s] = {"rows": int(len(y)), "weight": w_s, "ensemble": metrics(y, pe), "model": metrics(y, pm), "baseline": metrics(y, pb)}
+        ys.append(y); pes.append(pe); pbs.append(pb); pms.append(pm)
+    ys, pes, pbs, pms = map(np.concatenate, (ys, pes, pbs, pms))
+    # 4. weight sweep on identical rows (reporting only — the chosen weight above never looks at these numbers)
+    yo = np.concatenate([outer[s][0] for s in styles])
+    pmo = np.concatenate([outer[s][1] for s in styles])
+    pbo = np.concatenate([outer[s][2] for s in styles])
+    sweep = [{"weight": wt, "heldout_runs": metrics(y_te, blend(wt, pm_te, pb_te)), "unseen_styles": metrics(yo, blend(wt, pmo, pbo))}
+             for wt in ENSEMBLE_ELIGIBILITY["weights"]]
+    return {
+        "blend_weight": w,
+        "weight_selection": "lowest pooled leave-one-strategy-out log loss on the training runs only",
+        "heldout": {"ensemble": metrics(y_te, blend(w, pm_te, pb_te)), "model": metrics(y_te, pm_te), "baseline": metrics(y_te, pb_te)},
+        "unseen_pooled": {"ensemble": metrics(ys, pes), "model": metrics(ys, pms), "baseline": metrics(ys, pbs)},
+        "unseen_by_style": by_style,
+        "weight_sweep": sweep,
+    }
 
 
 def emit(result):
@@ -157,6 +246,8 @@ def main():
         }
     data_stats["loso"] = loso
 
+    ensemble = ensemble_candidate(df, features, train, test, args.seed)
+
     reasons = []
     ok = True
 
@@ -188,6 +279,36 @@ def main():
     model.get_booster().save_model(os.path.join(args.out_dir, "model.json"))
     importance = model.get_booster().get_score(importance_type="gain")
     top = sorted(importance.items(), key=lambda kv: -kv[1])[:15]
+    # Ensemble eligibility (its own rule, see ENSEMBLE_ELIGIBILITY).
+    if ensemble is not None:
+        er, eok = [], True
+        def echeck(cond, good, bad):
+            nonlocal eok
+            er.append(("PASS: " + good) if cond else ("FAIL: " + bad))
+            eok = eok and cond
+        echeck(n >= ELIGIBILITY["min_rows"] and runs >= ELIGIBILITY["min_runs"] and minority >= ELIGIBILITY["min_class_fraction"]
+               and len(test) >= ELIGIBILITY["min_test_rows"] and len(set(y)) == 2,
+               "data rules (rows, runs, class balance, held-out size) as for the pure model", "data rules failed (see pure model)")
+        w = ensemble["blend_weight"]
+        echeck(w >= ENSEMBLE_ELIGIBILITY["min_weight"], f"blend weight {w} ≥ {ENSEMBLE_ELIGIBILITY['min_weight']} (a real model share)",
+               f"blend weight {w} chosen on training runs is below {ENSEMBLE_ELIGIBILITY['min_weight']} — the model adds nothing")
+        em, eb = ensemble["heldout"]["ensemble"], ensemble["heldout"]["baseline"]
+        echeck(em["log_loss"] < eb["log_loss"] and em["accuracy"] >= eb["accuracy"],
+               f"held-out runs: log loss {em['log_loss']:.4f} < {eb['log_loss']:.4f}, accuracy {em['accuracy']:.3f} ≥ {eb['accuracy']:.3f}",
+               f"held-out runs: log loss {em['log_loss']:.4f} vs {eb['log_loss']:.4f}, accuracy {em['accuracy']:.3f} vs {eb['accuracy']:.3f}")
+        pe, pb_ = ensemble["unseen_pooled"]["ensemble"]["log_loss"], ensemble["unseen_pooled"]["baseline"]["log_loss"]
+        echeck(pe <= pb_, f"unseen styles pooled: log loss {pe:.4f} ≤ baseline {pb_:.4f}",
+               f"unseen styles pooled: log loss {pe:.4f} worse than baseline {pb_:.4f}")
+        worst = max(ensemble["unseen_by_style"].items(), key=lambda kv: kv[1]["ensemble"]["log_loss"] - kv[1]["baseline"]["log_loss"]) if ensemble["unseen_by_style"] else None
+        if worst:
+            d = worst[1]["ensemble"]["log_loss"] - worst[1]["baseline"]["log_loss"]
+            echeck(d <= ENSEMBLE_ELIGIBILITY["max_style_regression"],
+                   f"worst unseen style ({worst[0]}): +{d:.3f} log loss ≤ +{ENSEMBLE_ELIGIBILITY['max_style_regression']}",
+                   f"unseen style {worst[0]} regresses by +{d:.3f} log loss (> +{ENSEMBLE_ELIGIBILITY['max_style_regression']})")
+        ensemble["eligible"] = eok
+        ensemble["eligibility_reasons"] = er
+        ensemble["eligibility_rule"] = ENSEMBLE_ELIGIBILITY
+
     result = {
         "ok": True,
         "version": args.version,
@@ -205,6 +326,7 @@ def main():
         "training_seconds": training_seconds,
         "dataset": os.path.basename(args.dataset),
         "engine_version": args.engine_version,
+        "ensemble": ensemble,
     }
     with open(os.path.join(args.out_dir, "metadata.json"), "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
