@@ -36,7 +36,8 @@ def handle(msg):
         missing = [f for f in feature_names if f not in feats]
         if missing:
             return {"ok": False, "error": f"missing features: {missing[:5]}"}
-        row = np.array([[float(feats[f]) for f in feature_names]], dtype=np.float32)
+        # null = missing (schema v2) → NaN, which XGBoost treats as a missing value, exactly as in training.
+        row = np.array([[np.nan if feats[f] is None else float(feats[f]) for f in feature_names]], dtype=np.float32)
         prob = float(booster.predict(xgb.DMatrix(row, feature_names=feature_names))[0])
         return {"ok": True, "probability": prob}
     return {"ok": False, "error": f"unknown cmd {cmd!r}"}

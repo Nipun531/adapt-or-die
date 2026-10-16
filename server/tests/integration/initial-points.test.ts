@@ -12,6 +12,7 @@ import { closePool, getPool, setDatabaseUrl } from '../../src/db/pool.js';
 import { BASE_STATS, ENGINE_VERSION, INITIAL_STAT_POINTS, STAT_ALLOCATION_INCREASE } from '../../src/game/constants.js';
 import type { Stats } from '../../src/game/types.js';
 import { datasetStats, exportDataset } from '../../src/ml/dataset.js';
+import { FEATURE_SCHEMA_VERSION } from '../../src/ml/features.js';
 import { predictPlayerStyle, stopInferenceWorker } from '../../src/ml/predictor.js';
 import { activateModel } from '../../src/ml/training.js';
 import { allocate } from '../../src/services/runs.js';
@@ -158,17 +159,17 @@ describe('ML data and model versioning', () => {
 
     const snap = await exportDataset(getPool());
     expect(snap.engineVersion).toBe(ENGINE_VERSION);
-    expect(snap.rowCount + snap.invalidExcluded).toBe(total - legacy);
+    expect(snap.rowCount + snap.invalidExcluded + snap.ruleDeterminedExcluded).toBe(total - legacy);
     const snapRow = (await getPool().query('SELECT engine_version FROM dataset_snapshots WHERE id = $1', [snap.snapshotId])).rows[0];
     expect(snapRow.engine_version).toBe(ENGINE_VERSION);
     const legacySnap = await exportDataset(getPool(), { engineVersion: '1.0.0' });
-    expect(legacySnap.rowCount + legacySnap.invalidExcluded).toBe(legacy);
+    expect(legacySnap.rowCount + legacySnap.invalidExcluded + legacySnap.ruleDeterminedExcluded).toBe(legacy);
 
     // TEST FIXTURE: an eligible, active model trained on engine 1.0.0 data.
     await getPool().query(
       `INSERT INTO model_versions (version, model_type, task, feature_schema_version, engine_version, artifact_path, params, metrics, baseline_metrics,
          data_stats, eligible, eligibility_reasons, is_active, training_seconds)
-       VALUES ('legacy-model','xgboost','t','v1','1.0.0','artifacts/models/legacy','{}','{}','{}','{}',true,'[]',true,0)`);
+       VALUES ('legacy-model','xgboost','t',$1,'1.0.0','artifacts/models/legacy','{}','{}','{}','{}',true,'[]',true,0)`, [FEATURE_SCHEMA_VERSION]);
     const features = (await getPool().query('SELECT features FROM training_examples LIMIT 1')).rows[0].features;
     const p = await predictPlayerStyle(getPool(), features, 0.5);
     expect(p.kind).toBe('fallback');

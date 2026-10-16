@@ -6,7 +6,8 @@ by hand:
     python ml/train.py --dataset artifacts/datasets/v1_<stamp>.csv --out-dir artifacts/models/<version> --version <version>
 
 Steps
- 1. Load the exported CSV snapshot (only VALID rows of one feature-schema version are exported).
+ 1. Load the exported CSV snapshot (only VALID, non-rule-determined rows of one feature-schema version are exported).
+    Missing feature values (empty cells, e.g. "no attacks yet") stay NaN — XGBoost handles them natively (schema v2).
  2. Data checks: row count, distinct runs, class balance, missing values.
  3. GROUP-AWARE split by run_id (GroupShuffleSplit): every row of a run lands in train OR test, never both,
     so rounds of the same run cannot leak information across the split.
@@ -14,6 +15,8 @@ Steps
     without preprocessing).
  5. Evaluate on the held-out runs: accuracy, log loss, ROC AUC, Brier score — for the model AND for the
     transparent baseline probability stored on each row (same test rows, so the comparison is fair).
+ 5b. Leave-one-strategy-out (LOSO): train on all other player strategies, evaluate on the held-out one, for model and
+    baseline — measures whether the model generalises beyond the scripted agents it saw (schema v2 / engine 2.0.0).
  6. Eligibility rule (see ELIGIBILITY below / docs/ML_WALKTHROUGH.md). A model that fails it is still saved
     for inspection but the server refuses to activate it.
  7. Save model.json (XGBoost native format) + metadata.json, print a JSON summary as the LAST stdout line.
@@ -33,7 +36,7 @@ from sklearn.metrics import accuracy_score, brier_score_loss, log_loss, roc_auc_
 from sklearn.model_selection import GroupShuffleSplit
 
 # Columns written by server/src/ml/dataset.ts that are NOT model features.
-PROVENANCE_COLS = ["example_id", "run_id", "feature_round_id", "label_round_id", "source", "label", "baseline_probability"]
+PROVENANCE_COLS = ["example_id", "run_id", "feature_round_id", "label_round_id", "source", "player_strategy", "label", "baseline_probability"]
 
 # Documented model-eligibility rule. Change here AND in docs/ML_WALKTHROUGH.md.
 ELIGIBILITY = {
@@ -42,7 +45,12 @@ ELIGIBILITY = {
     "min_class_fraction": 0.05,  # each label must be at least 5% of rows
     "min_test_rows": 40,         # held-out rows needed for a meaningful evaluation
     # On the held-out runs the model must beat the baseline on log loss and not lose on accuracy.
+    # Schema v2: when ≥ 3 strategies have ≥ loso_min_rows rows, the model's LOSO log loss must not be worse than the
+    # baseline's on a majority of them (generalisation to an unseen play style).
+    "loso_min_rows": 20,
 }
+# Baseline probability is null when the baseline had no evidence ("unknown"); for METRICS only it is scored as 0.5.
+BASELINE_UNKNOWN = 0.5
 
 PARAMS = {
     "n_estimators": 200,
@@ -86,6 +94,10 @@ def main():
     args = ap.parse_args()
 
     df = pd.read_csv(args.dataset)
+    if "player_strategy" not in df.columns:  # v1 snapshots
+        df["player_strategy"] = ""
+    df["player_strategy"] = df["player_strategy"].fillna("").astype(str).replace("", "unknown")
+    df["baseline_probability"] = df["baseline_probability"].fillna(BASELINE_UNKNOWN)
     features = [c for c in df.columns if c not in PROVENANCE_COLS]
     n = len(df)
     runs = df["run_id"].nunique() if n else 0
@@ -102,7 +114,7 @@ def main():
     if n < 10 or runs < 4 or pos == 0 or neg == 0:
         emit({"ok": False, "error": "Dataset too small or single-class — run more simulations before training", "data_stats": data_stats})
         return
-    df[features] = df[features].fillna(0)
+    df[features] = df[features].astype(float)  # NaN = missing, kept (XGBoost native missing-value handling)
 
     gss = GroupShuffleSplit(n_splits=1, test_size=TEST_FRACTION, random_state=args.seed)
     train_idx, test_idx = next(gss.split(df, df["label"], groups=df["run_id"]))
@@ -128,6 +140,23 @@ def main():
     m = metrics(y, p_model)
     b = metrics(y, test["baseline_probability"].to_numpy())
 
+    # Leave-one-strategy-out generalisation check.
+    loso = {}
+    for strat, part in df.groupby("player_strategy"):
+        rest = df[df["player_strategy"] != strat]
+        if len(part) < ELIGIBILITY["loso_min_rows"] or rest["label"].nunique() < 2:
+            continue
+        lm = xgb.XGBClassifier(**PARAMS, random_state=args.seed)
+        lm.fit(rest[features], rest["label"])
+        yl = part["label"].to_numpy()
+        loso[strat] = {
+            "rows": int(len(part)),
+            "ranged_share": float(yl.mean()),
+            "model": metrics(yl, lm.predict_proba(part[features])[:, 1]),
+            "baseline": metrics(yl, part["baseline_probability"].to_numpy()),
+        }
+    data_stats["loso"] = loso
+
     reasons = []
     ok = True
 
@@ -148,6 +177,12 @@ def main():
           f"log loss {m['log_loss']:.4f} not better than baseline {b['log_loss']:.4f}")
     check(m["accuracy"] >= b["accuracy"], f"accuracy {m['accuracy']:.3f} ≥ baseline {b['accuracy']:.3f}",
           f"accuracy {m['accuracy']:.3f} below baseline {b['accuracy']:.3f}")
+    if len(loso) >= 3:
+        wins = [s for s, v in loso.items() if v["model"]["log_loss"] <= v["baseline"]["log_loss"]]
+        check(len(wins) * 2 > len(loso), f"leave-one-strategy-out: model ≤ baseline log loss on {len(wins)}/{len(loso)} unseen strategies",
+              f"leave-one-strategy-out: model ≤ baseline on only {len(wins)}/{len(loso)} unseen strategies")
+    else:
+        reasons.append(f"SKIP: leave-one-strategy-out needs ≥ 3 strategies with ≥ {ELIGIBILITY['loso_min_rows']} rows (have {len(loso)})")
 
     os.makedirs(args.out_dir, exist_ok=True)
     model.get_booster().save_model(os.path.join(args.out_dir, "model.json"))

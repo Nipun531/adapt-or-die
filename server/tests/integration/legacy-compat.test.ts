@@ -79,7 +79,8 @@ describe('legacy (engine 1.x) runs under engine 2.0.0', () => {
 
   it('training rows can be rebuilt without crashing on removed items', async () => {
     const { runId } = await legacyRun();
-    await buildMissingExamples(getPool());
+    expect((await buildMissingExamples(getPool())).inserted).toBe(0); // current-engine only by default
+    await buildMissingExamples(getPool(), { allEngines: true });
     const rows = (await getPool().query('SELECT engine_version, features FROM training_examples WHERE run_id = $1', [runId])).rows;
     expect(rows.length).toBe(1);
     expect(rows[0].engine_version).toBe('1.1.0');

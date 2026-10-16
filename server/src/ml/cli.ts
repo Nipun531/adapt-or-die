@@ -27,7 +27,7 @@ async function main() {
     }
     case 'export': {
       const r = await exportDataset(db);
-      console.log(`[ml] snapshot ${r.snapshotId} (engine ${r.engineVersion}): ${r.rowCount} rows (${r.invalidExcluded} invalid excluded), ${r.distinctRuns} runs`);
+      console.log(`[ml] snapshot ${r.snapshotId} (engine ${r.engineVersion}): ${r.rowCount} rows (${r.invalidExcluded} invalid + ${r.ruleDeterminedExcluded} rule-determined excluded), ${r.distinctRuns} runs`);
       console.log(`[ml]   ${r.csvPath}\n[ml]   ${r.jsonPath}\n[ml]   sha256 ${r.sha256}`);
       break;
     }

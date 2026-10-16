@@ -8,6 +8,7 @@ import { closePool, getPool, setDatabaseUrl } from '../../src/db/pool.js';
 import { env } from '../../src/config/env.js';
 import { isLegalLoadout } from '../../src/game/equipment.js';
 import { stopInferenceWorker } from '../../src/ml/predictor.js';
+import { FEATURE_SCHEMA_VERSION } from '../../src/ml/features.js';
 import { buy, getRunView, setLoadout } from '../../src/services/runs.js';
 import { ENGINE_VERSION } from '../../src/game/constants.js';
 import { getRoundDetail, startRound, submitChoice } from '../../src/services/rounds.js';
@@ -119,7 +120,7 @@ describe('ML fallback honesty', () => {
     await getPool().query(
       `INSERT INTO model_versions (version, model_type, task, feature_schema_version, engine_version, artifact_path, params, metrics, baseline_metrics,
          data_stats, eligible, eligibility_reasons, is_active, training_seconds)
-       VALUES ('test-missing','xgboost','t','v1',$1,'artifacts/models/does-not-exist','{}','{}','{}','{}',true,'[]',true,0)`, [ENGINE_VERSION]);
+       VALUES ('test-missing','xgboost','t',$2,$1,'artifacts/models/does-not-exist','{}','{}','{}','{}',true,'[]',true,0)`, [ENGINE_VERSION, FEATURE_SCHEMA_VERSION]);
     const runId = await createReadyRun({ seed: 'test-seed-6', maxRounds: 3 });
     const r1 = await startRound(runId);
     // TEST FIXTURE: recorded gold so a bow is affordable → ranged feasible → the model path is tried.

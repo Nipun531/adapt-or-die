@@ -74,11 +74,13 @@ describe('training pipeline', () => {
     await executeBatch(batch);
 
     const snap = await exportDataset(getPool());
-    // 8 runs × label rounds 2..5; rows where the player never attacked are invalid and excluded.
-    expect(snap.rowCount + snap.invalidExcluded).toBe(32);
+    // 8 runs × label rounds 2..5; invalid rows (hybrid never chose) and rule-determined rows (ranged impossible) are excluded.
+    expect(snap.rowCount + snap.invalidExcluded + snap.ruleDeterminedExcluded).toBe(32);
+    expect(snap.ruleDeterminedExcluded).toBeGreaterThan(0);
     const csv = fs.readFileSync(path.resolve(REPO_ROOT, snap.csvPath), 'utf8').trim().split('\n');
     expect(csv.length).toBe(snap.rowCount + 1);
-    expect(csv[0].split(',').slice(7)).toEqual([...FEATURE_NAMES]);
+    expect(csv[0].split(',').slice(8)).toEqual([...FEATURE_NAMES]);
+    expect(csv[0].split(',')[5]).toBe('player_strategy');
 
     const res = await trainModel(getPool());
     expect(res.trained).toBe(true);

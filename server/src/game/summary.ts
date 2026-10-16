@@ -27,6 +27,9 @@ export interface SideCombatSummary {
   avgMitigationSuffered: number;
   /** Share of this side's attacks that were ranged (null if it made no attacks). */
   rangedShare: number | null;
+  /** Attacks outside the forced opening phase (regular + DEX bonus) — the ones that reflect a style choice. */
+  nonOpeningAttacks: number;
+  nonOpeningRanged: number;
 }
 
 export interface CombatSummary {
@@ -51,6 +54,8 @@ function emptySide(): SideCombatSummary {
     pierceExtraDamage: 0,
     avgMitigationSuffered: 0,
     rangedShare: null,
+    nonOpeningAttacks: 0,
+    nonOpeningRanged: 0,
   };
 }
 
@@ -63,6 +68,10 @@ export function summarizeCombat(events: CombatEvent[]): CombatSummary {
     s.attacks++;
     s.attacksByMode[e.mode]++;
     s.attacksByPhase[e.phase]++;
+    if (e.phase !== 'opening') {
+      s.nonOpeningAttacks++;
+      if (e.mode === 'ranged') s.nonOpeningRanged++;
+    }
     s.damageDealt += e.damage;
     s.damageByMode[e.mode] += e.damage;
     s.damageByPhase[e.phase] += e.damage;
