@@ -1,0 +1,78 @@
+/* Court Deck — design tokens. Baize table, white card stock, flat four-colour court printing.
+   Saturated colour lives on card faces and state only; the shell is baize, stock and ink. */
+:root {
+  /* Baize (the table) */
+  --baize-950: #0b2219;
+  --baize-900: #0f2a20;
+  --baize-800: #163a2c;
+  --baize-700: #1e4b39;
+  --baize-600: #285f49;
+  --on-baize: #eef3ef;
+  --on-baize-2: #b9d0c2;
+
+  /* Card stock and ink */
+  --stock: #f7f5f0;
+  --stock-2: #eeeae1;
+  --stock-3: #e2ddd1;
+  --line: #d3ccbd;
+  --ink: #141414;
+  --ink-2: #474540;
+  --ink-3: #6b675e;
+
+  /* Court printing */
+  --red: #c4122f;
+  --red-ink: #a50f27;
+  --blue: #1f3c8c;
+  --blue-ink: #182f70;
+  --yellow: #f0b323;
+  --yellow-soft: #f8e2a6;
+
+  /* Roles */
+  --player: var(--blue);
+  --boss: var(--red);
+  --win: var(--blue);
+  --loss: var(--red);
+  --warn-bg: #fbecc4;
+  --warn-ink: #6e4a00;
+  --err-bg: #f9dde1;
+  --err-ink: #8a0c21;
+  --ok-bg: #dfe8f8;
+  --ok-ink: #182f70;
+
+  /* Type */
+  --font-ui: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --font-index: 'Big Shoulders Display', 'Atkinson Hyperlegible', sans-serif;
+  --fs-xs: 0.78rem;
+  --fs-sm: 0.875rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.75rem;
+  --fs-2xl: 2.5rem;
+  --fs-3xl: 3.5rem;
+
+  /* Space (4-pt) */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+
+  /* Shape and depth */
+  --r-card: 14px;
+  --r-sm: 8px;
+  --r-pill: 999px;
+  --lift-1: 0 1px 2px rgb(11 34 25 / 0.25), 0 2px 8px rgb(11 34 25 / 0.18);
+  --lift-2: 0 4px 12px rgb(11 34 25 / 0.28), 0 12px 32px rgb(11 34 25 / 0.22);
+  --focus: 0 0 0 3px var(--yellow);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --t-fast: 140ms;
+  --t-med: 320ms;
+
+  /* Layout: the card-width module */
+  --module: 168px;
+  --page-max: 1320px;
+}

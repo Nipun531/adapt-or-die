@@ -148,6 +148,7 @@ export interface Batch {
 }
 export interface ModelRow {
   id: number; version: string; model_type: string; feature_schema_version: string; engine_version: string; artifact_path: string;
+  params?: { blend_weight?: number } & Record<string, unknown>;
   metrics: Record<string, number | null>; baseline_metrics: Record<string, number | null>;
   data_stats: Record<string, any>; eligible: boolean; eligibility_reasons: string[]; is_active: boolean;
   training_seconds: number; trained_at: string; activated_at: string | null; snapshot_rows: number | null;
@@ -172,7 +173,15 @@ export interface MlStatus {
   python: { ok: boolean; detail: string } | null;
 }
 
-export class ApiError extends Error {}
+/** kind: 'network' = the API (or its database) could not be reached; 'rule' = the server refused the action (400);
+ *  'http' = any other server error. The UI words each one differently. */
+export class ApiError extends Error {
+  constructor(message: string, public kind: 'network' | 'rule' | 'http' = 'http') {
+    super(message);
+  }
+}
+
+const UNREACHABLE = 'The API at port 4000 is not answering. Start it with `npm run dev` (and Docker for the database), then try again.';
 
 async function call<T>(method: string, url: string, body?: unknown): Promise<T> {
   let res: Response;
@@ -183,11 +192,24 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError('Cannot reach the server. Is `npm run dev` running?');
+    throw new ApiError(UNREACHABLE, 'network');
   }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(data.error ?? `${res.status} ${res.statusText}`);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    // The dev proxy answers 500/502/504 with no JSON body when the API process is down.
+    if (!data && res.status >= 500) throw new ApiError(UNREACHABLE, 'network');
+    const msg: string = data?.error ?? `${res.status} ${res.statusText}`;
+    if (/database|PostgreSQL|ECONNREFUSED/i.test(msg) && res.status >= 500) throw new ApiError(msg, 'network');
+    throw new ApiError(msg, res.status === 400 ? 'rule' : 'http');
+  }
   return data as T;
+}
+
+export interface BuildPreview {
+  current: Derived;
+  /** null when the loadout is illegal (see `problem`). */
+  preview: Derived | null;
+  stats: Stats; loadout: Loadout; purchases: string[]; cost: number; affordable: boolean; problem: string | null;
 }
 
 export const api = {
@@ -199,7 +221,8 @@ export const api = {
   getRun: (id: number) => call<RunView>('GET', `/runs/${id}`),
   endRun: (id: number) => call<RunView>('POST', `/runs/${id}/end`),
   allocate: (id: number, stat: StatKey, points: number) => call<RunView>('POST', `/runs/${id}/allocate`, { stat, points }),
-  buy: (id: number, itemId: string) => call<RunView>('POST', `/runs/${id}/buy`, { itemId }),
+  buy: (id: number, itemId: string, loadout?: Loadout) => call<RunView>('POST', `/runs/${id}/buy`, loadout ? { itemId, loadout } : { itemId }),
+  preview: (id: number, req: { loadout?: Loadout; allocation?: Partial<Stats> }) => call<BuildPreview>('POST', `/runs/${id}/preview`, req),
   setLoadout: (id: number, loadout: Loadout) => call<RunView>('POST', `/runs/${id}/loadout`, loadout),
   startRound: (id: number) => call<RoundDetail>('POST', `/runs/${id}/rounds`),
   getRound: (id: number) => call<RoundDetail>('GET', `/rounds/${id}`),

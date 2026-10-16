@@ -72,7 +72,21 @@ Spec: `docs/V2_DEMANDS.md` (user answers Q-1..Q-5 in §11.1). Plan: `docs/V2_IMP
     - On identical games, the boss decides equally well with all three (HP margin 0.659–0.661).
   - **Not activated; no rule was relaxed.** Root cause: the balance (one hybrid build beats both styles) plus 44% rule-determined rounds. Details: `docs/ML_WALKTHROUGH.md` §10c.
   - **Tests:** `npm test` = **157/157**.
-- **Not done:** Phase 7 (UI redesign), Phase 8 (final verification). The old active model `…-s2` is still flagged active but falls back automatically (engine mismatch). Deactivating it (`npm run ml:activate -- --none`) is only cosmetic and needs your OK.
+- **Phase 7 UI redesign: IN PROGRESS (checkpoint 2026-10-16).** Resume from here:
+  - **Done:**
+    - Direction "Court Deck" (baize table, card stock, court inks, suit pips ♥HP ♠STR ♦DEF ♣DEX as SVG). Contract: `client/.impeccable/surfaces/src-app-tsx.md`, seed:d9614f1b4440c060.
+    - New client: `styles/{tokens,base,app}.css`; `ui/{Icon,states}.tsx`; `duel/{Versus,Armory,loadout,Fight,Aftermath}.tsx`; `views/*` restyled.
+    - Phases Prepare / Fight / Aftermath, an action bar, and the boss-hand signature.
+    - Server: `POST /api/runs/:id/preview` (pure) and buy+equip (`/buy` with `loadout`).
+    - Fonts self-hosted (@fontsource). Two browser inspection rounds done. Detector clean.
+    - Screenshots in `client/.impeccable/review/*.png` (native 1440 / 390 via `scratchpad cdp_shots.py`, which drives headless Chrome over CDP).
+  - **Next steps, in order:**
+    1. Get the finish reviewer's verdict (agent `ad8e9042eef5e90b4`, re-review requested on the PNGs). Apply its fixes in one batch, recapture, and send back for a verdict.
+    2. Spawn `impeccable-documenter` to write `client/DESIGN.md` + `client/.impeccable/design.json` from the built world.
+    3. Client unit tests (`duel/loadout.ts` slot logic). Run `npm test`, typecheck and build.
+    4. Update docs (`V2_IMPLEMENTATION_PLAN.md` status, `FILE_GUIDE.md` for the new client files, `client/PRODUCT.md` with 24 items and the Workshop). Commit and push.
+  - Safe UI testing: `npm run dev:testdb` (launch config `api-testdb`) plus `client`. Test run #2 exists in the test DB (wiped by `npm test`).
+- **Not done:** Phase 8 (final verification). The old active model `…-s2` is still flagged active but falls back automatically (engine mismatch). Deactivating it (`npm run ml:activate -- --none`) is only cosmetic and needs your OK.
 
 ## 1b. Change log — engine 1.1.0: 2 initial stat points (user request, 2026-10-10) — DONE + verified
 

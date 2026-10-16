@@ -126,3 +126,35 @@ describe('simulations and ML over HTTP', () => {
     expect((await request(app).post('/api/ml/activate').send({ version: 'nope' })).status).toBe(400);
   });
 });
+
+describe('Armory endpoints (V2 Phase 7c)', () => {
+  const counts = async () => (await getPool().query(
+    `SELECT (SELECT count(*) FROM progression_events)::int AS ev, (SELECT gold FROM combatants WHERE side = 'player' LIMIT 1) AS gold`)).rows[0];
+
+  it('preview returns derived numbers for a hypothetical loadout and writes nothing', async () => {
+    const id = (await request(app).post('/api/runs').send({})).body.run.id;
+    await getPool().query(`UPDATE combatants SET gold = 20 WHERE run_id = $1 AND side = 'player'`, [id]);
+    const before = await counts();
+    const p = await request(app).post(`/api/runs/${id}/preview`).send({ loadout: { hand1: 'sword', hand2: null, armour: null }, allocation: { str: 1 } });
+    expect(p.status).toBe(200);
+    expect(p.body).toMatchObject({ purchases: ['sword'], cost: 10, affordable: true, problem: null });
+    expect(p.body.preview.netAtk).toBeCloseTo((20 + 3) * (1 + 0.25 * 4));
+    expect(p.body.current.netAtk).toBe(20);
+    const bad = await request(app).post(`/api/runs/${id}/preview`).send({ loadout: { hand1: 'sword', hand2: 'mace', armour: null } });
+    expect(bad.body.problem).toMatch(/Illegal hand combination/);
+    expect(bad.body.preview).toBeNull();
+    expect(await counts()).toEqual(before);
+  });
+
+  it('buy with a loadout buys and equips in one step; an illegal loadout buys nothing', async () => {
+    const id = (await request(app).post('/api/runs').send({})).body.run.id;
+    await getPool().query(`UPDATE combatants SET gold = 30 WHERE run_id = $1 AND side = 'player'`, [id]);
+    const ok = await request(app).post(`/api/runs/${id}/buy`).send({ itemId: 'sword', loadout: { hand1: 'sword', hand2: null, armour: null } });
+    expect(ok.status).toBe(200);
+    expect(ok.body.player).toMatchObject({ gold: 20, inventory: ['sword'], loadout: { hand1: 'sword' } });
+    const bad = await request(app).post(`/api/runs/${id}/buy`).send({ itemId: 'mace', loadout: { hand1: 'sword', hand2: 'mace', armour: null } });
+    expect(bad.status).toBe(400);
+    const v = (await request(app).get(`/api/runs/${id}`)).body;
+    expect(v.player).toMatchObject({ gold: 20, inventory: ['sword'] });
+  });
+});

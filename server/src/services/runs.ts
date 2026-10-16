@@ -6,7 +6,7 @@
 import { itemForHistory, requireItem } from '../game/catalog.js';
 import { ENGINE_VERSION, INITIAL_STAT_POINTS } from '../game/constants.js';
 import { deriveStats } from '../game/derive.js';
-import { allocateStat, equip, purchase, RuleError } from '../game/equipment.js';
+import { allocateStat, equip, loadoutProblem, purchase, RuleError } from '../game/equipment.js';
 import { xpToNextLevel } from '../game/formulas.js';
 import { initialCombatant } from '../game/progression.js';
 import { freshSeed } from '../game/rng.js';
@@ -130,6 +130,44 @@ export async function buy(runId: number, itemId: string, actor: Actor = 'player'
   return db ? fn(db) : withTransaction(fn);
 }
 
+/**
+ * Buy an item and equip a loadout that uses it, in ONE transaction (the Armory's "buy & equip").
+ * Both steps go through the same rules as separate calls; if the loadout is illegal nothing is bought.
+ */
+export async function buyAndEquip(runId: number, itemId: string, loadout: Loadout, actor: Actor = 'player') {
+  return withTransaction(async (c) => {
+    await lockRunForPrep(c, runId);
+    const bought = purchase(await loadCombatant(c, runId, 'player', true), itemId);
+    const s = equip(bought, loadout);
+    await saveCombatant(c, runId, s);
+    await logProgression(c, { runId, side: 'player', kind: 'purchase', actor, payload: { itemId, cost: requireItem(itemId).cost }, stateAfter: bought });
+    await logProgression(c, { runId, side: 'player', kind: 'equip', actor, payload: { loadout }, stateAfter: s });
+    return s;
+  });
+}
+
+/**
+ * PURE PREVIEW (writes nothing): the player's derived combat numbers for a hypothetical stat allocation and/or
+ * loadout, so the client can show "Net ATK 40.3 → 49.5" without computing any rule itself. Items not owned yet are
+ * treated as bought; the result says what that would cost, whether it is affordable and whether the loadout is legal.
+ */
+export async function previewBuild(db: Db, runId: number, req: { allocation?: Partial<Record<StatKey, number>>; loadout?: Loadout }) {
+  const now = await loadCombatant(db, runId, 'player');
+  let s = now;
+  for (const [stat, n] of Object.entries(req.allocation ?? {})) if (n) s = allocateStat(s, stat as StatKey, n);
+  const loadout = req.loadout ?? s.loadout;
+  const ids = [loadout.hand1, loadout.hand2, loadout.armour].filter((x): x is string => x !== null);
+  for (const id of ids) requireItem(id); // unknown ids → error
+  const purchases = ids.filter((id) => !now.inventory.includes(id));
+  const cost = purchases.reduce((a, id) => a + requireItem(id).cost, 0);
+  const problem = loadoutProblem(loadout, [...now.inventory, ...purchases]);
+  return {
+    current: deriveStats(now.stats, now.loadout),
+    preview: problem ? null : deriveStats(s.stats, loadout),
+    stats: s.stats, loadout, purchases, cost, affordable: cost <= now.gold, problem,
+  };
+}
+
 export async function setLoadout(runId: number, loadout: Loadout, actor: Actor = 'player', db?: Db) {
   const fn = async (c: Db) => {
     await lockRunForPrep(c, runId);
@@ -192,7 +230,7 @@ export async function listRuns(db: Db, opts: { source?: string; limit?: number; 
     where = 'WHERE r.source = $3';
   }
   const res = await db.query(
-    `SELECT r.id, r.source, r.status, r.end_reason, r.max_rounds, r.player_strategy, r.simulation_batch_id, r.created_at,
+    `SELECT r.id, r.source, r.status, r.end_reason, r.max_rounds, r.engine_version, r.player_strategy, r.simulation_batch_id, r.created_at,
        (SELECT count(*)::int FROM rounds x WHERE x.run_id = r.id AND x.status='completed') AS rounds_completed,
        (SELECT count(*)::int FROM rounds x WHERE x.run_id = r.id AND x.winner='player') AS player_wins,
        (SELECT count(*)::int FROM rounds x WHERE x.run_id = r.id AND x.winner='boss') AS boss_wins

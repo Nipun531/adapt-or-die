@@ -22,7 +22,7 @@ import { exportDataset } from '../ml/dataset.js';
 import { buildMissingExamples } from '../ml/examples.js';
 import { activateModel, deactivateModels, listModels, MlError, mlStatus, trainModel } from '../ml/training.js';
 import { getRoundDetail, startRound, submitChoice } from '../services/rounds.js';
-import { allocate, buy, createRun, endRun, getRunView, listRuns, NotFoundError, setLoadout } from '../services/runs.js';
+import { allocate, buy, buyAndEquip, createRun, endRun, getRunView, listRuns, NotFoundError, previewBuild, setLoadout } from '../services/runs.js';
 import { AGENTS, SIMULATOR_VERSION } from '../sim/agents.js';
 import { BATCH_LIMITS, createBatch, executeBatch, getBatch, listBatches, normalizeConfig } from '../sim/runner.js';
 
@@ -41,10 +41,15 @@ const idParam = (req: Request, name = 'id') => {
 };
 
 const slot = z.string().min(1).max(40).nullable();
+const loadoutSchema = z.object({ hand1: slot, hand2: slot, armour: slot }).strict();
 const schemas = {
+  buy: z.object({ itemId: z.string().min(1).max(40), loadout: loadoutSchema.optional() }).strict(),
+  preview: z.object({
+    allocation: z.object({ hp: z.number().int().min(0).max(50), str: z.number().int().min(0).max(50), def: z.number().int().min(0).max(50), dex: z.number().int().min(0).max(50) }).partial().strict().optional(),
+    loadout: loadoutSchema.optional(),
+  }).strict(),
   createRun: z.object({ maxRounds: z.number().int().min(1).max(100).optional(), seed: z.string().min(1).max(100).optional() }).strict(),
   allocate: z.object({ stat: z.enum(STAT_KEYS as [string, ...string[]]), points: z.number().int().positive() }).strict(),
-  buy: z.object({ itemId: z.string().min(1).max(40) }).strict(),
   loadout: z.object({ hand1: slot, hand2: slot, armour: slot }).strict(),
   choice: z.object({ mode: z.enum(['melee', 'ranged', 'unarmed']), repeat: z.boolean().optional() }).strict(),
   simulation: z.object({
@@ -112,13 +117,17 @@ export function createApp() {
     return getRunView(getPool(), idParam(req));
   }));
   app.post('/api/runs/:id/buy', h(async (req) => {
-    await buy(idParam(req), schemas.buy.parse(req.body).itemId);
+    const b = schemas.buy.parse(req.body);
+    if (b.loadout) await buyAndEquip(idParam(req), b.itemId, b.loadout);
+    else await buy(idParam(req), b.itemId);
     return getRunView(getPool(), idParam(req));
   }));
   app.post('/api/runs/:id/loadout', h(async (req) => {
     await setLoadout(idParam(req), schemas.loadout.parse(req.body));
     return getRunView(getPool(), idParam(req));
   }));
+  // Pure preview for the Armory: derived numbers for a hypothetical allocation/loadout. Writes nothing.
+  app.post('/api/runs/:id/preview', h(async (req) => previewBuild(getPool(), idParam(req), schemas.preview.parse(req.body ?? {}))));
   app.get('/api/runs/:id/progression', h(async (req) => {
     const r = await getPool().query('SELECT * FROM progression_events WHERE run_id = $1 ORDER BY id', [idParam(req)]);
     return { events: r.rows };

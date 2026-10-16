@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;700&family=Archivo+Narrow:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:#fff;color:#111;font:15px/1.4 'Archivo',sans-serif}
+.top{height:54px;display:flex;align-items:center;gap:28px;padding:0 32px;border-bottom:1px solid #111}
+.brand{font:700 20px 'Archivo Narrow';text-transform:uppercase}.run{margin-left:auto}
+.wrap{display:grid;grid-template-columns:330px 1fr 330px;height:846px}
+.panel{padding:20px 24px;border-right:1px solid #ddd}.panel.r{border-right:0;border-left:1px solid #ddd}
+h3{font:700 15px 'Archivo Narrow';text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.who{font:700 30px 'Archivo Narrow';text-transform:uppercase}.who.p{color:#2f5bd3}.who.b{color:#d23a2a}
+.stat{display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:6px 0}
+.score{position:relative;display:grid;grid-template-columns:1fr 2px 1fr;padding:20px 40px}
+.staff{background:#111}
+.col{position:relative}
+.blk{position:absolute;width:70%;background:#111}
+.col.l .blk{right:16px}.col.r .blk{left:16px}
+.blk.h{background:repeating-linear-gradient(45deg,#111 0 3px,#fff 3px 7px);border:2px solid #111}
+.blk.d{background:radial-gradient(#111 1.5px,#fff 1.6px) 0 0/8px 8px;border:2px solid #111}
+.band{position:absolute;left:0;right:0;height:60px;background:#d9d9d9;opacity:.6}
+.num{position:absolute;left:-30px;font:700 13px 'Archivo Narrow';color:#666}
+.lab{position:absolute;font-size:12px}
+.go{margin-top:24px;background:#111;color:#fff;padding:12px 18px;font:700 16px 'Archivo Narrow';text-transform:uppercase;display:inline-block}
+</style></head><body>
+<div class="top"><div class="brand">The Boss Remembers</div><span>Duel</span><span>Workshop</span><div class="run">Run 12 · Round 2 replay · Boss won</div></div>
+<div class="wrap">
+<div class="panel"><div class="who p">You</div><h3>Level 2 · HP 105</h3>
+<div class="stat"><span>Net ATK</span><b>40.3</b></div><div class="stat"><span>Net DEF</span><b>38.5</b></div><div class="stat"><span>Eff. DEX</span><b>16.3</b></div>
+<h3 style="margin-top:18px">Key</h3><p>Solid = hit · hatched = pierce · dotted = DEX bonus attack. Height = damage. Time rises.</p>
+<div class="go">Prepare round 3</div></div>
+<div class="score">
+<div class="col l"><span class="num" style="bottom:40px">T0</span><span class="num" style="bottom:210px">T1</span><span class="num" style="bottom:420px">T2</span>
+<div class="blk h" style="bottom:260px;height:120px"></div><span class="lab" style="bottom:390px;right:16px">Spear 29.7 · pierce</span>
+<div class="blk" style="bottom:470px;height:90px"></div></div>
+<div class="staff"></div>
+<div class="col r"><div class="band" style="bottom:20px"></div>
+<div class="blk" style="bottom:30px;height:85px"></div><span class="lab" style="bottom:120px;left:16px">Opening bolt 21.4</span>
+<div class="blk" style="bottom:130px;height:150px"></div><div class="blk d" style="bottom:290px;height:150px"></div>
+<div class="blk" style="bottom:570px;height:150px"></div><span class="lab" style="bottom:725px;left:16px">KO</span></div>
+</div>
+<div class="panel r"><div class="who b">The Boss</div><h3>Level 2 · HP 110</h3>
+<div class="stat"><span>Net ATK</span><b>77.0</b></div><div class="stat"><span>Net DEF</span><b>33.0</b></div><div class="stat"><span>Eff. DEX</span><b>32.0</b></div>
+<h3 style="margin-top:18px">Boss memory</h3><p>Pierce exposure: your Spear added 9.2 damage. Next: +HP. P(ranged) by rule: 0%.</p></div>
+</div></body></html>

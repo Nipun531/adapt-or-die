@@ -1,8 +1,14 @@
-// Client entry point: mounts the React app and global styles.
+// Client entry point: self-hosted fonts, global styles, then the React app.
+import '@fontsource/atkinson-hyperlegible/400.css';
+import '@fontsource/atkinson-hyperlegible/700.css';
+import '@fontsource/big-shoulders-display/700.css';
+import '@fontsource/big-shoulders-display/800.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-import './styles.css';
+import './styles/tokens.css';
+import './styles/base.css';
+import './styles/app.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

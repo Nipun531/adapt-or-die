@@ -1,0 +1,87 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Big+Shoulders+Display:wght@600;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:#1e4b39;font:15px/1.4 'Atkinson Hyperlegible',sans-serif;color:#f7f5f0}
+.top{height:56px;display:flex;align-items:center;gap:28px;padding:0 32px;background:#163a2c;border-bottom:1px solid #0f2a20}
+.brand{font:800 22px 'Big Shoulders Display';letter-spacing:.04em;text-transform:uppercase}
+.nav a{color:#cfe0d6;margin-right:18px;text-decoration:none}.nav a.on{color:#fff;border-bottom:2px solid #f0b323;padding-bottom:4px}
+.run{margin-left:auto;color:#cfe0d6}.run b{color:#fff}
+.versus{display:grid;grid-template-columns:1fr 80px 1fr;gap:0;padding:20px 32px 0;align-items:center}
+.card{background:#f7f5f0;color:#141414;border-radius:14px;padding:16px 20px;display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;box-shadow:0 2px 0 #0f2a20}
+.card.boss{grid-template-columns:auto 1fr auto}
+.idx{font:800 44px/0.9 'Big Shoulders Display';text-align:center}.idx small{display:block;font-size:13px;font-weight:600;letter-spacing:.08em}
+.you .idx{color:#1f3c8c}.boss .idx{color:#c4122f}
+.name{font:800 26px 'Big Shoulders Display';text-transform:uppercase}
+.sub{color:#555;font-size:13px}
+.hp{font:800 52px/1 'Big Shoulders Display'}.hp small{font-size:15px;color:#666;font-weight:600}
+.pips{display:flex;gap:16px;margin-top:6px;font-size:14px}.pips span b{font-size:17px}
+.r{color:#c4122f}.k{color:#141414}
+.vs{text-align:center;font:800 30px 'Big Shoulders Display';color:#f0b323}
+.tabs{display:flex;gap:6px;padding:20px 32px 0}
+.tab{padding:10px 22px;border-radius:10px 10px 0 0;background:#163a2c;color:#cfe0d6;font-weight:700}
+.tab.on{background:#f7f5f0;color:#141414}.tab .n{font:800 15px 'Big Shoulders Display';margin-right:8px;color:#888}
+.table{margin:0 32px;background:#f7f5f0;color:#141414;border-radius:0 14px 14px 14px;height:560px;display:grid;grid-template-columns:1fr 380px;gap:0}
+.armory{padding:20px 24px;border-right:1px solid #e3ded3}
+h3{font:800 18px 'Big Shoulders Display';text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;gap:12px;align-items:baseline}
+h3 small{font:400 13px 'Atkinson Hyperlegible';color:#666;text-transform:none;letter-spacing:0}
+.filters{display:flex;gap:8px;margin-bottom:14px}.chip{border:1px solid #c9c2b4;border-radius:999px;padding:4px 12px;font-size:13px}.chip.on{background:#141414;color:#fff;border-color:#141414}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.item{border:1.5px solid #d9d3c6;border-radius:10px;padding:10px 12px;height:132px;display:flex;flex-direction:column;background:#fff;position:relative}
+.item .c{font:800 22px 'Big Shoulders Display';position:absolute;right:10px;top:8px}
+.item .t{font-weight:700;font-size:15px;padding-right:40px}
+.item .f{font-size:12px;color:#666}
+.item .m{margin-top:auto;display:flex;gap:10px;font-size:13px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;background:#f0b323;color:#141414;margin-top:4px;width:fit-content}
+.tag.p{background:#1f3c8c;color:#fff}
+.item.own{border-color:#1f3c8c}.item.dim{opacity:.45}
+.side{padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.slot{border:2px dashed #b9b2a3;border-radius:10px;height:110px;padding:8px;font-size:12px;color:#777}
+.slot.f{border:1.5px solid #1f3c8c;background:#fff;color:#141414}.slot b{display:block;font-size:14px;margin-top:4px}
+.prev{font-size:13px;background:#efeae0;border-radius:8px;padding:8px 10px}.prev b{color:#1f3c8c}
+.step{display:grid;grid-template-columns:1fr auto;gap:6px 10px;font-size:14px;align-items:center}
+.btnm{display:inline-flex;gap:6px}.btnm span{width:30px;height:30px;border:1px solid #c9c2b4;border-radius:8px;display:grid;place-items:center;font-weight:700}
+.hand{background:#163a2c;color:#f7f5f0;border-radius:10px;padding:10px 12px;font-size:13px}
+.fan{display:flex;margin-top:8px}.fan i{width:46px;height:64px;border-radius:6px;background:#f7f5f0;border:1px solid #0f2a20;margin-right:-14px;transform:rotate(-8deg)}
+.fan i:nth-child(2){transform:rotate(-2deg)}.fan i.up{transform:rotate(6deg);background:#fff;outline:2px solid #f0b323}
+.go{margin-top:auto;align-self:flex-end;background:#c4122f;color:#fff;font:800 22px 'Big Shoulders Display';text-transform:uppercase;padding:14px 28px;border-radius:12px}
+</style></head><body>
+<div class="top"><div class="brand">The Boss Remembers</div>
+<div class="nav"><a class="on">Duel</a><a>Workshop ▾</a></div>
+<div class="run">Run <b>#12</b> · Round <b>3</b> / 10 · You <b>1</b> – <b>1</b> Boss</div></div>
+<div class="versus">
+<div class="card you"><div class="idx">2<small>LVL</small></div>
+<div><div class="name">You</div><div class="sub">Spear + Wood Shield · Leather Armor</div>
+<div class="pips"><span><b class="k">♠</b> STR 23 → <b>40.3</b></span><span><b class="r">♦</b> DEF 11 → <b>38.5</b></span><span><b class="k">♣</b> DEX 13 → <b>16.3</b></span></div></div>
+<div class="hp">105<small> HP</small></div></div>
+<div class="vs">VS</div>
+<div class="card boss"><div class="idx">2<small>LVL</small></div>
+<div><div class="name">The Boss</div><div class="sub">Crossbow + LongSword · Leather Armor</div>
+<div class="pips"><span><b class="k">♠</b> STR 28 → <b>77.0</b></span><span><b class="r">♦</b> DEF 11 → <b>33.0</b></span><span><b class="k">♣</b> DEX 16 → <b>32.0</b></span></div></div>
+<div class="hp">110<small> HP</small></div></div>
+</div>
+<div class="tabs"><div class="tab on"><span class="n">1</span>Prepare</div><div class="tab"><span class="n">2</span>Fight</div><div class="tab"><span class="n">3</span>Aftermath</div></div>
+<div class="table">
+<div class="armory"><h3>Armory <small>25 gold · tap a card to preview, buy &amp; equip in one step</small></h3>
+<div class="filters"><span class="chip on">Affordable</span><span class="chip">Blades</span><span class="chip">Blunt</span><span class="chip">Polearms</span><span class="chip">Bows</span><span class="chip">Shields</span><span class="chip">Armor</span></div>
+<div class="grid">
+<div class="item own"><span class="c">15</span><div class="t">Spear</div><div class="f">Polearm · equipped</div><span class="tag p">Pierce 35% · 35% DEF</span><div class="m"><span>♠ +3</span><span>♣ +1</span></div></div>
+<div class="item"><span class="c">10</span><div class="t">Sword</div><div class="f">Blade</div><div class="m"><span>♠ +4</span><span>♦ +1</span></div></div>
+<div class="item"><span class="c">20</span><div class="t">LongSword</div><div class="f">Blade</div><div class="m"><span>♠ +7</span><span>♦ +2</span></div></div>
+<div class="item"><span class="c">20</span><div class="t">Sabre</div><div class="f">Blade</div><div class="m"><span>♠ +5</span><span>♦ +1</span><span>♣ +2</span></div></div>
+<div class="item"><span class="c">15</span><div class="t">Bow</div><div class="f">Bow</div><span class="tag">First Shot</span><div class="m"><span>♣ +2</span><span>Pierce 55%</span></div></div>
+<div class="item"><span class="c">7</span><div class="t">Wooden Club</div><div class="f">Blunt</div><div class="m"><span>♠ +3</span><span>♦ +1</span></div></div>
+<div class="item"><span class="c">15</span><div class="t">Iron Club</div><div class="f">Blunt</div><div class="m"><span>♠ +5</span><span>♦ +2</span><span>♣ −1</span></div></div>
+<div class="item"><span class="c">25</span><div class="t">Mace</div><div class="f">Blunt</div><div class="m"><span>♠ +8</span><span>♦ +2</span><span>♣ −1</span></div></div>
+<div class="item dim"><span class="c">28</span><div class="t">Lance</div><div class="f">Polearm · need 3 more</div><span class="tag p">Pierce 60% · 75% DEF</span><div class="m"><span>♠ +5</span></div></div>
+<div class="item dim"><span class="c">28</span><div class="t">Crossbow</div><div class="f">Bow · need 3 more</div><span class="tag">First Shot</span><div class="m"><span>♣ +4</span></div></div>
+</div></div>
+<div class="side"><h3>Your hand <small>2 hands + body</small></h3>
+<div class="slots"><div class="slot f">Hand 1<b>Spear</b>♠+3 ♣+1</div><div class="slot f">Hand 2<b>Wood Shield</b>♦+3 ♣−1</div><div class="slot f">Body<b>Leather Armor</b>♦+2</div></div>
+<div class="prev">Preview Mace in Hand 1: Net ATK <b>40.3 → 49.5</b> · Eff. DEX <b>16.3 → 13.0</b></div>
+<div class="step"><span>Stat points: <b>1</b></span><span></span><span>♥ HP 105 (+5)</span><span class="btnm"><span>−</span><span>+</span></span><span>♠ STR 23 (+3)</span><span class="btnm"><span>−</span><span>+</span></span></div>
+<div class="hand"><b>The boss's last hand</b> · drew from 3 equal plans, played <b>hybrid</b> (47%)<div class="fan"><i></i><i></i><i class="up"></i></div></div>
+<div class="go">Begin round 3 ▸</div></div>
+</div></body></html>
