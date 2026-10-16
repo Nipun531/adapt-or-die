@@ -1,7 +1,34 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "api", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev:server"], "port": 4000 },
-    { "name": "client", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev:client"], "port": 5173 }
+    {
+      "name": "api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:server"
+      ],
+      "port": 4000
+    },
+    {
+      "name": "client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:client"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "api-testdb",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:testdb",
+        "-w",
+        "server"
+      ],
+      "port": 4000
+    }
   ]
 }

@@ -13,12 +13,12 @@ import { initialCombatant } from '../game/progression.js';
 import { deriveSeed } from '../game/rng.js';
 import type { CombatantState } from '../game/types.js';
 import type { Db } from '../db/pool.js';
-import { baselineProbability, buildFeatures } from '../ml/features.js';
+import { baselineProbability, buildFeatures, rangedFeasibility } from '../ml/features.js';
 import { predictPlayerStyle, type Prediction } from '../ml/predictor.js';
 import { loadCompletedRounds } from '../services/history.js';
 import { loadCombatant, logProgression, saveCombatant } from '../services/runs.js';
 import type { Weakness } from './analysis.js';
-import { applyPlan, choosePlan } from './policy.js';
+import { applyPlan, choosePlan, type Archetype } from './policy.js';
 
 /** Which derived metric each weakness is most directly addressed by (used only for explanation). */
 const WEAKNESS_METRICS: Record<string, ('effDex' | 'netDef' | 'netAtk' | 'maxHp')[]> = {
@@ -42,17 +42,22 @@ export async function bossPrepare(db: Db, runId: number, runSeed: string, roundN
   const history = await loadCompletedRounds(db, runId, roundNumber - 1);
   const records = history.map((h) => h.record);
   const features = records.length ? buildFeatures(records) : null;
-  const prediction = await predictPlayerStyle(db, features, baselineProbability(records));
+  // Round 1: no history — the boss knows the starting state (base stats, 2 unspent points, 0 gold, no items). It cannot
+  // see how the player spends those points (current-round preparation), just as it never sees later-round prep; the
+  // policy therefore considers every way they could spend them (reachable scenarios).
+  const observed = records.length ? records[records.length - 1].playerPost : initialCombatant('player');
+  const prediction = await predictPlayerStyle(db, features, baselineProbability(records), rangedFeasibility(observed));
 
   const before = await loadCombatant(db, runId, 'boss', true);
-  // Round 1: no history — the boss assumes the base starting build. It cannot see how the player spent the
-  // initial stat points (that is the player's current-round preparation), just as it never sees later-round prep.
-  const observed = records.length ? records[records.length - 1].playerPost : initialCombatant('player');
+  const prev = roundNumber > 1
+    ? (await db.query(`SELECT selected->'plan'->>'archetype' AS a FROM boss_decisions WHERE run_id = $1 AND for_round_number = $2`, [runId, roundNumber - 1])).rows[0]?.a ?? null
+    : null;
   const policy = choosePlan({
     boss: before,
     observedPlayer: observed,
     pRanged: prediction.probabilityRanged,
     seed: String(deriveSeed(runSeed, `boss:${roundNumber}`)),
+    previousArchetype: prev as Archetype | null,
   });
   const plan = policy.selected;
   const after = applyPlan(before, plan); // re-validated by the rules (throws on anything illegal)
@@ -100,7 +105,7 @@ export async function bossPrepare(db: Db, runId: number, runSeed: string, roundN
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
     [runId, roundNumber, JSON.stringify(prediction), JSON.stringify(evidence),
       JSON.stringify({ candidatesEvaluated: policy.candidatesEvaluated, current: policy.current, alternatives: policy.alternatives }),
-      JSON.stringify({ plan, rationale: policy.rationale }), JSON.stringify(actions), plan.cost,
+      JSON.stringify({ plan, rationale: policy.rationale, policyVersion: policy.version, band: policy.band ?? null, draw: policy.draw ?? null }), JSON.stringify(actions), plan.cost,
       JSON.stringify(before), JSON.stringify(after)],
   );
   return { decisionId: ins.rows[0].id, boss: after, prediction };

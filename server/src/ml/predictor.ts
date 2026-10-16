@@ -1,9 +1,15 @@
 /**
  * ML INFERENCE INTERFACE used by the boss decision layer.
  *
- * predictPlayerStyle() returns P(player mostly ranged next round) and says honestly where it came from:
- *   kind = 'model'    → the ACTIVE, ELIGIBLE XGBoost model scored the features (version recorded)
- *   kind = 'fallback' → transparent baseline was used, with the reason (no active model, schema mismatch,
+ * predictPlayerStyle() returns P(player mostly ranged next round) and says honestly where it came from.
+ * `basis` (engine 2.0.0, V2_DEMANDS D-P0-2):
+ *   'rule'     → the player cannot field a ranged weapon next round, so P = 0 exactly (no model is asked)
+ *   'unknown'  → no evidence yet (e.g. before round 1 with ranged feasible): probabilityRanged = null, the policy
+ *                weighs the reachable styles equally as a labelled robustness rule — never a fake 50%
+ *   'model'    → the ACTIVE, ELIGIBLE XGBoost model scored the features (version recorded)
+ *   'baseline' → transparent baseline was used, with the reason
+ * `kind` keeps its V1 meaning: 'model' only for basis 'model', otherwise 'fallback'.
+ *   Fallback reasons: no active model, schema mismatch,
  *                       model trained on a different engine version (older rules),
  *                       artifact missing, Python unavailable, timeout, worker error, ...)
  * The Python worker (ml/infer_worker.py) is spawned lazily and reused; any failure → fallback.
@@ -17,10 +23,16 @@ import type { Db } from '../db/pool.js';
 import { ENGINE_VERSION } from '../game/constants.js';
 import { FEATURE_NAMES, FEATURE_SCHEMA_VERSION, type FeatureVector } from './features.js';
 
+export type PredictionBasis = 'rule' | 'unknown' | 'model' | 'baseline';
+
 export interface Prediction {
   kind: 'model' | 'fallback';
-  probabilityRanged: number;
-  baselineProbability: number;
+  basis: PredictionBasis;
+  /** null = no evidence (basis 'unknown'). */
+  probabilityRanged: number | null;
+  baselineProbability: number | null;
+  /** Whether the player can field a ranged weapon next round, and why (rule-level, decision-time information). */
+  feasibility: { rangedFeasible: boolean; reason: string };
   modelVersion: string | null;
   fallbackReason: string | null;
   featureSchemaVersion: string;
@@ -108,11 +120,19 @@ export async function pingPython(): Promise<{ ok: boolean; detail: string }> {
   return r.ok ? { ok: true, detail: `xgboost ${r.xgboost}` } : { ok: false, detail: r.error ?? 'unknown error' };
 }
 
-export async function predictPlayerStyle(db: Db, features: FeatureVector | null, baseline: number): Promise<Prediction> {
-  const fallback = (reason: string): Prediction => ({
-    kind: 'fallback', probabilityRanged: baseline, baselineProbability: baseline, modelVersion: null,
-    fallbackReason: reason, featureSchemaVersion: FEATURE_SCHEMA_VERSION, features,
-  });
+export async function predictPlayerStyle(
+  db: Db,
+  features: FeatureVector | null,
+  baseline: number | null,
+  feasibility: { rangedFeasible: boolean; reason: string } = { rangedFeasible: true, reason: 'not checked' },
+): Promise<Prediction> {
+  const base = { baselineProbability: baseline, modelVersion: null, featureSchemaVersion: FEATURE_SCHEMA_VERSION, features, feasibility };
+  if (!feasibility.rangedFeasible) {
+    return { ...base, kind: 'fallback', basis: 'rule', probabilityRanged: 0, fallbackReason: `Rule: the player ${feasibility.reason}, so a ranged round is impossible` };
+  }
+  const fallback = (reason: string): Prediction => baseline === null
+    ? { ...base, kind: 'fallback', basis: 'unknown', probabilityRanged: null, fallbackReason: `${reason}; no evidence about the player's style yet` }
+    : { ...base, kind: 'fallback', basis: 'baseline', probabilityRanged: baseline, fallbackReason: reason };
   if (!features) return fallback('No completed rounds yet — nothing to predict from');
   const model = await getActiveModel(db);
   if (!model) return fallback('No active trained model (train + activate one in the ML lab)');
@@ -135,7 +155,6 @@ export async function predictPlayerStyle(db: Db, features: FeatureVector | null,
     return fallback(`Model inference failed: ${res.error ?? 'invalid probability'}`);
   }
   return {
-    kind: 'model', probabilityRanged: res.probability, baselineProbability: baseline, modelVersion: model.version,
-    fallbackReason: null, featureSchemaVersion: FEATURE_SCHEMA_VERSION, features,
+    ...base, kind: 'model', basis: 'model', probabilityRanged: res.probability, modelVersion: model.version, fallbackReason: null,
   };
 }

@@ -53,11 +53,20 @@ No preprocessing is needed: XGBoost handles unscaled numeric features; missing v
 `baselineProbability(history)` in `features.ts`:
 
 ```
-p = 0.5 × [last round mostly ranged] + 0.5 × (ranged rounds + 1) / (rounds + 2)
+p = 0.5 × [last known round mostly ranged] + 0.5 × (known ranged rounds + 1) / (known rounds + 2)
 ```
 
-Half "the player repeats what they just did", half a Laplace-smoothed historical frequency. With no history: 0.5.
-The boss uses this whenever no eligible trained model is active or anything goes wrong, and **says why** (`fallbackReason`).
+Half "the player repeats what they just did", half a Laplace-smoothed historical frequency. The boss uses this whenever no eligible trained model is active or anything goes wrong, and **says why** (`fallbackReason`).
+
+Engine 2.0.0 semantics (V2_DEMANDS §5):
+
+| Situation | Before (V1) | Now |
+|---|---|---|
+| Round with no player attacks | counted as "0% ranged" | the loadout decides when it allows only one style; a Ranged+Melee player who never attacked is *unknown* and skipped (`roundStyle`) |
+| No history | returned 0.5 | returns `null` (no evidence) |
+| Player cannot field a ranged weapon next round (owns none, gold < 15) | ignored | returns 0, and the predictor short-circuits to `basis: 'rule'` (`rangedFeasibility`) |
+
+**About the old "round-zero p = 0.5".** It was the value before round 1, when no round had been played. It was a placeholder, not an estimate: the player had 0 gold, so a ranged round was impossible. It never entered training, because examples start at label round 2. The 503 stored pre-2.0 round-1 decisions keep their 0.5. The UI labels them "older record — placeholder", and ML status counts only current-engine decisions.
 
 ## 6. Pipeline
 
@@ -96,10 +105,10 @@ history (rounds 1..N) → buildFeatures → predictPlayerStyle → choosePlan (p
 - `ml/predictor.ts → predictPlayerStyle()` checks: features exist → an active model exists → it is eligible → its schema matches → its engine version matches →
   `model.json` exists → the Python worker loads it → scores the 34 features. Any failure → baseline with the reason. Timeout 15 s.
 - The worker (`ml/infer_worker.py`) is a persistent process speaking JSON lines; it only scores feature vectors.
-- `boss/policy.ts → choosePlan()` uses `pRanged` to weight two scenario win rates: `score = p·win(ranged) + (1−p)·win(melee)`.
+- `boss/policy.ts → choosePlan()` uses `pRanged` to weight the reachable-opponent scenarios (P over the ranged ones, 1 − P over the melee ones). `null` means styles are weighted equally.
   The model therefore changes which legal plan the boss picks, but every plan is enumerated from legal, affordable options and
   re-validated by `game/equipment.ts`. The model can never buy or allocate anything directly.
-- Every `boss_decisions.predictor` stores `kind` (`model` / `fallback`), `modelVersion`, `probabilityRanged`, `baselineProbability`,
+- Every `boss_decisions.predictor` stores `kind` (`model` / `fallback`), `basis` (`rule` / `unknown` / `model` / `baseline`, engine ≥ 2.0.0), `feasibility`, `modelVersion`, `probabilityRanged` (`null` = no evidence), `baselineProbability`,
   `fallbackReason` and the feature vector. The UI shows a green "Trained ML model vX" or amber "Transparent baseline (fallback)" badge per decision,
   and the ML Lab shows counts of model vs fallback decisions and the latest one.
 

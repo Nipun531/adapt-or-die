@@ -148,8 +148,11 @@ export async function mlStatus(db: Db, opts: { pingPython?: boolean } = {}) {
     `SELECT d.run_id, d.for_round_number, d.created_at, d.predictor->>'kind' AS kind, d.predictor->>'modelVersion' AS model_version,
        d.predictor->>'fallbackReason' AS fallback_reason, (d.predictor->>'probabilityRanged')::float AS probability_ranged, r.source
      FROM boss_decisions d JOIN runs r ON r.id = d.run_id ORDER BY d.id DESC LIMIT 1`)).rows[0] ?? null;
+  // Current engine only, split by basis (rule / unknown / model / baseline). Older-engine decisions have no basis
+  // (their round-1 "0.5" was a placeholder, not an estimate) and are not mixed in (V2_DEMANDS D-P0-5).
   const usage = (await db.query(
-    `SELECT predictor->>'kind' AS kind, count(*)::int AS n FROM boss_decisions GROUP BY 1`)).rows;
+    `SELECT d.predictor->>'kind' AS kind, COALESCE(d.predictor->>'basis', 'legacy') AS basis, count(*)::int AS n
+     FROM boss_decisions d JOIN runs r ON r.id = d.run_id WHERE r.engine_version = $1 GROUP BY 1, 2 ORDER BY 1, 2`, [ENGINE_VERSION])).rows;
   const snapshots = (await db.query('SELECT * FROM dataset_snapshots ORDER BY id DESC LIMIT 5')).rows;
   return {
     task: ML_TASK,
@@ -162,7 +165,8 @@ export async function mlStatus(db: Db, opts: { pingPython?: boolean } = {}) {
     activeModel: active,
     trainingInProgress,
     latestDecision,
-    decisionUsage: Object.fromEntries(usage.map((u) => [u.kind, u.n])),
+    decisionUsage: usage.reduce((acc: Record<string, number>, u) => ({ ...acc, [u.kind]: (acc[u.kind] ?? 0) + u.n }), {}),
+    decisionBasis: usage.reduce((acc: Record<string, number>, u) => ({ ...acc, [u.basis]: (acc[u.basis] ?? 0) + u.n }), {}),
     python: opts.pingPython ? await pingPython() : null,
   };
 }

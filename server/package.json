@@ -6,11 +6,13 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:testdb": "tsx src/dev-testdb.ts",
     "start": "tsx src/index.ts",
     "migrate": "tsx src/db/migrate.ts",
     "db:check": "tsx src/db/check.ts",
     "balance": "tsx src/sim/balance-cli.ts",
     "sim": "tsx src/sim/cli.ts",
+    "boss:bench": "tsx src/boss/bench.ts",
     "ml:build-dataset": "tsx src/ml/cli.ts build-dataset",
     "ml:export": "tsx src/ml/cli.ts export",
     "ml:train": "tsx src/ml/cli.ts train",

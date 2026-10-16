@@ -94,3 +94,24 @@ Even after the buffs, **pierce adds only 1–3% of all damage dealt** in full ru
 1. Decide on #1 (DEX dominance). It changes everything downstream.
 2. Then apply #2 (Flail, Lance, Pike STR) and re-run `npm run balance`. Re-check Crossbow (#3) and Rapier (#4) under the new DEX rule before nerfing them.
 3. Do Phase 4 (boss policy), then re-measure the boss win rate against agents and mirror.
+
+## 6. After Phase 4 (boss policy v2) — 2026-10-16
+
+Reproduce with `npm run boss:bench -- --seeds 200 --runs 12`: 200 round-1 decisions, then 12 runs per strategy for each policy. Sections 1–5 above were measured with policy v1.
+
+| | Policy v1 (old) | **Policy v2 (now)** |
+|---|---:|---:|
+| ms per round (boss decision) | 11.6 | 14.7 (1.27×, within the ≤ 2× budget) |
+| Boss win rate vs scripted agents | 86–100% | 97–100% |
+| Boss win rate vs the mirror player (which uses v2) | 13% | **58%** |
+| Distinct boss builds at round 3 / 5 / 8 (90 runs) | 9 / 13 / 15 | 11 / 9 / **31** |
+| Rounds where several plans were equally strong (drawn) | — | 58% |
+| Round-1 allocation over 200 seeds | +2 STR 100% | +2 STR 100% |
+
+What this means:
+- **The boss got much stronger and adapts more.** It now models what the player can actually do (their unspent points, affordable weapons, ranged only if feasible) instead of a hypothetical Bow. A v2 player beats a v1 boss 87% of the time; v2 against v2 is near even (boss 58%). Late-game builds are about twice as varied.
+- **Round 1 stays +2 STR, and that is correct, not rigid.** Measured against all four ways the player can spend their 2 points, +2 STR has the best expected HP margin in every case: −0.00 / +0.19 / +0.27 / +0.26 against STR/DEX/DEF/HP players. The runner-up is +1 STR +1 DEX at −0.04 / +0.07 / +0.25 / +0.25. Varying the round-1 build would deliberately weaken the boss. The cause is a rule-level imbalance (an unarmed duel rewards STR most); it is added to the deferred list below.
+- **Band width.** I tried 0.03, 0.06 and 0.10. Widening adds little variety (distinct builds 11/9/31 → 13/14/33) but costs strength (boss vs mirror 60% → 52%), so I kept 0.03.
+- **Q-3 target (boss 55–70%).** Against the mirror player v2 is inside the band (58%). Against scripted agents it is about 100%, because the agents do not adapt. Making the boss easier would only hide that. Better agents and the deferred DEX fixes are the right levers.
+
+**Deferred balance item (next version):** #8 round-1 STR dominance. Before any gear, +2 STR beats every other split against every player allocation.

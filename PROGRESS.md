@@ -43,7 +43,14 @@ Spec: `docs/V2_DEMANDS.md` (user answers Q-1..Q-5 in §11.1). Plan: `docs/V2_IMP
   - `npm test` = **122/122** (95 unit + 27 integration); `npm run typecheck` clean.
   - Browser: legacy run #389 shows the view-only notice and the legacy opening-shot wording, with no Begin button and no console errors.
   - The V2 shop UI is **not** browser-verified, because that needs a new run (a dev-DB write). It is covered by typecheck and API tests.
-- **Not done:** Phase 4 (feasibility-based prediction and boss diversity), Phase 6 (ML schema v2, data, retrain), Phase 7 (UI redesign). No V2 data has been generated in the dev DB. The active model `…-s2` now falls back automatically (engine mismatch).
+- **Phase 4 (DONE, 2026-10-16):**
+  - **Feasibility-first prediction.** `rangedFeasibility`; `Prediction.basis` is `rule` / `unknown` / `model` / `baseline`; `probabilityRanged` can be `null`. The baseline skips rounds of unknown style and returns `null` with no history.
+  - **Boss policy v2** (`boss/policy.ts`): reachable-opponent scenarios, expected-HP-margin score, seeded diversity band (0.03) with archetypes. `boss_decisions.selected` now stores `policyVersion`, `band` and `draw`. Policy v1 is kept as `version: 'v1-deterministic'`.
+  - **UI:** the decision panel states the basis honestly (Rule / No evidence / Model / Baseline / legacy placeholder) and shows the build style, the band and the scenario weights. ML Lab and `ml:status` count current-engine decisions by basis.
+  - **Bench:** `npm run boss:bench`. v2 costs 1.27× v1 per decision, is far stronger (boss vs mirror 58%; v1 loses 87% against a v2 player), and late builds are about twice as varied. Round 1 is still +2 STR, which is provably the best split against every player allocation (`docs/V2_BALANCE.md` §6).
+  - **Tests:** `npm test` = **143/143** (new `tests/unit/policy.test.ts`).
+  - **Browser check** (API on the test DB via `npm run dev:testdb` / launch `api-testdb`): new run → allocate → round 1 → decision panel shows "Rule", "bruiser", the reasoning and the 4 scenarios. The V2 shop renders grouped by family.
+- **Not done:** Phase 6 (ML schema v2, data, retrain), Phase 7 (UI redesign). No V2 data has been generated in the dev DB. The active model `…-s2` falls back automatically (engine mismatch).
 
 ## 1b. Change log — engine 1.1.0: 2 initial stat points (user request, 2026-10-10) — DONE + verified
 
@@ -124,6 +131,6 @@ Artifacts in `artifacts/` (git-ignored); both model directories present.
 ## 8. Resume instructions
 
 1. `docker ps` (start Docker Desktop if needed) → `npm run db:up`.
-2. `npm test` should report 122 passing; `npm run typecheck` clean. `npm run balance` re-runs the balance study (no DB).
+2. `npm test` should report 143 passing; `npm run typecheck` clean. `npm run balance` re-runs the balance study (no DB).
 3. `npm run dev` → http://localhost:5173. `npm run ml:status` for ML state.
 4. Read `docs/FILE_GUIDE.md` to locate code. Never change mechanics without updating tests + `docs/GAME_MECHANICS.md`.

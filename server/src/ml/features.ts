@@ -9,7 +9,7 @@
  * leakage guarantee (tested in tests/integration/ml.test.ts). If you add/remove/rename a feature,
  * bump FEATURE_SCHEMA_VERSION, rebuild the dataset and retrain.
  */
-import { itemForHistory } from '../game/catalog.js';
+import { cheapestCost, getItem, itemForHistory } from '../game/catalog.js';
 import type { CombatSummary } from '../game/summary.js';
 import type { CombatantState, FighterSnapshot, Side } from '../game/types.js';
 
@@ -113,15 +113,45 @@ export function buildFeatures(history: RoundRecord[], engineVersion?: string | n
 }
 
 /**
- * Transparent BASELINE / FALLBACK predictor:
- *   p = 0.5 × [last round mostly ranged] + 0.5 × (ranged rounds + 1) / (rounds + 2)
- * i.e. half "the player repeats what they just did", half a Laplace-smoothed historical frequency.
- * With no history it returns 0.5 (no information).
+ * RULE-LEVEL FEASIBILITY (engine 2.0.0, V2_DEMANDS D-P0-1): can the player field a ranged weapon next round?
+ * Uses only what the boss legitimately knows at decision time — the player's post-round state (inventory, gold).
+ * The player can only spend the gold they have, so their unseen preparation cannot change the answer.
+ * If false, P(mostly ranged) is exactly 0 by the rules — not an estimate.
  */
-export function baselineProbability(history: RoundRecord[]): number {
-  if (history.length === 0) return 0.5;
-  const flags = history.map((h) => ((h.summary.player.rangedShare ?? 0) >= RANGED_LABEL_THRESHOLD ? 1 : 0));
+export function rangedFeasibility(state: CombatantState): { rangedFeasible: boolean; reason: string } {
+  const owned = state.inventory.find((id) => getItem(id)?.category === 'ranged');
+  if (owned) return { rangedFeasible: true, reason: `owns ${getItem(owned)!.name}` };
+  const cheapest = cheapestCost('ranged');
+  if (state.gold >= cheapest) return { rangedFeasible: true, reason: `can afford a ranged weapon (${state.gold} gold ≥ ${cheapest})` };
+  return { rangedFeasible: false, reason: `owns no ranged weapon and cannot afford one (${state.gold} gold < ${cheapest})` };
+}
+
+/**
+ * Style of the player in a completed round: 1 = mostly ranged, 0 = mostly melee/unarmed, null = unknown.
+ * With no player attacks (killed before acting) the loadout decides when it allows only one style;
+ * a Ranged+Melee player who never attacked is unknown (V2_DEMANDS D-P0-4: missing ≠ zero).
+ */
+export function roundStyle(h: RoundRecord): 0 | 1 | null {
+  const share = h.summary.player.rangedShare;
+  if (share !== null) return share >= RANGED_LABEL_THRESHOLD ? 1 : 0;
+  const modes = h.playerSnapshot.derived.attackModes;
+  if (modes.length === 1) return modes[0] === 'ranged' ? 1 : 0;
+  return null;
+}
+
+/**
+ * Transparent BASELINE / FALLBACK predictor:
+ *   p = 0.5 × [last known round mostly ranged] + 0.5 × (ranged rounds + 1) / (known rounds + 2)
+ * i.e. half "the player repeats what they just did", half a Laplace-smoothed historical frequency, over rounds whose
+ * style is known (roundStyle). Returns 0 when the player cannot field a ranged weapon next round (rule), and null
+ * when no style has been observed yet (no evidence — never a fake 0.5).
+ */
+export function baselineProbability(history: RoundRecord[]): number | null {
+  if (history.length === 0) return null;
+  if (!rangedFeasibility(history[history.length - 1].playerPost).rangedFeasible) return 0;
+  const flags = history.map(roundStyle).filter((x): x is 0 | 1 => x !== null);
+  if (flags.length === 0) return null; // history exists but no style was ever observed → still no evidence
   const k = flags.reduce((a: number, c) => a + c, 0);
-  const laplace = (k + 1) / (history.length + 2);
+  const laplace = (k + 1) / (flags.length + 2);
   return 0.5 * flags[flags.length - 1] + 0.5 * laplace;
 }

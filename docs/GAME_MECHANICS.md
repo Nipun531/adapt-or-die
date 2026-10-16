@@ -178,6 +178,10 @@ After every round the boss analyses: the weapon types/modes that hit it (ranged 
 It then chooses stat allocations and purchases/equipment **through the same rules as the player** (`boss/policy.ts` → `game/equipment.ts`).
 See `docs/ARCHITECTURE.md` (boss) and `docs/ML_WALKTHROUGH.md` (prediction → decision).
 The boss only knows the player's **last observed** build (round N plus automatic level-up increases); it never sees the player's current-round preparation.
+- From engine 2.0.0 the boss considers every way the player *could* prepare with what they have: their unspent points, owned items and affordable items. A ranged style is considered only if the player can actually field a ranged weapon.
+- When several plans are equally strong, the boss picks one with a seeded draw, so its builds vary. It never picks a weaker plan to be different.
+
+**Round 1 finding.** Before round 1 nobody owns anything. Against every way the player can spend their 2 initial points, +2 STR is the boss's best allocation in every case (measured: it has the highest expected HP margin against all four opponent allocations). So the boss still picks +2 STR in round 1. This is a consequence of the rules, not a fixed default: an unarmed duel rewards STR most. See `docs/V2_BALANCE.md` §6.
 
 ## 11. Unresolved / deferred (not invented)
 

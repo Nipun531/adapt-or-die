@@ -71,7 +71,7 @@ async function main() {
       console.log(ld
         ? `[ml] latest boss decision (run ${ld.run_id}, round ${ld.for_round_number}, ${ld.source}): ${ld.kind === 'model' ? `MODEL ${ld.model_version}` : `FALLBACK — ${ld.fallback_reason}`}, P(ranged)=${fmt(ld.probability_ranged)}`
         : '[ml] no boss decisions yet');
-      console.log(`[ml] decisions by predictor: ${JSON.stringify(s.decisionUsage)}`);
+      console.log(`[ml] decisions (engine ${s.engineVersion}) by predictor: ${JSON.stringify(s.decisionUsage)}; by basis: ${JSON.stringify(s.decisionBasis)}`);
       for (const m of (await listModels(db)).slice(0, 5)) {
         console.log(`       ${m.is_active ? '*' : ' '} ${m.version}  engine=${m.engine_version}  eligible=${m.eligible}  logloss ${fmt(m.metrics.log_loss)} vs baseline ${fmt(m.baseline_metrics.log_loss)}`);
       }

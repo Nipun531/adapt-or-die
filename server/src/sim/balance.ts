@@ -20,8 +20,8 @@ import { deriveSeed, Rng } from '../game/rng.js';
 import { summarizeCombat } from '../game/summary.js';
 import type { CombatantState, FighterSnapshot, Item, Loadout, PierceSpec, Side, StatKey, Stats } from '../game/types.js';
 import { BASE_STATS, INITIAL_STAT_POINTS, LEVEL_UP_INCREASE, STAT_ALLOCATION_INCREASE } from '../game/constants.js';
-import { analyticScore, applyPlan, bossChooser, choosePlan, type Scenario } from '../boss/policy.js';
-import { baselineProbability, type RoundRecord } from '../ml/features.js';
+import { analyticScore, applyPlan, bossChooser, choosePlan, type Archetype as BossArchetype, type PolicyVersion, type Scenario } from '../boss/policy.js';
+import { baselineProbability, rangedFeasibility, type RoundRecord } from '../ml/features.js';
 import { requireAgent, type RoundOutcome } from './agents.js';
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -34,6 +34,9 @@ export interface RoundResult {
   playerLoadout: Loadout;
   bossLoadout: Loadout;
   bossAllocation: Partial<Record<StatKey, number>>;
+  bossArchetype: BossArchetype;
+  /** Number of equally strong plans the boss drew from (policy v2; 1 = clear best). */
+  bossBandSize: number;
   events: CombatEvent[];
 }
 
@@ -53,7 +56,8 @@ export interface RunResult {
 export const MIRROR = 'mirror';
 
 /** One complete run without the database. Mirrors sim/runner.ts → services/rounds.ts (baseline predictor). */
-export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 10): RunResult {
+export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 10, opts: { policyVersion?: PolicyVersion } = {}): RunResult {
+  let previousArchetype: BossArchetype | null = null;
   const agent = strategy === MIRROR ? requireAgent('hybrid') /* chooser only */ : requireAgent(strategy);
   let player = initialCombatant('player');
   let boss = initialCombatant('boss');
@@ -75,8 +79,13 @@ export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 1
       player = equip(player, d.loadout);
     }
 
+    // Same as boss/prepare.ts with the baseline predictor: rule-level feasibility first, then the baseline.
     const observed = records.length ? records[records.length - 1].playerPost : initialCombatant('player');
-    const policy = choosePlan({ boss, observedPlayer: observed, pRanged: baselineProbability(records), seed: String(deriveSeed(runSeed, `boss:${n}`)) });
+    const pRanged = rangedFeasibility(observed).rangedFeasible ? baselineProbability(records) : 0;
+    const policy = choosePlan({
+      boss, observedPlayer: observed, pRanged, seed: String(deriveSeed(runSeed, `boss:${n}`)), previousArchetype, version: opts.policyVersion,
+    });
+    previousArchetype = policy.selected.archetype;
     boss = applyPlan(boss, policy.selected);
 
     const pSnap = snapshotOf(player);
@@ -92,7 +101,7 @@ export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 1
       playerHpEnd: state.hp.player, bossHpEnd: state.hp.boss, summary: summarizeCombat(events),
     });
     history.push({ roundNumber: n, winner });
-    rounds.push({ roundNumber: n, winner, playerLoadout: pSnap.loadout, bossLoadout: bSnap.loadout, bossAllocation: policy.selected.allocation, events });
+    rounds.push({ roundNumber: n, winner, playerLoadout: pSnap.loadout, bossLoadout: bSnap.loadout, bossAllocation: policy.selected.allocation, bossArchetype: policy.selected.archetype, bossBandSize: policy.band?.length ?? 1, events });
   }
   return { strategy, seed: runSeed, rounds, player, boss };
 }

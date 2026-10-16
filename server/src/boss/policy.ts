@@ -1,18 +1,27 @@
 /**
  * Boss PRE-ROUND DECISION POLICY (constrained decision layer).
  *
- *   observed player build + P(player mostly ranged)  ──►  enumerate LEGAL plans  ──►  score  ──►  pick
+ *   observed player state + P(player mostly ranged)  ──►  enumerate LEGAL plans  ──►  score  ──►  pick
  *
- * 1. Enumerate every legal plan: stat-point allocation × loadout reachable with owned items plus
- *    purchases the boss can afford (validated by the same rules as the player).
- * 2. Build two opponent scenarios from the player's LAST OBSERVED build (attributes + equipped items):
- *    "ranged" (player attacks with a bow/crossbow) and "melee". Missing weapons are assumed
- *    hypothetically (Bow / Sword) — the boss never sees the player's current-round changes.
- * 3. Cheap analytic pre-score (expected time-to-kill) for all plans, then Monte-Carlo verification of the
- *    top plans with the REAL combat engine (seeded → reproducible).
- * 4. Weighted score = p·winRate(ranged) + (1−p)·winRate(melee), where p comes from the ML model or the
- *    transparent baseline. So the prediction changes which plan is chosen.
- * 5. Among plans within SCORE_TOLERANCE of the best, prefer the cheapest (saves gold), then higher margin.
+ * Policy v2 (engine 2.0.0, V2_DEMANDS §6, default):
+ * 1. Enumerate every legal plan: stat-point allocation × loadout reachable with owned items plus purchases the
+ *    boss can afford (validated by the same rules as the player).
+ * 2. REACHABLE-OPPONENT scenarios (`reachableScenarios`): from the player's last observed state, every way they
+ *    could plausibly prepare — each use of their unspent stat points × each style they can actually field (ranged only
+ *    if feasible) × the strongest weapon per family they own or can afford. Weights: P(ranged) split over ranged
+ *    scenarios, 1 − P over melee ones; P = null (no evidence) → styles weighted equally. The boss never sees the
+ *    player's real current-round preparation.
+ * 3. Cheap analytic pre-score of all plans, then Monte-Carlo verification of the top plans (plus the best plan of
+ *    each archetype) with the REAL combat engine (seeded → reproducible).
+ * 4. Score = weighted EXPECTED HP MARGIN (my HP left if I win, −their HP left if I lose) — continuous, so strong
+ *    plans no longer all tie at a 100% win rate.
+ * 5. CONTROLLED DIVERSITY: plans within `band` of the best score are treated as equally strong; one is drawn with a
+ *    seeded, score-weighted draw (lower weight for repeating last round's archetype, mild preference for cheaper
+ *    plans). Never outside the band, so diversity cannot cost real strength. The band and the draw are returned.
+ *
+ * Policy v1 (`version: 'v1-deterministic'`, kept for comparison/rollback): two scenarios (hypothetical Bow/Sword),
+ * MC win rate, cheapest plan within 0.02 of the best.
+ *
  * The policy only RETURNS a plan; prepare.ts applies it through equipment.ts (which re-validates).
  */
 import { ITEMS, requireItem } from '../game/catalog.js';
@@ -21,14 +30,24 @@ import { deriveStats, snapshotOf } from '../game/derive.js';
 import { allocateStat, equip, isLegalLoadout, purchase } from '../game/equipment.js';
 import { bestMode, expectedAttackDamage } from '../game/expected.js';
 import { dexBonusAttacks } from '../game/formulas.js';
-import { deriveSeed } from '../game/rng.js';
-import type { AttackMode, CombatantState, FighterSnapshot, Loadout, StatKey } from '../game/types.js';
+import { deriveSeed, Rng } from '../game/rng.js';
+import type { AttackMode, CombatantState, FighterSnapshot, Item, ItemFamily, Loadout, StatKey } from '../game/types.js';
 import { STAT_KEYS } from '../game/types.js';
+import { rangedFeasibility } from '../ml/features.js';
+
+export type PolicyVersion = 'v2-diverse' | 'v1-deterministic';
+export const POLICY_VERSION: PolicyVersion = 'v2-diverse';
 
 export const POLICY_CONFIG = {
-  topK: 6,               // plans verified by Monte-Carlo
-  fightsPerScenario: 16, // MC fights per scenario per plan
-  scoreTolerance: 0.02,  // plans this close to best are "equivalent" → cheapest wins
+  topK: 6,                   // best analytic plans verified by Monte-Carlo (v2 adds the best plan of each archetype)
+  fightsPerScenario: 16,     // v1: MC fights per scenario per plan
+  fightBudgetPerPlan: 40,    // v2: MC fights per plan, spread over the scenarios (fights are near-deterministic)
+  minFightsPerScenario: 2,
+  scoreTolerance: 0.02,      // v1: plans this close to best are "equivalent" → cheapest wins
+  band: 0.03,                // v2: plans within this expected-HP-margin of the best are equally strong
+  temperature: 0.02,         // v2: softmax temperature on the margin inside the band
+  repeatArchetypePenalty: 0.5, // v2: weight factor for repeating last round's archetype
+  maxScenarios: 18,
 };
 
 export type Allocation = Partial<Record<StatKey, number>>;
@@ -40,11 +59,20 @@ export interface Plan {
   cost: number;
 }
 
+export type Archetype = 'bruiser' | 'bulwark' | 'duelist' | 'marksman' | 'piercer' | 'hybrid';
+
+/** Per-style aggregates (weighted inside the style); null when the style has no scenario. */
+export interface StyleScores { ranged: number | null; melee: number | null }
+
 export interface ScoredPlan extends Plan {
-  analytic: { ranged: number; melee: number };
-  winRate?: { ranged: number; melee: number };
+  analytic: StyleScores;
+  /** Weighted analytic pre-score (kept after Monte-Carlo verification overwrites `weighted`). */
+  analyticWeighted: number;
+  winRate?: StyleScores;
+  margin?: StyleScores;
   weighted: number;
   label: string;
+  archetype: Archetype;
 }
 
 export interface Scenario {
@@ -52,23 +80,37 @@ export interface Scenario {
   snapshot: FighterSnapshot;
   preferredMode: AttackMode;
   hypotheticalItems: string[];
+  /** Share of the decision this scenario carries (weights sum to 1). */
+  weight?: number;
+  label?: string;
+  allocation?: Allocation;
 }
 
+export interface BandEntry { label: string; archetype: Archetype; weighted: number; cost: number; probability: number }
+
 export interface PolicyResult {
+  version: PolicyVersion;
   selected: ScoredPlan;
   current: ScoredPlan;
   alternatives: ScoredPlan[];
   candidatesEvaluated: number;
-  scenarios: { kind: string; loadout: Loadout; preferredMode: AttackMode; hypotheticalItems: string[] }[];
+  scenarios: { kind: string; label?: string; weight?: number; loadout: Loadout; preferredMode: AttackMode; hypotheticalItems: string[]; allocation?: Allocation }[];
+  /** v2: the equally-strong plans the pick was drawn from, with their draw probabilities. */
+  band?: BandEntry[];
+  draw?: number;
   rationale: string[];
 }
 
-/** All ways to spend exactly `points` across the 4 stats (capped for large point pools). */
+/** All ways to spend exactly `points` across the 4 stats (84 splits for 6 points); larger pools: dumps + even splits. */
 export function allocationOptions(points: number): Allocation[] {
   if (points <= 0) return [{}];
-  if (points > 4) {
-    const dumps = STAT_KEYS.map((k) => ({ [k]: points }) as Allocation);
-    return dumps;
+  if (points > 6) {
+    const half = Math.floor(points / 2);
+    const out: Allocation[] = STAT_KEYS.map((k) => ({ [k]: points }) as Allocation);
+    for (let i = 0; i < STAT_KEYS.length; i++) {
+      for (let j = i + 1; j < STAT_KEYS.length; j++) out.push({ [STAT_KEYS[i]]: half, [STAT_KEYS[j]]: points - half } as Allocation);
+    }
+    return out;
   }
   const out: Allocation[] = [];
   const rec = (i: number, left: number, acc: Allocation) => {
@@ -107,7 +149,10 @@ export function loadoutOptions(state: CombatantState): { loadout: Loadout; purch
   return out;
 }
 
-/** Opponent scenarios from the player's last observed build. */
+const snapFor = (observed: CombatantState, stats: CombatantState['stats'], loadout: Loadout): FighterSnapshot =>
+  ({ side: 'player', level: observed.level, stats: { ...stats }, loadout, derived: deriveStats(stats, loadout) });
+
+/** V1 opponent scenarios: last observed build, hypothetically assuming a Bow/Sword if missing (policy v1 only). */
 export function buildScenarios(observed: CombatantState): Scenario[] {
   const lo = observed.loadout;
   const cat = (id: string | null) => (id ? requireItem(id).category : null);
@@ -116,15 +161,9 @@ export function buildScenarios(observed: CombatantState): Scenario[] {
   const hasMelee = hands.some((h) => cat(h) === 'melee');
   const shield = hands.find((h) => cat(h) === 'shield') ?? null;
   const melee = hands.find((h) => cat(h) === 'melee') ?? null;
-  const ranged = hands.find((h) => cat(h) === 'ranged') ?? null;
-
   const make = (kind: 'ranged' | 'melee', loadout: Loadout, hypothetical: string[], pref: AttackMode): Scenario => ({
-    kind,
-    snapshot: { side: 'player', level: observed.level, stats: { ...observed.stats }, loadout, derived: deriveStats(observed.stats, loadout) },
-    preferredMode: pref,
-    hypotheticalItems: hypothetical,
+    kind, snapshot: snapFor(observed, observed.stats, loadout), preferredMode: pref, hypotheticalItems: hypothetical,
   });
-
   const rangedScenario = hasRanged
     ? make('ranged', { ...lo }, [], 'ranged')
     : make('ranged', { hand1: 'bow', hand2: shield ?? melee, armour: lo.armour }, ['bow'], 'ranged');
@@ -133,8 +172,73 @@ export function buildScenarios(observed: CombatantState): Scenario[] {
     : hasRanged
       ? make('melee', { hand1: 'sword', hand2: shield, armour: lo.armour }, ['sword'], 'melee')
       : make('melee', { ...lo }, [], 'unarmed');
-  void ranged;
   return [rangedScenario, meleeScenario];
+}
+
+/**
+ * V2 REACHABLE-OPPONENT scenarios (V2_DEMANDS D-DIV-1). Uses only decision-time information: the player's last
+ * observed post-round state (stats, unspent points, gold, inventory, loadout).
+ *  - allocations of the unspent points: all into STR / DEX / DEF / HP for melee, DEX / HP for ranged (none if 0 points)
+ *  - melee weapons: per family (blade, blunt, polearm) the most expensive one they own or can afford, plus the
+ *    weapon they last used; unarmed if none
+ *  - ranged: only if feasible (owns one or can afford one) — the most expensive owned/affordable bow
+ *  - shield and armour stay as observed (melee: shield kept; ranged: shield, else their melee weapon, as 2nd hand)
+ * Weights: pRanged over ranged scenarios, 1 − pRanged over melee ones, equal inside a style; pRanged = null → equal
+ * style weights. Zero-weight scenarios are dropped.
+ */
+export function reachableScenarios(observed: CombatantState, pRanged: number | null): Scenario[] {
+  const lo = observed.loadout;
+  const cat = (id: string | null) => (id ? requireItem(id).category : null);
+  const shield = [lo.hand1, lo.hand2].find((h) => cat(h) === 'shield') ?? null;
+  const lastMelee = [lo.hand1, lo.hand2].find((h) => cat(h) === 'melee') ?? null;
+  const reachable = (i: Item) => observed.inventory.includes(i.id) || i.cost <= observed.gold;
+  const strongest = (items: Item[]) => items.filter(reachable).sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id))[0];
+  const hypo = (id: string) => (observed.inventory.includes(id) ? [] : [id]);
+
+  const meleeWeapons = new Set<string>();
+  for (const fam of ['blade', 'blunt', 'polearm'] as ItemFamily[]) {
+    const w = strongest(ITEMS.filter((i) => i.category === 'melee' && i.family === fam));
+    if (w) meleeWeapons.add(w.id);
+  }
+  if (lastMelee) meleeWeapons.add(lastMelee);
+  const rangedWeapon = rangedFeasibility(observed).rangedFeasible ? strongest(ITEMS.filter((i) => i.category === 'ranged')) : undefined;
+
+  const allocs = (keys: StatKey[]): Allocation[] => (observed.statPoints > 0 ? keys.map((k) => ({ [k]: observed.statPoints }) as Allocation) : [{}]);
+  const statsAfter = (a: Allocation) => {
+    let s = { ...observed, statPoints: observed.statPoints };
+    for (const [k, n] of Object.entries(a)) if (n) s = allocateStat(s, k as StatKey, n);
+    return s.stats;
+  };
+  const allocText = (a: Allocation) => Object.entries(a).map(([k, n]) => `+${n} ${k.toUpperCase()}`).join(', ') || 'no points';
+
+  const melee: Scenario[] = [];
+  const meleeList = meleeWeapons.size ? [...meleeWeapons] : [null];
+  for (const w of meleeList) {
+    for (const a of allocs(['str', 'dex', 'def', 'hp'])) {
+      const loadout: Loadout = { hand1: w, hand2: shield, armour: lo.armour };
+      melee.push({
+        kind: 'melee', snapshot: snapFor(observed, statsAfter(a), loadout), preferredMode: w ? 'melee' : 'unarmed',
+        hypotheticalItems: w ? hypo(w) : [], allocation: a, label: `${w ? requireItem(w).name : 'unarmed'}, ${allocText(a)}`,
+      });
+    }
+  }
+  const ranged: Scenario[] = [];
+  if (rangedWeapon) {
+    for (const a of allocs(['dex', 'hp'])) {
+      const loadout: Loadout = { hand1: rangedWeapon.id, hand2: shield ?? lastMelee, armour: lo.armour };
+      ranged.push({
+        kind: 'ranged', snapshot: snapFor(observed, statsAfter(a), loadout), preferredMode: 'ranged',
+        hypotheticalItems: hypo(rangedWeapon.id), allocation: a, label: `${rangedWeapon.name}, ${allocText(a)}`,
+      });
+    }
+  }
+  // Weights by style. Melee is always reachable (unarmed at worst).
+  let wR = ranged.length ? (pRanged ?? 0.5) : 0;
+  if (!melee.length) wR = 1;
+  const wM = 1 - wR;
+  for (const s of ranged) s.weight = wR / ranged.length;
+  for (const s of melee) s.weight = wM / melee.length;
+  return [...ranged, ...melee].filter((s) => (s.weight ?? 0) > 0).slice(0, POLICY_CONFIG.maxScenarios);
 }
 
 /** Analytic expected-duel score in (−1, 1): positive = boss expected to kill first. */
@@ -166,7 +270,27 @@ function scenarioChooser(pref: AttackMode): Chooser {
   return (ctx) => ({ mode: ctx.options.includes(pref) ? pref : ctx.options[0], source: 'agent' });
 }
 
-/** Monte-Carlo win rate of a boss build vs a scenario, using the real combat engine. */
+/** Monte-Carlo outcome of a boss build vs a scenario, using the real combat engine: win rate + expected HP margin. */
+export function simulatedOutcome(boss: FighterSnapshot, sc: Scenario, seedBase: string, fights: number): { winRate: number; margin: number } {
+  let wins = 0;
+  let margin = 0;
+  const key = sc.label ?? sc.kind;
+  for (let i = 0; i < fights; i++) {
+    const { state } = runFullCombat(sc.snapshot, boss, deriveSeed(seedBase, `${key}:${i}`), {
+      player: scenarioChooser(sc.preferredMode),
+      boss: bossChooser,
+    });
+    if (state.winner === 'boss') {
+      wins++;
+      margin += Math.max(0, state.hp.boss) / boss.derived.maxHp;
+    } else {
+      margin -= Math.max(0, state.hp.player) / sc.snapshot.derived.maxHp;
+    }
+  }
+  return { winRate: wins / fights, margin: margin / fights };
+}
+
+/** Monte-Carlo win rate of a boss build vs a scenario (policy v1). */
 export function simulatedWinRate(boss: FighterSnapshot, sc: Scenario, seedBase: string, fights: number): number {
   let wins = 0;
   for (let i = 0; i < fights; i++) {
@@ -197,16 +321,59 @@ export function planLabel(plan: Plan): string {
   ].join('; ');
 }
 
+/**
+ * Archetype of a plan (explanation + diversity only, no rule effect):
+ * ranged + melee → hybrid; ranged only → marksman; a melee weapon with pierce EV (chance × DEF-ignore) ≥ 0.15 → piercer;
+ * otherwise the stat this plan invests in most (STR → bruiser, DEX → duelist, DEF/HP → bulwark), or — with no points —
+ * the gear (DEF-heavy shield/armour → bulwark, DEX blade → duelist, else bruiser).
+ */
+export function archetypeOf(plan: Plan): Archetype {
+  const ids = [plan.loadout.hand1, plan.loadout.hand2].filter((x): x is string => x !== null).map(requireItem);
+  const melee = ids.find((i) => i.category === 'melee');
+  const ranged = ids.find((i) => i.category === 'ranged');
+  if (ranged && melee) return 'hybrid';
+  if (ranged) return 'marksman';
+  if (melee?.pierce && melee.pierce.chance * melee.pierce.defIgnore >= 0.15) return 'piercer';
+  const alloc = Object.entries(plan.allocation).filter(([, n]) => n).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
+  if (alloc.length) {
+    const k = alloc[0][0];
+    return k === 'str' ? 'bruiser' : k === 'dex' ? 'duelist' : 'bulwark';
+  }
+  const armour = plan.loadout.armour ? requireItem(plan.loadout.armour) : null;
+  const shield = ids.find((i) => i.category === 'shield');
+  if ((armour?.mods.def ?? 0) + (shield?.mods.def ?? 0) >= 8) return 'bulwark';
+  if (melee && melee.mods.dex > 0) return 'duelist';
+  return 'bruiser';
+}
+
 export function choosePlan(input: {
   boss: CombatantState;
   observedPlayer: CombatantState;
-  pRanged: number;
+  /** P(player mostly ranged next round); null = no evidence (styles weighted equally, v2). */
+  pRanged: number | null;
   seed: string;
+  /** Archetype the boss used last round (v2 diversity: repeating it is less likely among equal plans). */
+  previousArchetype?: Archetype | null;
+  version?: PolicyVersion;
 }): PolicyResult {
-  const { boss, observedPlayer, pRanged } = input;
-  const scenarios = buildScenarios(observedPlayer);
-  const [rs, ms] = scenarios;
-  const weigh = (r: number, m: number) => pRanged * r + (1 - pRanged) * m;
+  const version = input.version ?? POLICY_VERSION;
+  const { boss, observedPlayer } = input;
+  const v1 = version === 'v1-deterministic';
+  const pForV1 = input.pRanged ?? 0.5;
+  const scenarios: Scenario[] = v1
+    ? buildScenarios(observedPlayer).map((s) => ({ ...s, weight: s.kind === 'ranged' ? pForV1 : 1 - pForV1 }))
+    : reachableScenarios(observedPlayer, input.pRanged);
+
+  const byStyle = (vals: number[]): StyleScores => {
+    const agg = (kind: 'ranged' | 'melee') => {
+      let w = 0;
+      let v = 0;
+      scenarios.forEach((s, i) => { if (s.kind === kind) { w += s.weight ?? 0; v += (s.weight ?? 0) * vals[i]; } });
+      return w > 0 ? v / w : null;
+    };
+    return { ranged: agg('ranged'), melee: agg('melee') };
+  };
+  const weigh = (vals: number[]) => scenarios.reduce((sum, s, i) => sum + (s.weight ?? 0) * vals[i], 0);
 
   const plans: Plan[] = [];
   for (const allocation of allocationOptions(boss.statPoints)) {
@@ -214,43 +381,93 @@ export function choosePlan(input: {
   }
   const scoreAnalytic = (plan: Plan): ScoredPlan => {
     const snap = snapshotOf(applyPlan(boss, plan));
-    const a = { ranged: analyticScore(snap, rs), melee: analyticScore(snap, ms) };
-    return { ...plan, analytic: a, weighted: weigh(a.ranged, a.melee), label: planLabel(plan) };
+    const vals = scenarios.map((sc) => analyticScore(snap, sc));
+    const w = weigh(vals);
+    return { ...plan, analytic: byStyle(vals), analyticWeighted: w, weighted: w, label: planLabel(plan), archetype: archetypeOf(plan) };
   };
   const scored = plans.map(scoreAnalytic).sort((a, b) => b.weighted - a.weighted);
 
-  const currentPlan: Plan = { allocation: {}, purchases: [], loadout: { ...boss.loadout }, cost: 0 };
+  const fights = v1
+    ? POLICY_CONFIG.fightsPerScenario
+    : Math.max(POLICY_CONFIG.minFightsPerScenario, Math.floor(POLICY_CONFIG.fightBudgetPerPlan / Math.max(1, scenarios.length)));
   const verify = (p: ScoredPlan): ScoredPlan => {
     const snap = snapshotOf(applyPlan(boss, p));
-    const wr = {
-      ranged: simulatedWinRate(snap, rs, `${input.seed}:mc`, POLICY_CONFIG.fightsPerScenario),
-      melee: simulatedWinRate(snap, ms, `${input.seed}:mc`, POLICY_CONFIG.fightsPerScenario),
+    if (v1) {
+      const wr = scenarios.map((sc) => simulatedWinRate(snap, sc, `${input.seed}:mc`, fights));
+      return { ...p, winRate: byStyle(wr), weighted: weigh(wr) };
+    }
+    const out = scenarios.map((sc) => simulatedOutcome(snap, sc, `${input.seed}:mc`, fights));
+    return { ...p, winRate: byStyle(out.map((o) => o.winRate)), margin: byStyle(out.map((o) => o.margin)), weighted: weigh(out.map((o) => o.margin)) };
+  };
+
+  // Candidates: top-K analytic plans; v2 also adds the best analytic plan of every archetype (so the band can be diverse).
+  const candidates = scored.slice(0, POLICY_CONFIG.topK);
+  if (!v1) {
+    for (const p of scored) if (!candidates.some((c) => c.archetype === p.archetype)) candidates.push(p);
+  }
+  const top = candidates.map(verify);
+  const current = verify(scoreAnalytic({ allocation: {}, purchases: [], loadout: { ...boss.loadout }, cost: 0 }));
+
+  const pct = (x: number | null | undefined) => (x === null || x === undefined ? '—' : `${Math.round(x * 100)}%`);
+  const pText = input.pRanged === null
+    ? 'No evidence about the player\'s style yet → reachable styles weighted equally (robustness rule, not a prediction).'
+    : `P(player mostly ranged next round) = ${pct(input.pRanged)}.`;
+  const scenText = `${scenarios.length} reachable opponent scenario(s): ${scenarios.filter((s) => s.kind === 'ranged').length} ranged, ${scenarios.filter((s) => s.kind === 'melee').length} melee.`;
+
+  if (v1) {
+    const best = Math.max(...top.map((p) => p.weighted));
+    const near = top.filter((p) => p.weighted >= best - POLICY_CONFIG.scoreTolerance);
+    near.sort((a, b) => a.cost - b.cost || b.analyticWeighted - a.analyticWeighted);
+    const selected = near[0];
+    return {
+      version, selected, current, alternatives: top.filter((p) => p !== selected), candidatesEvaluated: plans.length,
+      scenarios: scenarios.map(scenarioSummary),
+      rationale: [
+        pText,
+        `Evaluated ${plans.length} legal plan(s) analytically; verified top ${top.length} with ${fights} simulated fights per scenario.`,
+        `Selected: ${selected.label}.`,
+        `Simulated win rate: vs ranged ${pct(selected.winRate!.ranged)}, vs melee ${pct(selected.winRate!.melee)} → weighted ${pct(selected.weighted)} (unchanged build: ${pct(current.weighted)}).`,
+        near.length > 1 ? `${near.length} plans scored within ${POLICY_CONFIG.scoreTolerance} of the best; chose the cheapest.` : 'Best plan was clearly ahead of alternatives.',
+      ],
     };
-    return { ...p, winRate: wr, weighted: weigh(wr.ranged, wr.melee) };
-  };
-  const top = scored.slice(0, POLICY_CONFIG.topK).map(verify);
-  const current = verify(scoreAnalytic(currentPlan));
+  }
 
-  // Ranking: weighted MC win rate; within tolerance → cheaper, then better analytic margin.
+  // v2: controlled diversity inside the band of equally strong plans.
   const best = Math.max(...top.map((p) => p.weighted));
-  const near = top.filter((p) => p.weighted >= best - POLICY_CONFIG.scoreTolerance);
-  near.sort((a, b) => a.cost - b.cost || weigh(b.analytic.ranged, b.analytic.melee) - weigh(a.analytic.ranged, a.analytic.melee));
-  const selected = near[0];
-
-  const pct = (x: number) => `${Math.round(x * 100)}%`;
-  const rationale = [
-    `P(player mostly ranged next round) = ${pct(pRanged)}; scenarios weighted ${pct(pRanged)} ranged / ${pct(1 - pRanged)} melee.`,
-    `Evaluated ${plans.length} legal plan(s) analytically; verified top ${top.length} with ${POLICY_CONFIG.fightsPerScenario} simulated fights per scenario.`,
-    `Selected: ${selected.label}.`,
-    `Simulated win rate: vs ranged ${pct(selected.winRate!.ranged)}, vs melee ${pct(selected.winRate!.melee)} → weighted ${pct(selected.weighted)} (unchanged build: ${pct(current.weighted)}).`,
-    near.length > 1 ? `${near.length} plans scored within ${POLICY_CONFIG.scoreTolerance} of the best; chose the cheapest.` : 'Best plan was clearly ahead of alternatives.',
-  ];
+  const band = top.filter((p) => p.weighted >= best - POLICY_CONFIG.band);
+  const raw = band.map((p) => Math.exp((p.weighted - best) / POLICY_CONFIG.temperature)
+    * (input.previousArchetype && p.archetype === input.previousArchetype ? POLICY_CONFIG.repeatArchetypePenalty : 1)
+    / (1 + p.cost / 100));
+  const total = raw.reduce((a, b) => a + b, 0);
+  const probs = raw.map((r) => r / total);
+  const draw = new Rng(deriveSeed(input.seed, 'pick')).next();
+  let acc = 0;
+  let idx = band.length - 1;
+  for (let i = 0; i < band.length; i++) {
+    acc += probs[i];
+    if (draw < acc) { idx = i; break; }
+  }
+  const selected = band[idx];
+  const sign = (x: number) => `${x >= 0 ? '+' : ''}${x.toFixed(2)}`;
+  const archetypes = [...new Set(band.map((p) => p.archetype))];
   return {
-    selected,
-    current,
-    alternatives: top.filter((p) => p !== selected),
-    candidatesEvaluated: plans.length,
-    scenarios: scenarios.map((s) => ({ kind: s.kind, loadout: s.snapshot.loadout, preferredMode: s.preferredMode, hypotheticalItems: s.hypotheticalItems })),
-    rationale,
+    version, selected, current, alternatives: top.filter((p) => p !== selected), candidatesEvaluated: plans.length,
+    scenarios: scenarios.map(scenarioSummary),
+    band: band.map((p, i) => ({ label: p.label, archetype: p.archetype, weighted: p.weighted, cost: p.cost, probability: probs[i] })),
+    draw,
+    rationale: [
+      pText,
+      scenText,
+      `Evaluated ${plans.length} legal plan(s) analytically; verified ${top.length} (top ${POLICY_CONFIG.topK} + best of each archetype) with ${fights} simulated fight(s) per scenario.`,
+      `Selected (${selected.archetype}): ${selected.label}.`,
+      `Expected HP margin ${sign(selected.weighted)} (unchanged build: ${sign(current.weighted)}); simulated win rate vs ranged ${pct(selected.winRate!.ranged)}, vs melee ${pct(selected.winRate!.melee)}.`,
+      band.length > 1
+        ? `${band.length} plans were equally strong (within ${POLICY_CONFIG.band} of the best margin; archetypes: ${archetypes.join(', ')}); picked one by a seeded draw (p = ${Math.round(probs[idx] * 100)}%)${input.previousArchetype ? `, favouring a change from last round's ${input.previousArchetype}` : ''}.`
+        : 'Best plan was clearly ahead of alternatives.',
+    ],
   };
+}
+
+function scenarioSummary(s: Scenario) {
+  return { kind: s.kind, label: s.label, weight: s.weight, loadout: s.snapshot.loadout, preferredMode: s.preferredMode, hypotheticalItems: s.hypotheticalItems, allocation: s.allocation };
 }

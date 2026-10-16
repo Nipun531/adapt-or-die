@@ -96,10 +96,18 @@ describe('training pipeline', () => {
     await getPool().query('UPDATE model_versions SET eligible = true WHERE version = $1', [m.version]);
     await activateModel(getPool(), m.version);
     const runId = await createReadyRun({ seed: 'ml-use', maxRounds: 3 });
-    await startRound(runId);
+    const r1 = await startRound(runId);
+    // Round 1: the player had 0 gold and no items → rule-determined, no model asked (V2_DEMANDS D-P0-1).
+    const d1 = (await getRoundDetail(getPool(), r1)).decision;
+    expect(d1.predictor).toMatchObject({ basis: 'rule', probabilityRanged: 0, modelVersion: null });
+    expect(d1.selected).toMatchObject({ policyVersion: 'v2-diverse' });
+    expect(Array.isArray(d1.selected.band)).toBe(true);
+    // TEST FIXTURE: give the player enough recorded gold to afford a bow, so ranged is feasible and the model is asked.
+    await getPool().query(`UPDATE rounds SET player_post = jsonb_set(player_post, '{gold}', '40') WHERE id = $1`, [r1]);
     const r2 = await startRound(runId);
     const p = (await getRoundDetail(getPool(), r2)).decision.predictor;
     expect(p.kind).toBe('model');
+    expect(p.basis).toBe('model');
     expect(p.modelVersion).toBe(m.version);
     expect(p.probabilityRanged).toBeGreaterThan(0);
     expect(p.probabilityRanged).toBeLessThan(1);

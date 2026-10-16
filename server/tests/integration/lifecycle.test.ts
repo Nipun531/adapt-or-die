@@ -30,7 +30,9 @@ describe('round lifecycle', () => {
     expect(d.events.every((e) => e.mode === 'unarmed')).toBe(true);
     expect(d.analysis.roundNumber).toBe(1);
     expect(d.decision.predictor.kind).toBe('fallback');
-    expect(d.decision.predictor.fallbackReason).toMatch(/No completed rounds/);
+    // Round 1: 0 gold, no items → rule-determined (not a fake 50% estimate).
+    expect(d.decision.predictor).toMatchObject({ basis: 'rule', probabilityRanged: 0 });
+    expect(d.decision.predictor.fallbackReason).toMatch(/cannot afford/);
 
     const v = await getRunView(getPool(), runId);
     const winner = d.round.winner;
@@ -119,10 +121,13 @@ describe('ML fallback honesty', () => {
          data_stats, eligible, eligibility_reasons, is_active, training_seconds)
        VALUES ('test-missing','xgboost','t','v1',$1,'artifacts/models/does-not-exist','{}','{}','{}','{}',true,'[]',true,0)`, [ENGINE_VERSION]);
     const runId = await createReadyRun({ seed: 'test-seed-6', maxRounds: 3 });
-    await startRound(runId);
+    const r1 = await startRound(runId);
+    // TEST FIXTURE: recorded gold so a bow is affordable → ranged feasible → the model path is tried.
+    await getPool().query(`UPDATE rounds SET player_post = jsonb_set(player_post, '{gold}', '40') WHERE id = $1`, [r1]);
     const r2 = await startRound(runId);
     const d = await getRoundDetail(getPool(), r2);
     expect(d.decision.predictor.kind).toBe('fallback');
     expect(d.decision.predictor.fallbackReason).toMatch(/artifact missing/);
+    expect(d.decision.predictor.basis).toBe('baseline');
   });
 });

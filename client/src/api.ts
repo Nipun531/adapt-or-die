@@ -79,24 +79,43 @@ export interface Analysis {
   weaknesses: Weakness[];
   conclusions: string[];
 }
+type StyleScores = { ranged: number | null; melee: number | null };
+export type Archetype = 'bruiser' | 'bulwark' | 'duelist' | 'marksman' | 'piercer' | 'hybrid';
 export interface ScoredPlan {
-  label: string; cost: number; weighted: number;
-  analytic: { ranged: number; melee: number }; winRate?: { ranged: number; melee: number };
+  label: string; cost: number;
+  /** Policy v2: weighted expected HP margin (−1..1). Older decisions: weighted win rate (0..1). */
+  weighted: number;
+  analytic: StyleScores; winRate?: StyleScores; margin?: StyleScores;
+  /** Policy v2 only. */
+  archetype?: Archetype;
   allocation: Partial<Stats>; purchases: string[]; loadout: Loadout;
 }
 export interface Decision {
   id: number; for_round_number: number;
-  predictor: { kind: 'model' | 'fallback'; probabilityRanged: number; baselineProbability: number; modelVersion: string | null; fallbackReason: string | null; featureSchemaVersion: string };
+  predictor: {
+    kind: 'model' | 'fallback';
+    /** Engine ≥ 2.0.0 only. */
+    basis?: 'rule' | 'unknown' | 'model' | 'baseline';
+    probabilityRanged: number | null; baselineProbability: number | null;
+    feasibility?: { rangedFeasible: boolean; reason: string };
+    modelVersion: string | null; fallbackReason: string | null; featureSchemaVersion: string;
+  };
   evidence: {
     sourceRound: number | null;
     weaknesses: { code: string; evidence: string; addressedBy: string[]; addressed: boolean }[];
     observedPlayer: { level: number; stats: Stats; loadout: string[] };
-    scenarios: { kind: string; preferredMode: string; hypotheticalItems: string[] }[];
+    scenarios: { kind: string; label?: string; weight?: number; preferredMode: string; hypotheticalItems: string[] }[];
     deltas: Record<string, number>;
     constraints: { goldAvailable: number; statPointsAvailable: number };
   };
   options: { candidatesEvaluated: number; current: ScoredPlan; alternatives: ScoredPlan[] };
-  selected: { plan: ScoredPlan; rationale: string[] };
+  selected: {
+    plan: ScoredPlan; rationale: string[];
+    /** Policy v2 (engine ≥ 2.0.0) only. */
+    policyVersion?: 'v2-diverse' | 'v1-deterministic';
+    band?: { label: string; archetype: Archetype; weighted: number; cost: number; probability: number }[] | null;
+    draw?: number | null;
+  };
   actions: { kind: string; detail: any }[];
   gold_spent: number;
 }
@@ -146,8 +165,10 @@ export interface MlStatus {
   models: { total: number; eligible: number };
   activeModel: { version: string; eligible: boolean; engine_version: string } | null;
   trainingInProgress: boolean;
-  latestDecision: { run_id: number; for_round_number: number; kind: string; model_version: string | null; fallback_reason: string | null; probability_ranged: number; source: string; created_at: string } | null;
+  latestDecision: { run_id: number; for_round_number: number; kind: string; model_version: string | null; fallback_reason: string | null; probability_ranged: number | null; source: string; created_at: string } | null;
   decisionUsage: Record<string, number>;
+  /** Current-engine decisions by prediction basis (rule / unknown / model / baseline). */
+  decisionBasis?: Record<string, number>;
   python: { ok: boolean; detail: string } | null;
 }
 

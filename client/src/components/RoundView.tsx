@@ -166,22 +166,41 @@ function AnalysisPanel({ a }: { a: Analysis }) {
   );
 }
 
+const signed = (x: number) => `${x >= 0 ? '+' : ''}${x.toFixed(2)}`;
+
+/** Honest statement of where the boss's read of your style came from (V2_DEMANDS D-P0-2). */
+function PredictionLine({ p }: { p: Decision['predictor'] }) {
+  const basis = p.basis ?? (p.kind === 'model' ? 'model' : 'legacy');
+  return (
+    <>
+      <p>
+        {basis === 'model' && <><span className="pill ok">Trained ML model {p.modelVersion}</span> predicted P(you mostly ranged) = <b>{pct(p.probabilityRanged)}</b> <span className="muted">(baseline would say {pct(p.baselineProbability)})</span></>}
+        {basis === 'baseline' && <><span className="pill warn">Transparent baseline (fallback)</span> predicted P(you mostly ranged) = <b>{pct(p.probabilityRanged)}</b></>}
+        {basis === 'rule' && <><span className="pill">Rule</span> You can&apos;t field a ranged weapon next round, so the boss only prepares against melee.</>}
+        {basis === 'unknown' && <><span className="pill">No evidence yet</span> The boss has not seen your style, so it weighs every style you could use equally.</>}
+        {basis === 'legacy' && <><span className="pill warn">Transparent baseline (fallback)</span> P(you mostly ranged) = <b>{pct(p.probabilityRanged)}</b> <span className="muted">(older record: a round-1 50% here was a placeholder, not an estimate)</span></>}
+      </p>
+      {p.fallbackReason && basis !== 'model' && <p className="muted small">{basis === 'rule' ? 'Why' : 'Why fallback'}: {p.fallbackReason}</p>}
+    </>
+  );
+}
+
 export function DecisionPanel({ d }: { d: Decision }) {
   const catalog = useCatalog();
   const p = d.predictor;
   const plan = d.selected.plan;
+  const v2 = d.selected.policyVersion === 'v2-diverse';
+  const band = d.selected.band ?? [];
   return (
     <section className="card boss-mind">
       <h3>♟ Boss pre-round decision (before round {d.for_round_number})</h3>
       {d.for_round_number === 1 && <p className="small">Includes the boss's <b>initial stat allocation</b>: {d.evidence.constraints.statPointsAvailable} point(s) available.</p>}
-      <p>
-        {p.kind === 'model'
-          ? <span className="pill ok">Trained ML model {p.modelVersion}</span>
-          : <span className="pill warn">Transparent baseline (fallback)</span>}
-        {' '}predicted P(you mostly ranged) = <b>{pct(p.probabilityRanged)}</b>
-        {p.kind === 'model' && <span className="muted"> (baseline would say {pct(p.baselineProbability)})</span>}
-      </p>
-      {p.fallbackReason && <p className="muted small">Why fallback: {p.fallbackReason}</p>}
+      <PredictionLine p={p} />
+      {v2 && plan.archetype && (
+        <p className="small">Build style: <span className="tag">{plan.archetype}</span>
+          {band.length > 1 ? ` chosen from ${band.length} equally strong plans (${[...new Set(band.map((b) => b.archetype))].join(', ')}) by a seeded draw.` : ' — the clear best plan.'}
+        </p>
+      )}
       <ul className="small">{d.selected.rationale.map((r, i) => <li key={i}>{r}</li>)}</ul>
       <p className="small"><b>Actions:</b> {d.actions.length ? d.actions.map((a, i) => (
         <span key={i} className="tag">{a.kind === 'stat_allocation' ? `+${a.detail.points} ${a.detail.stat.toUpperCase()}` : a.kind === 'purchase' ? `buy ${itemName(catalog, a.detail.itemId)} (${a.detail.cost}g)` : `equip ${loadoutText(catalog, a.detail.loadout)}`}</span>
@@ -195,17 +214,20 @@ export function DecisionPanel({ d }: { d: Decision }) {
       <details>
         <summary className="small">Options considered ({d.options.candidatesEvaluated} legal plans; top plans verified by simulated fights)</summary>
         <table className="table small">
-          <thead><tr><th>Plan</th><th>Cost</th><th>Win vs ranged</th><th>Win vs melee</th><th>Weighted</th></tr></thead>
+          <thead><tr><th>Plan</th>{v2 && <th>Style</th>}<th>Cost</th><th>Win vs ranged</th><th>Win vs melee</th><th>{v2 ? 'HP margin' : 'Weighted'}</th></tr></thead>
           <tbody>
             {[plan, ...d.options.alternatives, d.options.current].map((o, i) => (
               <tr key={i} className={i === 0 ? 'hl' : ''}>
                 <td>{i === 0 ? '✔ ' : ''}{i === d.options.alternatives.length + 1 ? '(unchanged build) ' : ''}{o.label}</td>
-                <td>{o.cost}g</td><td>{pct(o.winRate?.ranged)}</td><td>{pct(o.winRate?.melee)}</td><td>{pct(o.weighted)}</td>
+                {v2 && <td>{o.archetype ?? '—'}</td>}
+                <td>{o.cost}g</td><td>{pct(o.winRate?.ranged)}</td><td>{pct(o.winRate?.melee)}</td>
+                <td>{v2 ? signed(o.weighted) : pct(o.weighted)}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p className="muted small">Scenarios built from your last observed build: {d.evidence.scenarios.map((s) => `${s.kind}${s.hypotheticalItems.length ? ` (assumes ${s.hypotheticalItems.join(', ')})` : ''}`).join('; ')}.</p>
+        <p className="muted small">{v2 ? 'Ways you could prepare that the boss considered (from your last observed state):' : 'Scenarios built from your last observed build:'}{' '}
+          {d.evidence.scenarios.map((s) => `${s.label ?? s.kind}${s.weight !== undefined ? ` (${pct(s.weight)})` : ''}${s.hypotheticalItems.length ? ` [assumes ${s.hypotheticalItems.map((id) => itemName(catalog, id)).join(', ')}]` : ''}`).join('; ')}.</p>
       </details>
     </section>
   );

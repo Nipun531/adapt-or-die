@@ -76,7 +76,15 @@ A failure anywhere rolls the whole transaction back — no half-written rounds.
 ## Boss: after and before a round
 
 - **After** (`boss/analysis.ts`): summarises the combat events (`game/summary.ts`) into damage by mode/phase/weapon, pierces, DEX/initiative comparison and outcome, then flags weaknesses (`ranged_pressure`, `pierce_exposure`, `heavy_melee_pressure`, `dex_deficit`, `low_defense`, `low_damage_output`, `outmatched`, `narrow_loss`) — each with the evidence sentence and metric values that triggered it. Thresholds are heuristics in `WEAKNESS_THRESHOLDS`.
-- **Before** (`boss/policy.ts`): enumerates every legal (stat allocation × loadout reachable with owned + affordable items) plan; builds two opponent scenarios from the player's last observed build (ranged / melee, hypothetically assuming a Bow or Sword if the player lacks one); pre-scores all plans analytically (expected time-to-kill using the real formulas), verifies the top 6 with 16 seeded simulated fights per scenario using the real engine; weights the scenarios by the predictor's P(player mostly ranged); among plans within 0.02 of the best picks the cheapest. `prepare.ts` records which weaknesses the chosen plan addresses (which derived metric moved).
+- **Before**: `boss/prepare.ts` + `boss/policy.ts`, policy v2 (`POLICY_VERSION = 'v2-diverse'`, engine 2.0.0).
+  1. **Feasibility first.** From the player's last observed state (inventory, gold), decide whether they can field a ranged weapon next round. If they cannot (round 1 always: 0 gold), P(ranged) = 0 by rule. The prediction is stored with `basis: 'rule'`, and no model is asked.
+  2. **Prediction.** Otherwise the model or the baseline gives P(ranged), with `basis` set to `model` or `baseline`. With no evidence yet, `basis` is `unknown` and P = `null`: styles are weighted equally, never with a fake 50%.
+  3. **Reachable-opponent scenarios** (`reachableScenarios`). The player's unspent points (into STR/DEX/DEF/HP for melee, DEX/HP for ranged), crossed with the strongest owned/affordable weapon per family, plus a ranged weapon only if feasible. Weights: P(ranged) is spread over the ranged scenarios, 1 − P over the melee ones.
+  4. **Scoring.** Every legal plan (stat allocation × loadout reachable with owned + affordable items) is pre-scored analytically. The top 6, plus the best plan of every archetype, are verified with seeded fights in the real engine. About 40 fights per plan are spread over the scenarios, because fights are near-deterministic. Score = weighted **expected HP margin**.
+  5. **Controlled diversity.** Plans within 0.03 of the best margin count as equally strong. One is drawn with a seeded, margin-weighted draw: half weight for repeating last round's archetype, mild preference for cheaper plans. The band and the draw are stored in `boss_decisions.selected`.
+  6. **Explanation.** `prepare.ts` records which weaknesses the chosen plan addresses (which derived metric moved).
+
+  Policy v1 (two hypothetical Bow/Sword scenarios, win rate, cheapest within 0.02) is kept as `version: 'v1-deterministic'` for comparison and rollback. `npm run boss:bench` compares the two.
 
 So the ML prediction changes *which* legal plan wins; it never buys or allocates anything itself.
 
