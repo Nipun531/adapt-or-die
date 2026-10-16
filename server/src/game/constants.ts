@@ -6,10 +6,12 @@
 import type { Stats } from './types.js';
 
 /** Engine version — stored on every run/round so historical data can be tied to the rules that produced it. */
-export const ENGINE_VERSION = '1.1.0';
+export const ENGINE_VERSION = '2.0.0';
 /** Engine version history (rules that change data meaning):
  *  1.0.0 — original V1 rules; combatants start with 0 stat points.
- *  1.1.0 — DEVELOPER RULE (user-approved): each combatant starts a run with INITIAL_STAT_POINTS unallocated points. */
+ *  1.1.0 — DEVELOPER RULE (user-approved): each combatant starts a run with INITIAL_STAT_POINTS unallocated points.
+ *  2.0.0 — Version 2 (docs/V2_DEMANDS.md): V2 catalogue (catalogs/v2.ts), loss reward 30 XP / 5 gold, level-up +20 gold,
+ *          pierce on any weapon that has a pierce spec, only the DEX-advantaged ranged fighter gets the opening shot. */
 
 /** Plan §1: starting values. */
 export const BASE_STATS: Stats = { hp: 100, str: 20, def: 10, dex: 10 };
@@ -35,13 +37,13 @@ export const INITIAL_STAT_POINTS = 2;
 export const XP_BASE = 100;
 export const XP_MULTIPLIER = 1.12;
 
-/** Plan §2: round rewards. */
+/** Round rewards. V2 (engine 2.0.0, user-specified): win 50 XP / 10 gold, loss 30 XP / 5 gold. (V1: loss 20 XP / 4 gold.) */
 export const XP_WIN = 50;
-export const XP_LOSS = 20;
+export const XP_LOSS = 30;
 export const GOLD_WIN = 10;
-export const GOLD_LOSS = 4;
-/** Plan §2: gold awarded on each level-up. */
-export const GOLD_LEVEL_UP = 25;
+export const GOLD_LOSS = 5;
+/** Gold awarded on each level-up. V2: 20 (V1: 25). */
+export const GOLD_LEVEL_UP = 20;
 
 /** DECISION: both combatants start with 0 gold and no equipment. */
 export const STARTING_GOLD = 0;

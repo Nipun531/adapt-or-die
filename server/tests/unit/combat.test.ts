@@ -3,7 +3,9 @@
  * piercing, reproducibility from a seed, pause/resume for player choices, and audit fields.
  */
 import { describe, expect, it } from 'vitest';
-import { advanceCombat, resolveAttack, runFullCombat, startCombat, type Chooser } from '../../src/game/combat.js';
+import { advanceCombat, openingShooters, resolveAttack, runFullCombat, startCombat, type Chooser } from '../../src/game/combat.js';
+import { requireItem } from '../../src/game/catalog.js';
+import { netDamage } from '../../src/game/formulas.js';
 import { snapshotOf } from '../../src/game/derive.js';
 import { initialCombatant } from '../../src/game/progression.js';
 import { Rng } from '../../src/game/rng.js';
@@ -24,21 +26,57 @@ class ScriptedRng extends Rng {
   next() { return this.values.shift() ?? 0.5; }
 }
 
-describe('opening ranged attack (plan §5)', () => {
-  it('only fighters with a ranged weapon get an opening attack', () => {
-    const { events } = runFullCombat(fighter('player', { hand1: 'bow' }), fighter('boss', { hand1: 'sword' }), 7, choosers);
-    const openers = events.filter((e) => e.phase === 'opening');
-    expect(openers.map((e) => e.attacker)).toEqual(['player']);
-    expect(openers[0].mode).toBe('ranged');
+describe('opening shot (engine 2.0.0 rule)', () => {
+  const openers = (p: ReturnType<typeof fighter>, b: ReturnType<typeof fighter>, seed = 7) =>
+    runFullCombat(p, b, seed, choosers).events.filter((e) => e.phase === 'opening');
+
+  it('neither ranged → no opening phase', () => {
+    const s = startCombat(fighter('player', { hand1: 'sword' }), fighter('boss', {}), 7);
+    expect(s.initiative).toMatchObject({ openingOrder: [], openingEligible: [], openingRule: 'none' });
+    expect(openers(fighter('player', { hand1: 'sword' }), fighter('boss', {}))).toEqual([]);
   });
-  it('both ranged → higher effective DEX shoots first', () => {
-    const s = startCombat(fighter('player', { hand1: 'bow' }), fighter('boss', { hand1: 'bow' }, { dex: 20 }), 7);
-    expect(s.initiative.openingOrder).toEqual(['boss', 'player']);
+  it('only one ranged → it shoots, even when slower', () => {
+    const p = fighter('player', { hand1: 'bow' });
+    const b = fighter('boss', { hand1: 'sword' }, { dex: 40 });
+    expect(startCombat(p, b, 7).initiative).toMatchObject({ openingOrder: ['player'], openingRule: 'single' });
+    const o = openers(p, b);
+    expect(o.map((e) => e.attacker)).toEqual(['player']);
+    expect(o[0].mode).toBe('ranged');
   });
-  it('equal DEX → seeded coin flip decides, recorded', () => {
-    const s = startCombat(fighter('player', { hand1: 'bow' }), fighter('boss', { hand1: 'bow' }), 7);
-    expect(s.initiative.dexTie).toBe(true);
-    expect(s.initiative.openingOrder[0]).toBe(s.initiative.tieWinner);
+  it('both ranged → ONLY the higher effective DEX fighter shoots (boss faster)', () => {
+    const p = fighter('player', { hand1: 'bow' });
+    const b = fighter('boss', { hand1: 'bow' }, { dex: 20 });
+    expect(startCombat(p, b, 7).initiative).toMatchObject({ openingOrder: ['boss'], openingEligible: ['player', 'boss'], openingRule: 'dex_advantage' });
+    expect(openers(p, b).map((e) => e.attacker)).toEqual(['boss']);
+  });
+  it('both ranged → ONLY the higher effective DEX fighter shoots (player faster)', () => {
+    const p = fighter('player', { hand1: 'crossbow' });
+    const b = fighter('boss', { hand1: 'bow' });
+    expect(openers(p, b).map((e) => e.attacker)).toEqual(['player']);
+  });
+  it('both ranged with equal effective DEX → nobody gets the opening shot', () => {
+    const p = fighter('player', { hand1: 'bow' });
+    const b = fighter('boss', { hand1: 'bow' });
+    const s = startCombat(p, b, 7);
+    expect(s.initiative).toMatchObject({ dexTie: true, openingOrder: [], openingRule: 'tie_none' });
+    expect(openers(p, b)).toEqual([]);
+  });
+  it('a Ranged+Melee hybrid counts as eligible', () => {
+    expect(openingShooters(fighter('player', { hand1: 'bow', hand2: 'sword' }), fighter('boss', {})).openingOrder).toEqual(['player']);
+  });
+  it('the turn-order coin flip is still drawn first, so no-opening rounds keep the RNG sequence', () => {
+    // Tied bows (no opening shot) vs no bows: draw 1 = tie-break in both; the first regular attack's first draw
+    // (pierce roll with a bow, mitigation unarmed) is draw 2 in both — no draws were spent on an opening phase.
+    const plain = runFullCombat(fighter('player', {}), fighter('boss', {}), 11, choosers);
+    const tied = runFullCombat(fighter('player', { hand1: 'bow' }), fighter('boss', { hand1: 'bow' }), 11, choosers);
+    expect(tied.state.initiative.tieWinner).toBe(plain.state.initiative.tieWinner);
+    expect(tied.events[0].phase).toBe('regular');
+    expect(tied.events[0].calc.pierce!.roll).toBe(plain.events[0].calc.mitigationUniform);
+  });
+  it('an opening shot from a pierce bow rolls pierce', () => {
+    const o = openers(fighter('player', { hand1: 'longbow' }), fighter('boss', {}));
+    expect(o[0].calc.pierce).not.toBeNull();
+    expect(o[0].calc.pierce!.weaponId).toBe('longbow');
   });
 });
 
@@ -58,17 +96,46 @@ describe('turn order and DEX bonus attacks (plan §4)', () => {
   });
 });
 
-describe('piercing', () => {
+describe('piercing (any weapon with a pierce spec, engine 2.0.0)', () => {
   const att = fighter('player', { hand1: 'crossbow' });
   const def = fighter('boss', { armour: 'heavy_armour' });
-  it('successful pierce ignores weapon % of Net DEF', () => {
-    const c = resolveAttack(att, def, 'ranged', new ScriptedRng([0.1, 0.5]));
+  const xbow = requireItem('crossbow').pierce!;
+  it('successful pierce ignores weapon % of Net DEF and records the extra damage', () => {
+    const c = resolveAttack(att, def, 'ranged', new ScriptedRng([0, 0.5]));
     expect(c.pierce!.success).toBe(true);
-    expect(c.defUsed).toBeCloseTo(def.derived.netDef * 0.5);
+    expect(c.pierce!.weaponId).toBe('crossbow');
+    expect(c.defUsed).toBeCloseTo(def.derived.netDef * (1 - xbow.defIgnore));
+    expect(c.pierce!.extraDamage).toBeCloseTo(c.netDamage - netDamage(c.attackValue, def.derived.netDef));
+    expect(c.pierce!.extraDamage!).toBeGreaterThan(0);
+  });
+  it('success boundary is roll < chance', () => {
+    expect(resolveAttack(att, def, 'ranged', new ScriptedRng([xbow.chance - 1e-9, 0.5])).pierce!.success).toBe(true);
+    expect(resolveAttack(att, def, 'ranged', new ScriptedRng([xbow.chance, 0.5])).pierce!.success).toBe(false);
+  });
+  it.each(['rapier', 'flail', 'spear', 'lance', 'pike'])('melee pierce weapon %s rolls pierce on melee attacks', (id) => {
+    const m = fighter('player', { hand1: id });
+    const spec = requireItem(id).pierce!;
+    const c = resolveAttack(m, def, 'melee', new ScriptedRng([0, 0.5]));
+    expect(c.pierce).toMatchObject({ success: true, chance: spec.chance, defIgnore: spec.defIgnore, weaponId: id });
+    expect(c.defUsed).toBeCloseTo(def.derived.netDef * (1 - spec.defIgnore));
+    expect(c.attackValue).toBe(m.derived.netAtk);
+  });
+  it('weapons without a pierce spec and unarmed attacks draw NO pierce roll', () => {
+    const rngA = new ScriptedRng([0.3, 0.9]);
+    const c = resolveAttack(fighter('player', { hand1: 'sword' }), def, 'melee', rngA);
+    expect(c.pierce).toBeNull();
+    expect(c.mitigationUniform).toBe(0.3); // first draw went to mitigation
+    expect(resolveAttack(fighter('player', {}), def, 'unarmed', new ScriptedRng([0.3])).pierce).toBeNull();
+  });
+  it('a Bow + Pike hybrid uses the pierce spec of the weapon actually used', () => {
+    const h = fighter('player', { hand1: 'bow', hand2: 'pike' });
+    expect(resolveAttack(h, def, 'ranged', new ScriptedRng([0, 0.5])).pierce!.weaponId).toBe('bow');
+    expect(resolveAttack(h, def, 'melee', new ScriptedRng([0, 0.5])).pierce!.weaponId).toBe('pike');
   });
   it('failed pierce uses full Net DEF', () => {
-    const c = resolveAttack(att, def, 'ranged', new ScriptedRng([0.9, 0.5]));
+    const c = resolveAttack(att, def, 'ranged', new ScriptedRng([0.99, 0.5]));
     expect(c.pierce!.success).toBe(false);
+    expect(c.pierce!.extraDamage).toBe(0);
     expect(c.defUsed).toBe(def.derived.netDef);
   });
   it('ranged uses effective DEX as attack value; melee uses Net ATK', () => {
@@ -85,7 +152,7 @@ describe('piercing', () => {
 
 describe('reproducibility and pause/resume', () => {
   const p = fighter('player', { hand1: 'bow', hand2: 'sword' });
-  const b = fighter('boss', { hand1: 'axe', hand2: 'wood_shield' });
+  const b = fighter('boss', { hand1: 'mace', hand2: 'wood_shield' });
   it('same seed + same choices → identical events', () => {
     const a = runFullCombat(p, b, 42, choosers).events;
     const c = runFullCombat(p, b, 42, choosers).events;

@@ -26,7 +26,7 @@ progress is persisted after each run and the page polls it. API: `POST /api/simu
 
 Speed: roughly 0.7–1 s per 10-round run on a laptop (the boss's Monte-Carlo plan verification dominates). 240 runs × 10 rounds ≈ 3.5 minutes.
 
-## Agents (`server/src/sim/agents.ts`, `SIMULATOR_VERSION = sim-1.1.0`)
+## Agents (`server/src/sim/agents.ts`, `SIMULATOR_VERSION = sim-2.0.0`)
 
 Every simulated run is created by the same `createRun()` as manual play, so both sides get the 2 initial stat points (engine 1.1.0).
 Agents spend all available points each round — before round 1 that is the 2 initial points, with their normal pattern — through the
@@ -36,15 +36,18 @@ validated allocation service; the boss spends its points in round-1 preparation.
 |---|---|---|
 | `sim-1.0.0` | 1.0.0 | Original agents; runs started with 0 stat points (batches 1–3 in the dev DB — historical). |
 | `sim-1.1.0` | 1.1.0 | Same agent logic; runs start with 2 initial points per side that agents/boss spend before round 1. |
+| `sim-2.0.0` | 2.0.0 | V2 catalogue wishlists; new `piercer` and `duelist` agents; `adaptive` cycles melee → ranged → pierce. |
 
 
 | Name | Behaviour |
 |---|---|
-| `melee_bruiser` | Allocates STR/STR/HP; buys Knuckle → Sword → Leather Armour → Greatsword → Light → Heavy Armour; always melee. |
-| `archer` | Allocates DEX/DEX/HP; buys Bow → Leather Armour → Crossbow; ranged once it owns a bow (unarmed before). |
+| `melee_bruiser` | Allocates STR/STR/HP; buys Knuckle → Sword → Leather Armor → LongSword → Warhammer → Light → Heavy Armor; always melee. |
+| `archer` | Allocates DEX/DEX/HP; buys Bow → Leather Armor → Crossbow → Longbow; ranged once it owns a bow (unarmed before). |
 | `shield_turtle` | Allocates DEF/HP/DEF/STR; buys Knuckle, shields and armour; melee + shield. |
 | `hybrid` | Bow + melee weapon; allocates DEX/STR/HP; chooses ranged or melee per attack by higher expected damage. |
-| `adaptive` | Starts melee; after two consecutive losses switches style (melee ↔ ranged), re-gears and re-allocates. |
+| `adaptive` | Starts melee; after two consecutive losses switches style (melee → ranged → pierce → …), re-gears and re-allocates. |
+| `piercer` | Allocates STR/HP/STR; buys Spear → Leather Armor → Wood Shield → Lance → Flail → Pike; pierce melee + shield. |
+| `duelist` | Allocates DEX/STR/DEX; buys Knife → Leather Armor → Sabre → Rapier → Light Armor; fast blade. |
 | `random` | Random stat, ≤1 random affordable purchase (60%), random legal loadout, random attack mode. Adds noise/exploration. |
 
 Agents buy wishlist items strictly in order (saving up when the next one is unaffordable) and only use information a human would have:
@@ -52,6 +55,17 @@ their own state and previous round outcomes. Every action is applied through `se
 
 Coverage note: these are scripted strategies, not humans. A model trained on them learns these patterns; see `docs/ML_WALKTHROUGH.md` §10.
 To add a strategy: implement the `Agent` interface in `agents.ts`, add it to `AGENTS`, bump `SIMULATOR_VERSION`.
+
+## Balance harness (no database)
+
+`npm run balance -- [--fights 60] [--runs 40]` runs the V2 balance study with the real rules and the real boss policy, but entirely in memory. Nothing is written to the DB. It writes `artifacts/balance/report.{md,json}` and has four parts:
+
+1. **Weapon matrix.** Every weapon, with its best generic build, at three level tiers. It fights five opponent archetypes and every other weapon (round robin). Results are continuous HP margins, so they do not saturate at 0%/100%.
+2. **Pierce viability** per price bracket: the user's original pierce values vs the tuned ones.
+3. **Full in-memory runs.** Every agent, plus a harness-only `mirror` player, plays against the boss. `mirror` uses the boss's own policy, so its result measures how fair the rules are rather than how smart the boss is.
+4. **Proposal experiments.** Temporary item overrides, nothing saved.
+
+Results and conclusions: `docs/V2_BALANCE.md`. `tuneOne()` in `balance.ts` is the buff-only pierce grid search used for the V2 values.
 
 ## Seeds and reproducibility
 

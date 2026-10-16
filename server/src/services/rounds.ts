@@ -22,7 +22,7 @@ import type { AttackMode, Side } from '../game/types.js';
 import { withTransaction, type Db } from '../db/pool.js';
 import { appendExample } from '../ml/examples.js';
 import { loadEvents } from './history.js';
-import { loadCombatant, lockRunForPrep, logProgression, NotFoundError, saveCombatant } from './runs.js';
+import { assertCurrentEngine, loadCombatant, lockRunForPrep, logProgression, NotFoundError, saveCombatant } from './runs.js';
 
 const waitForHuman: Chooser = () => null;
 
@@ -79,6 +79,7 @@ export async function submitChoice(roundId: number, mode: AttackMode, repeat = f
     if (!round) throw new NotFoundError(`Round ${roundId} not found`);
     if (round.status !== 'in_progress' || !round.pending_choice) throw new RuleError('This round is not waiting for a choice');
     const run = (await c.query('SELECT * FROM runs WHERE id = $1 FOR UPDATE', [round.run_id])).rows[0];
+    assertCurrentEngine(run); // a paused round of an older-engine run cannot resume under the live rules
     let res;
     try {
       res = advanceCombat(round.combat_state as CombatState, { player: waitForHuman, boss: bossChooser }, {

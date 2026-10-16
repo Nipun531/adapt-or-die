@@ -52,6 +52,7 @@ function StartScreen({ go }: { go: (hash: string) => void }) {
 }
 
 function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void }) {
+  const catalog = useCatalog();
   const run = useLoad(() => api.getRun(runId), [runId]);
   const [round, setRound] = useState<RoundDetail | null>(null);
   const act = useAction();
@@ -98,7 +99,9 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
   const active = view.run.status === 'active';
   const inProgress = view.inProgressRoundId !== null;
   const nextRound = view.rounds.length + 1;
-  const readOnly = view.run.source === 'simulation';
+  // Runs from an older engine (e.g. before Version 2) are view-only; the server refuses to continue them.
+  const legacy = !!catalog && view.run.engine_version !== catalog.rules.engineVersion;
+  const readOnly = view.run.source === 'simulation' || legacy;
   // Engine 1.1.0: initial stat points must be spent before round 1 (the server enforces this too).
   const mustAllocateInitial = view.rounds.length === 0 && view.player.statPoints > 0;
   const bossNote = view.rounds.length === 0 && view.boss.statPoints > 0
@@ -108,14 +111,17 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
   return (
     <div className="duel">
       <div className="duel-bar">
-        <h2>Run #{view.run.id} {readOnly && <span className="pill">simulation · {view.run.player_strategy}</span>}</h2>
+        <h2>Run #{view.run.id} {view.run.source === 'simulation' && <span className="pill">simulation · {view.run.player_strategy}</span>}{legacy && <span className="pill">engine {view.run.engine_version} · view only</span>}</h2>
         <span>Round {Math.min(view.rounds.length, view.run.max_rounds)} / {view.run.max_rounds} · You {view.record.wins} – {view.record.losses} Boss</span>
         <span className={`pill ${active ? 'ok' : ''}`}>{view.run.status}{view.run.end_reason ? ` (${view.run.end_reason.replace(/_/g, ' ')})` : ''}</span>
-        {active && !inProgress && !readOnly && <button className="btn ghost small" onClick={end} disabled={act.busy}>End run</button>}
+        {active && !inProgress && (!readOnly || legacy) && <button className="btn ghost small" onClick={end} disabled={act.busy}>End run</button>}
       </div>
       <ErrorBox error={act.error} />
+      {legacy && (
+        <p className="warn-text small">This run was created under older rules (engine {view.run.engine_version}). You can review it, but it cannot be continued under the current rules (engine {catalog?.rules.engineVersion}). Start a new run to play Version 2.</p>
+      )}
       <div className="fighters">
-        <FighterCard c={view.player} title={readOnly ? `Agent (${view.run.player_strategy})` : 'You'} />
+        <FighterCard c={view.player} title={view.run.source === 'simulation' ? `Agent (${view.run.player_strategy})` : 'You'} />
         <FighterCard c={view.boss} title="The Boss" note={bossNote} />
       </div>
 

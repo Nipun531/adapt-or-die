@@ -53,11 +53,23 @@ function InitiativeLine({ detail }: { detail: RoundDetail }) {
   const i = detail.round.initiative;
   return (
     <ul className="initiative small">
-      <li><b>Opening shots:</b> {i.openingOrder.length ? i.openingOrder.map(sideName).join(' → ') : 'none (no ranged weapons)'}</li>
+      <li><b>Opening shot:</b> {openingText(i)}</li>
       <li><b>Turn order:</b> {i.turnOrder.map(sideName).join(' → ')} {i.dexTie ? `(DEX tie → seeded coin flip ${n2(i.tieBreakRoll)} → ${sideName(i.tieWinner)})` : '(higher effective DEX first)'}</li>
       <li><b>DEX bonus attacks per turn:</b> you +{i.bonusAttacks.player}, boss +{i.bonusAttacks.boss} (advantage ≥15 → +1, ≥30 → +2)</li>
     </ul>
   );
+}
+
+function openingText(i: RoundDetail['round']['initiative']): string {
+  const who = i.openingOrder.map(sideName).join(' → ');
+  switch (i.openingRule) {
+    case 'none': return 'none (no ranged weapons)';
+    case 'single': return `${who} (the only fighter with a ranged weapon)`;
+    case 'dex_advantage': return `${who} only — both held ranged weapons; higher effective DEX takes the shot`;
+    case 'tie_none': return 'none — both held ranged weapons with equal effective DEX, so neither has the advantage';
+    default: // rounds from engines before 2.0.0: every ranged holder shot
+      return i.openingOrder.length ? `${who} (older rules: every ranged holder shot)` : 'none (no ranged weapons)';
+  }
 }
 
 function ChoicePrompt({ options, turn, phase, onChoose, busy }: {
@@ -66,7 +78,7 @@ function ChoicePrompt({ options, turn, phase, onChoose, busy }: {
   const [repeat, setRepeat] = useState(false);
   return (
     <div className="choice">
-      <p><b>Your move</b> — turn {turn}, {phase === 'dex_bonus' ? 'DEX bonus attack' : 'regular attack'}. Ranged uses effective DEX (and can pierce); melee uses Net ATK.</p>
+      <p><b>Your move</b> — turn {turn}, {phase === 'dex_bonus' ? 'DEX bonus attack' : 'regular attack'}. Ranged uses effective DEX; melee uses Net ATK. Either can pierce if the weapon has a pierce chance.</p>
       <div className="choice-buttons">
         {options.map((m) => <button key={m} className="btn primary" disabled={busy} onClick={() => onChoose(m, repeat)}>{m === 'ranged' ? '🏹 Ranged' : m === 'melee' ? '⚔ Melee' : cap(m)}</button>)}
         <label className="check"><input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} /> use for the rest of this round</label>
@@ -100,7 +112,7 @@ function CombatLog({ events }: { events: CombatEvent[] }) {
             {open === e.seq && (
               <div className="calc">
                 <div>Attack value = {c.attackValueSource === 'effDex' ? 'effective DEX' : 'Net ATK'} = <b>{n2(c.attackValue)}</b></div>
-                <div>Defender Net DEF = {n2(c.defenderNetDef)}{c.pierce ? `; pierce roll ${n2(c.pierce.roll)} vs chance ${c.pierce.chance} → ${c.pierce.success ? `pierced, ignore ${c.pierce.defIgnore * 100}%` : 'no pierce'}${c.pierce.placeholder ? ' (placeholder values)' : ''}` : ''} → DEF used <b>{n2(c.defUsed)}</b></div>
+                <div>Defender Net DEF = {n2(c.defenderNetDef)}{c.pierce ? `; pierce roll ${n2(c.pierce.roll)} vs chance ${c.pierce.chance} → ${c.pierce.success ? `pierced, ignore ${Math.round(c.pierce.defIgnore * 100)}%${c.pierce.extraDamage !== undefined ? ` (+${n2(c.pierce.extraDamage)} damage)` : ''}` : 'no pierce'}${c.pierce.placeholder ? ' (placeholder values)' : ''}` : ''} → DEF used <b>{n2(c.defUsed)}</b></div>
                 <div>Net damage = ATK × ATK / (ATK + DEF) = {n2(c.attackValue)} × {n2(c.attackValue)} / ({n2(c.attackValue)} + {n2(c.defUsed)}) = <b>{n2(c.netDamage)}</b></div>
                 <div>DEX ratio = defender DEX / attacker DEX = {n2(c.defenderDex)} / {n2(c.attackerDex)} = {n2(c.dexRatio)}</div>
                 <div>Mitigation = max(0, roll {n2(c.mitigationRoll)} × (1 − 1/{n2(c.dexRatio)})) = {n2(c.rawMitigation)}{c.mitigationClamped ? ' → clamped to 0 (no DEX advantage)' : ''} → <b>{pct(c.mitigation, 1)}</b></div>

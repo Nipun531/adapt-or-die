@@ -16,7 +16,7 @@
  * The policy only RETURNS a plan; prepare.ts applies it through equipment.ts (which re-validates).
  */
 import { ITEMS, requireItem } from '../game/catalog.js';
-import { runFullCombat, type Chooser } from '../game/combat.js';
+import { openingShooters, runFullCombat, type Chooser } from '../game/combat.js';
 import { deriveStats, snapshotOf } from '../game/derive.js';
 import { allocateStat, equip, isLegalLoadout, purchase } from '../game/equipment.js';
 import { bestMode, expectedAttackDamage } from '../game/expected.js';
@@ -144,8 +144,9 @@ export function analyticScore(boss: FighterSnapshot, sc: Scenario): number {
   const pMode = p.derived.attackModes.includes(sc.preferredMode) ? sc.preferredMode : p.derived.attackModes[0];
   const eB = expectedAttackDamage(boss, p, bMode);
   const eP = expectedAttackDamage(p, boss, pMode);
-  const openB = boss.derived.rangedWeaponId ? expectedAttackDamage(boss, p, 'ranged') : 0;
-  const openP = p.derived.rangedWeaponId ? expectedAttackDamage(p, boss, 'ranged') : 0;
+  const shooters = openingShooters(p, boss).openingOrder; // engine 2.0.0: at most one opening shot
+  const openB = shooters.includes('boss') ? expectedAttackDamage(boss, p, 'ranged') : 0;
+  const openP = shooters.includes('player') ? expectedAttackDamage(p, boss, 'ranged') : 0;
   const perTurnB = eB * (1 + dexBonusAttacks(boss.derived.effDex, p.derived.effDex));
   const perTurnP = eP * (1 + dexBonusAttacks(p.derived.effDex, boss.derived.effDex));
   const turnsB = Math.max(0, p.derived.maxHp - openB) / Math.max(1e-9, perTurnB);

@@ -1,4 +1,4 @@
-# Game Mechanics — The Boss Remembers (V1)
+# Game Mechanics — The Boss Remembers (engine 2.0.0)
 
 Source of truth: `context/adaptive_boss_duel_v1_game_plan_updated.docx` ("Game Mechanics — Current V1 Specification").
 This file copies those rules faithfully and lists every **developer decision** made where the plan is silent.
@@ -9,7 +9,7 @@ Where the rules live in code:
 | Rule | File |
 |---|---|
 | Numbers (stats, rewards, factors, thresholds) | `server/src/game/constants.ts` |
-| Equipment catalogue | `server/src/game/catalog.ts` |
+| Equipment catalogue | `server/src/game/catalogs/v2.ts` (live), `catalogs/v1.ts` (frozen, engine 1.x history), access via `server/src/game/catalog.ts` |
 | Formulas (one function each) | `server/src/game/formulas.ts` |
 | Derived combat numbers from stats + gear | `server/src/game/derive.ts` |
 | Slots, purchases, stat allocation | `server/src/game/equipment.ts` |
@@ -20,7 +20,16 @@ Where the rules live in code:
 When you change a rule: change the constant/function, update the unit test, update this document, and bump
 `ENGINE_VERSION` in `constants.ts` (stored on every run/round so old data stays attributable).
 
-Engine versions: **1.0.0** original V1 rules · **1.1.0** (current) adds the 2 initial stat points per combatant (§1). Nothing else differs.
+Engine versions:
+- **1.0.0**: the original V1 rules.
+- **1.1.0**: adds the 2 initial stat points per combatant (§1).
+- **2.0.0** (current, Version 2, see `docs/V2_DEMANDS.md`), which changes four things:
+  - the V2 catalogue (§8);
+  - loss rewards of 30 XP / 5 gold and a level-up reward of +20 gold (§2);
+  - pierce on any weapon that has a pierce spec (§5);
+  - only the DEX-advantaged ranged fighter gets the opening shot (§5).
+
+Runs created under 1.x are **view-only** under 2.0.0. They display with their own (V1) catalogue, but they cannot be continued, because their rules and items differ. Ending them is still allowed.
 
 ## 1. Core attributes (plan §1)
 
@@ -48,8 +57,9 @@ STR is used for melee attacks. DEX is used for ranged attacks, DEX mitigation an
 - XP required to reach level L = `100 × 1.12^(L − 2)`; reaching Level 2 needs 100 XP.
   - **DECISION:** rounded to the nearest integer → 100, 112, 125, 140, 157, 176, 197, 221, 248, …
   - Surplus XP carries over; several level-ups can happen at once.
-- Round rewards: **winner 50 XP + 10 gold, loser 20 XP + 4 gold.**
-- Each level-up: **+25 gold**, the automatic attribute increase above, and the stat point.
+- Round rewards (engine 2.0.0): **winner 50 XP + 10 gold, loser 30 XP + 5 gold.** (V1: loser 20 XP + 4 gold.)
+- Each level-up: **+20 gold** (V1: +25), the automatic attribute increase above, and the stat point.
+- A loss can now trigger a level-up (for example 70 XP + 30 = 100). Winning is still strictly better per round (+20 XP, +5 gold), so there is no incentive to lose on purpose.
 - Gold buys items. **DECISION:** item *upgrades* are mentioned by the plan but not specified, so they are not implemented in V1. Items cannot be sold.
 - Gold can never go negative (enforced in code and by a database CHECK constraint).
 
@@ -57,7 +67,7 @@ STR is used for melee attacks. DEX is used for ranged attacks, DEX mitigation an
 
 Modifier sums (Σ) are taken over the equipped gear.
 **DECISION (approved):** all equipped items count — both hand slots and armour — and each modifier column feeds its own stat:
-STR mods → Net ATK, DEF mods → Net DEF, DEX mods → Net DEX. (So e.g. Small Shield's +1 STR raises Net ATK.)
+STR mods → Net ATK, DEF mods → Net DEF, DEX mods → Net DEX. (So e.g. Great Shield's +1 STR raises Net ATK.)
 
 ```
 Net ATK  = STR + 0.25 × (STR × ΣSTR mods)
@@ -66,7 +76,7 @@ Net DEX  = DEX + 0.25 × (DEX × ΣDEX mods)
 Effective DEX = max(1, Net DEX)                         ← DECISION (prevents division by zero / negative DEX)
 
 Attack value = Net ATK for melee/unarmed attacks, Effective DEX for ranged attacks
-DEF used     = defender Net DEF × (1 − pierce ignore %)  (ignore % = 0 unless a ranged attack pierces)
+DEF used     = defender Net DEF × (1 − pierce ignore %)  (ignore % = 0 unless the attack pierces)
 Net damage before DEX mitigation = A × (A / (A + DEF used))      with A = attack value
 DEX ratio      = defender Effective DEX / attacker Effective DEX
 DEX mitigation = max(0, roll × (1 − 1 / DEX ratio)),  roll uniform in [0.20, 0.50)
@@ -83,53 +93,75 @@ Final damage   = Net damage × (1 − DEX mitigation)
 - Advantage **≥ 15 → +1 attack**, **≥ 30 → +2 attacks**.
 - **DECISION:** "15 points" is treated as inclusive (≥ 15); the bonus applies **every turn** to the faster side (the slower side cannot have a positive advantage). Bonus attacks follow the fighter's regular attack in the same action.
 
-## 5. Ranged weapons, opening attack, piercing (plan §5)
+## 5. Ranged weapons, opening attack, piercing (engine 2.0.0)
 
-- Ranged weapons use Effective DEX as the attack value.
-- Any fighter with a ranged weapon equipped makes **one opening ranged attack** before turn 1. If both have one, the higher Effective DEX shoots first (DEX tie → the seeded coin flip below).
-- Each bow/crossbow has a pierce chance; on success it ignores a percentage of the defender's DEF for that attack.
-  - **DECISION / PLACEHOLDER (approved, the plan gives no numbers):** Bow 20% chance → ignore 25% DEF; Crossbow 30% chance → ignore 50% DEF. Flagged `placeholder: true` in `catalog.ts` and labelled in the UI and combat log.
-- **DECISION:** a fighter holding Ranged + Melee chooses ranged (DEX) or melee (STR) for every regular/bonus attack. The opening attack is always ranged. The human player is prompted (with an optional "use for the rest of this round"); the boss picks the mode with the higher expected damage; simulation agents use their strategy.
+- Ranged weapons (Bow, Crossbow, Longbow) use Effective DEX as the attack value. Every other weapon is melee and uses Net ATK.
+- **Opening shot ("First Shot")**, decided by `combat.ts → openingShooters`. Eligible = a ranged weapon in a hand (Ranged+Melee holders included).
+  - Nobody eligible → no opening phase.
+  - **Exactly one eligible → it makes one opening ranged attack**, whatever its DEX.
+  - **Both eligible → only the fighter with strictly higher Effective DEX shoots.** (V1: both shot, the faster one first.)
+  - **Both eligible with equal Effective DEX → nobody gets the opening shot**, because neither has the advantage. This rule was user-approved (V2_DEMANDS Q-1). The turn-order coin flip is still drawn first, so the RNG sequence of later draws does not depend on this rule.
+  - The round's initiative records `openingEligible` and `openingRule` (`none` / `single` / `dex_advantage` / `tie_none`), and the round view explains them.
+- **Piercing**: every attack made *with* a weapon that has a pierce spec rolls pierce. That covers melee (Rapier, Flail, Spear, Lance, Pike) as well as ranged (all bows, including the opening shot). On success the attack ignores the weapon's DEF-ignore % of the defender's Net DEF. Unarmed attacks, and weapons without a spec, draw no pierce roll.
+  - The combat log stores the roll, the chance, the ignore %, the weapon and `extraDamage`: the net damage the pierce added, before mitigation.
+  - Pierce values: see §8. The user delegated tuning them (V2_DEMANDS Q-5). They were buffed using the balance harness, with evidence in `docs/V2_BALANCE.md`.
+- **DECISION:** a fighter holding Ranged + Melee chooses ranged (DEX) or melee (STR) for every regular/bonus attack. The opening attack is always ranged.
+  - The human player is prompted, with an optional "use for the rest of this round".
+  - The boss picks the mode with the higher expected damage (pierce EV of the weapon used included).
+  - Simulation agents use their strategy.
 
 ## 6. Turn order (plan silent → DECISIONS)
 
 1. A tie-break coin flip is drawn from the round's seeded RNG at the start of every round (always drawn, so the random sequence is stable).
-2. Opening phase (ranged holders only, see §5).
+2. Opening phase (at most one opening shot, see §5).
 3. Each turn: the fighter with the higher Effective DEX acts first (tie → coin flip winner). Acting = 1 regular attack + DEX bonus attacks.
 4. The round ends immediately when a fighter's HP reaches 0 or below.
-5. Random draws per attack, in order: pierce roll (ranged only), then mitigation roll. All draws come from a seeded `mulberry32` RNG whose seed is derived from the run seed and round number, so every fight is reproducible from its stored seed and snapshots.
+5. Random draws per attack, in order: pierce roll (only if the weapon used has a pierce spec), then mitigation roll. All draws come from a seeded `mulberry32` RNG whose seed is derived from the run seed and round number, so every fight is reproducible from its stored seed and snapshots.
 
 ## 7. Equipment slots (plan §6)
 
 Two hand slots plus a separate body-armour slot.
 
 - Legal hand combinations: **Shield + Melee, Shield + Ranged, Ranged + Melee**, a single item, or empty hands.
-- **DECISION:** the plan's "Sword" category means *any melee weapon*; "Bow" means any ranged weapon (Bow or Crossbow).
+- **DECISION:** the plan's "Sword" category means *any melee weapon* (blades, blunt weapons and polearms); "Bow" means any ranged weapon (Bow, Crossbow, Longbow).
 - Not legal: two melee weapons, two ranged weapons, two shields, the same item twice, armour in a hand slot, non-armour in the armour slot, unowned items.
 - **DECISION:** armour is a separate slot (the plan lists armour items but only two hand slots).
 
-## 8. Equipment catalogue (plan §7, §8) — exact values
+## 8. Equipment catalogue (engine 2.0.0) — exact values
 
-| Item | Category | Cost | STR | DEF | DEX | Pierce |
-|---|---|---|---|---|---|---|
-| Knife | melee | 5 | +3 | — | +2 | |
-| Knuckle | melee | 3 | +1 | — | +2 | |
-| Sword | melee | 10 | +6 | +2 | — | |
-| Rapier | melee | 20 | +5 | +2 | +2 | |
-| Greatsword | melee | 30 | +10 | +4 | −2 | |
-| Wooden Club | melee | 7 | +4 | +2 | −1 | |
-| Iron Club | melee | 15 | +8 | +4 | −3 | |
-| Axe | melee | 10 | +5 | +1 | +1 | |
-| Bow | ranged | 12 | — | — | +2 | 20% / 25% DEF (placeholder) |
-| Crossbow | ranged | 25 | — | — | +4 | 30% / 50% DEF (placeholder) |
-| Leather Armour | armour | 10 | — | +2 | — | |
-| Light Armour | armour | 25 | — | +4 | −1 | |
-| Heavy Armour | armour | 50 | — | +8 | −4 | |
-| Wood Shield | shield | 8 | — | +3 | −1 | |
-| Small Shield | shield | 18 | +1 | +6 | −3 | |
-| Great Shield | shield | 36 | +2 | +10 | −5 | |
+Costs and STR/DEF/DEX modifiers are the user's V2 values. Pierce values were tuned by Claude on the user's instruction (buff only). The user's original pierce values are shown in brackets.
 
-Bow and Crossbow STR modifiers were removed by the plan. "—" is stored as 0.
+| Item | Family | Category | Cost | STR | DEF | DEX | Pierce chance / DEF ignored |
+|---|---|---|---:|---:|---:|---:|---|
+| Knuckle | blunt | melee | 3 | +1 | 0 | +2 | |
+| Knife | blade | melee | 5 | +2 | 0 | +2 | |
+| Sword | blade | melee | 10 | +4 | +1 | 0 | |
+| LongSword | blade | melee | 20 | +7 | +2 | 0 | |
+| Sabre | blade | melee | 20 | +5 | +1 | +2 | |
+| GreatSword | blade | melee | 40 | +10 | +3 | −2 | |
+| Rapier | blade | melee | 40 | +6 | +1 | +3 | 5% / 70% (unchanged) |
+| Wooden Club | blunt | melee | 7 | +3 | +1 | 0 | |
+| Iron Club | blunt | melee | 15 | +5 | +2 | −1 | |
+| Mace | blunt | melee | 25 | +8 | +2 | −1 | |
+| Flail | blunt | melee | 30 | +4 | +1 | 0 | **45% / 90%** (was 20% / 50%) |
+| Warhammer | blunt | melee | 40 | +12 | +2 | −3 | |
+| Bow | bow | ranged | 15 | 0 | 0 | +2 | **55% / 90%** (was 30% / 30%) |
+| Crossbow | bow | ranged | 28 | 0 | 0 | +4 | 25% / 45% (unchanged) |
+| Longbow | bow | ranged | 42 | 0 | 0 | +3 | **45% / 60%** (was 40% / 55%) |
+| Spear | polearm | melee | 15 | +3 | 0 | +1 | **35% / 35%** (was 10% / 25%) |
+| Lance | polearm | melee | 28 | +5 | 0 | 0 | **60% / 75%** (was 20% / 35%) |
+| Pike | polearm | melee | 42 | +7 | 0 | −1 | **60% / 90%** (was 35% / 60%) |
+| Leather Armor | armour | armour | 10 | 0 | +2 | 0 | |
+| Light Armor | armour | armour | 25 | 0 | +4 | −1 | |
+| Heavy Armor | armour | armour | 45 | 0 | +8 | −4 | |
+| Wood Shield | shield | shield | 8 | 0 | +3 | −1 | |
+| Small Shield | shield | shield | 20 | 0 | +5 | −2 | |
+| Great Shield | shield | shield | 42 | +1 | +8 | −5 | |
+
+Notes:
+- `family` is display/analysis only and has no rule effect.
+- Crossbow and Rapier were not buffed: they already top their price brackets (`docs/V2_BALANCE.md`).
+- The V1 catalogue (16 items, including the Axe) is frozen in `catalogs/v1.ts` for history.
 
 ## 9. Worked example
 
@@ -153,7 +185,7 @@ The boss only knows the player's **last observed** build (round N plus automatic
 |---|---|
 | Skills / skill points | Plan names them but defines none → not implemented; architecture leaves room (`STAT_POINTS_PER_LEVEL` and the progression ledger). |
 | Item upgrades | Mentioned, not specified → not implemented. |
-| Pierce chance / DEF-ignore values | Approved placeholders (see §5); change in `catalog.ts`. |
+| Pierce chance / DEF-ignore values | Tuned for V2 (user-delegated); change in `catalogs/v2.ts`, re-run `npm run balance`. |
 | Rounds per run | Not in plan → default 10 (`DEFAULT_MAX_ROUNDS` env), player may end early. |
 | Selling items | Not in plan → not implemented. |
 | Initial stat points | Not in plan → user-requested developer rule (engine 1.1.0): 2 per combatant, spent before round 1 (§1). |

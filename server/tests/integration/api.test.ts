@@ -25,7 +25,9 @@ describe('basic endpoints', () => {
     expect(hres.status).toBe(200);
     expect(hres.body.ok).toBe(true);
     const c = await request(app).get('/api/catalog');
-    expect(c.body.items).toHaveLength(16);
+    expect(c.body.items).toHaveLength(24);
+    expect(c.body.legacyItems.map((i: { id: string }) => i.id)).toEqual(["axe"]);
+    expect(c.body.rules.rewards).toEqual({ xpWin: 50, xpLoss: 30, goldWin: 10, goldLoss: 5, goldLevelUp: 20 });
     expect(c.body.rules.xpCurve[1]).toEqual({ level: 2, xpToNext: 112 });
   });
 
@@ -61,7 +63,7 @@ describe('manual play over HTTP', () => {
       expect(r.body.analysis).not.toBeNull();
       expect(r.body.decision.predictor.kind).toBe('fallback');
       if (n === 1) {
-        // spend round-1 gold on a Knuckle (3g) and equip it — legal for both win (10g) and loss (4g)
+        // spend round-1 gold on a Knuckle (3g) and equip it — legal for both win (10g) and loss (5g)
         expect((await request(app).post(`/api/runs/${id}/buy`).send({ itemId: 'knuckle' })).status).toBe(200);
         const lo = await request(app).post(`/api/runs/${id}/loadout`).send({ hand1: 'knuckle', hand2: null, armour: null });
         expect(lo.body.player.loadout.hand1).toBe('knuckle');
@@ -81,7 +83,7 @@ describe('manual play over HTTP', () => {
   it('prompts a Ranged+Melee player for choices and validates them', async () => {
     const id = (await request(app).post('/api/runs').send({ maxRounds: 2, seed: 'api-choice' })).body.run.id;
     // TEST FIXTURE: grant gold directly so a bow + sword are affordable in round 1.
-    await getPool().query(`UPDATE combatants SET gold = 22 WHERE run_id = $1 AND side = 'player'`, [id]);
+    await getPool().query(`UPDATE combatants SET gold = 25 WHERE run_id = $1 AND side = 'player'`, [id]);
     await request(app).post(`/api/runs/${id}/allocate`).send({ stat: 'dex', points: 2 });
     await request(app).post(`/api/runs/${id}/buy`).send({ itemId: 'bow' });
     await request(app).post(`/api/runs/${id}/buy`).send({ itemId: 'sword' });

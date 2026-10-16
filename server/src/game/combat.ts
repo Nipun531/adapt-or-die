@@ -1,14 +1,18 @@
 /**
  * Combat engine — an authoritative, resumable state machine.
  *
- * Round structure (plan + approved developer decisions, see docs/GAME_MECHANICS.md §Combat order):
- *  1. Tie-break coin flip is drawn first (always, so the RNG sequence is stable). It is only used when
- *     both fighters have equal effective DEX.
- *  2. Opening phase: every fighter with a ranged weapon equipped makes ONE ranged opening attack.
- *     If both have one, higher effective DEX shoots first (plan §5 priority).
+ * Round structure (see docs/GAME_MECHANICS.md §5–6; engine 2.0.0):
+ *  1. Tie-break coin flip is drawn first (always, so the RNG sequence is stable). It is only used for turn
+ *     order when both fighters have equal effective DEX.
+ *  2. Opening phase (`openingShooters`): if exactly one fighter has a ranged weapon, it makes ONE ranged
+ *     opening attack. If both do, ONLY the fighter with strictly higher effective DEX shoots; on an exact
+ *     DEX tie nobody gets the opening shot (user-approved V2 rule, V2_DEMANDS D-OPEN-3).
  *  3. Turns: the fighter with higher effective DEX acts first each turn. On its action a fighter makes
  *     1 regular attack + DEX bonus attacks (plan §4: +1 at 15 advantage, +2 at 30+, applied every turn).
  *  4. The round ends the instant a fighter's HP reaches 0 or below.
+ *
+ * Piercing (engine 2.0.0): any attack made WITH a weapon that has a pierce spec rolls pierce — melee or ranged.
+ * Unarmed attacks and weapons without a spec draw no pierce roll.
  *
  * Fighters with Ranged+Melee choose 'ranged' (DEX) or 'melee' (STR) for each regular/bonus attack.
  * When a choice is needed and no chooser answers, the engine pauses (`pending`) and can be resumed
@@ -42,6 +46,10 @@ export interface PierceRoll {
   roll: number;
   success: boolean;
   placeholder: boolean;
+  /** Weapon whose pierce spec was rolled (engine ≥ 2.0.0; absent on older events). */
+  weaponId?: string;
+  /** Net damage added by the pierce, before DEX mitigation: netDamage(A, DEF used) − netDamage(A, Net DEF). 0 when no pierce. */
+  extraDamage?: number;
 }
 
 /** All intermediate values for one attack — enough to recompute the damage by hand. */
@@ -80,11 +88,17 @@ export interface CombatEvent {
   attackerHp: number;
 }
 
+/** Why the opening phase looks the way it does (engine ≥ 2.0.0; absent on older rounds). */
+export type OpeningRule = 'none' | 'single' | 'dex_advantage' | 'tie_none';
+
 export interface Initiative {
   tieBreakRoll: number;
   tieWinner: Side;
   dexTie: boolean;
   openingOrder: Side[];
+  /** Fighters holding a ranged weapon (eligible for the opening shot). */
+  openingEligible?: Side[];
+  openingRule?: OpeningRule;
   turnOrder: [Side, Side];
   bonusAttacks: Record<Side, number>;
 }
@@ -133,6 +147,24 @@ export interface ChoiceResult {
 /** Return null to pause the engine and wait for external input. */
 export type Chooser = (ctx: ChoiceContext) => ChoiceResult | null;
 
+/**
+ * Opening-shot rule (engine 2.0.0). Eligible = a ranged weapon in a hand (Ranged+Melee holders included).
+ *  - nobody eligible            → no opening phase
+ *  - exactly one eligible       → it shoots, whatever its DEX
+ *  - both eligible              → only the fighter with strictly higher effective DEX shoots
+ *  - both eligible, equal DEX   → nobody shoots (no one has the advantage)
+ */
+export function openingShooters(player: FighterSnapshot, boss: FighterSnapshot): { openingOrder: Side[]; openingEligible: Side[]; openingRule: OpeningRule } {
+  const fighters = { player, boss };
+  const openingEligible = (['player', 'boss'] as Side[]).filter((s) => fighters[s].derived.rangedWeaponId !== null);
+  if (openingEligible.length === 0) return { openingOrder: [], openingEligible, openingRule: 'none' };
+  if (openingEligible.length === 1) return { openingOrder: openingEligible, openingEligible, openingRule: 'single' };
+  const pDex = player.derived.effDex;
+  const bDex = boss.derived.effDex;
+  if (pDex === bDex) return { openingOrder: [], openingEligible, openingRule: 'tie_none' };
+  return { openingOrder: [pDex > bDex ? 'player' : 'boss'], openingEligible, openingRule: 'dex_advantage' };
+}
+
 export function startCombat(player: FighterSnapshot, boss: FighterSnapshot, seed: number): CombatState {
   const rng = new Rng(seed);
   const tieBreakRoll = rng.next();
@@ -143,7 +175,7 @@ export function startCombat(player: FighterSnapshot, boss: FighterSnapshot, seed
   const faster: Side = dexTie ? tieWinner : pDex > bDex ? 'player' : 'boss';
   const turnOrder: [Side, Side] = [faster, otherSide(faster)];
   const fighters = { player, boss };
-  const openingOrder = turnOrder.filter((s) => fighters[s].derived.rangedWeaponId !== null);
+  const { openingOrder, openingEligible, openingRule } = openingShooters(player, boss);
   return {
     seed,
     rngState: rng.state,
@@ -154,6 +186,8 @@ export function startCombat(player: FighterSnapshot, boss: FighterSnapshot, seed
       tieWinner,
       dexTie,
       openingOrder,
+      openingEligible,
+      openingRule,
       turnOrder,
       bonusAttacks: {
         player: dexBonusAttacks(pDex, bDex),
@@ -207,7 +241,15 @@ function advanceCursor(state: CombatState, attacker: Side): void {
   }
 }
 
-/** Resolve one attack with the plan's damage pipeline. Consumes RNG: pierce roll (ranged only), then mitigation roll. */
+/** The weapon an attack in `mode` is made with (null for unarmed). */
+export function weaponForMode(att: FighterSnapshot, mode: AttackMode): string | null {
+  return mode === 'ranged' ? att.derived.rangedWeaponId : mode === 'melee' ? att.derived.meleeWeaponId : null;
+}
+
+/**
+ * Resolve one attack with the plan's damage pipeline.
+ * Consumes RNG: pierce roll (only if the weapon used has a pierce spec), then mitigation roll.
+ */
 export function resolveAttack(
   att: FighterSnapshot,
   def: FighterSnapshot,
@@ -220,16 +262,17 @@ export function resolveAttack(
 
   let pierce: PierceRoll | null = null;
   let ignore = 0;
-  if (ranged) {
-    const weapon = requireItem(att.derived.rangedWeaponId!);
-    const spec = weapon.pierce ?? { chance: 0, defIgnore: 0, placeholder: true };
+  const weaponId = weaponForMode(att, mode);
+  const spec = weaponId ? requireItem(weaponId).pierce : undefined;
+  if (spec) {
     const roll = rng.next();
     const success = roll < spec.chance;
-    pierce = { chance: spec.chance, defIgnore: spec.defIgnore, roll, success, placeholder: spec.placeholder };
+    pierce = { chance: spec.chance, defIgnore: spec.defIgnore, roll, success, placeholder: spec.placeholder, weaponId: weaponId!, extraDamage: 0 };
     ignore = success ? spec.defIgnore : 0;
   }
   const defUsed = defAfterPierce(defenderNetDef, ignore);
   const net = netDamage(attackValue, defUsed);
+  if (pierce && pierce.success) pierce.extraDamage = net - netDamage(attackValue, defenderNetDef);
 
   const attackerDex = att.derived.effDex;
   const defenderDex = def.derived.effDex;
@@ -334,7 +377,7 @@ export function advanceCombat(
       attacker: slot.attacker,
       defender: defSide,
       mode: choice.mode,
-      weaponId: choice.mode === 'ranged' ? att.derived.rangedWeaponId : choice.mode === 'melee' ? att.derived.meleeWeaponId : null,
+      weaponId: weaponForMode(att, choice.mode),
       choiceSource: choice.source,
       choiceReason: choice.reason,
       calc,

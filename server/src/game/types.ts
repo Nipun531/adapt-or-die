@@ -21,8 +21,11 @@ export interface ItemMods {
   dex: number;
 }
 
+/** Display/analysis grouping only — no rule effect (slot rules use ItemCategory). */
+export type ItemFamily = 'blade' | 'blunt' | 'polearm' | 'bow' | 'shield' | 'armour';
+
 export interface PierceSpec {
-  /** Probability (0..1) that a ranged attack pierces. */
+  /** Probability (0..1) that an attack made WITH this weapon pierces (melee or ranged, engine 2.0.0). */
   chance: number;
   /** Fraction (0..1) of the defender's Net DEF ignored when piercing succeeds. */
   defIgnore: number;
@@ -34,6 +37,7 @@ export interface Item {
   id: string;
   name: string;
   category: ItemCategory;
+  family: ItemFamily;
   cost: number;
   mods: ItemMods;
   pierce?: PierceSpec;

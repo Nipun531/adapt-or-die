@@ -43,9 +43,9 @@ export interface RewardResult {
 }
 
 /**
- * Apply end-of-round rewards (plan §2): winner 50 XP / 10 gold, loser 20 XP / 4 gold.
+ * Apply end-of-round rewards (constants.ts; V2: winner 50 XP / 10 gold, loser 30 XP / 5 gold).
  * Then resolve level-ups: while XP >= requirement → spend requirement, +1 level, automatic stat increase,
- * +STAT_POINTS_PER_LEVEL stat points, +25 gold. Surplus XP carries over.
+ * +STAT_POINTS_PER_LEVEL stat points, +GOLD_LEVEL_UP gold (V2: 20). Surplus XP carries over.
  */
 export function applyRoundRewards(state: CombatantState, won: boolean): RewardResult {
   const reason = won ? 'win' : 'loss';

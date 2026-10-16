@@ -18,6 +18,33 @@ activation and model-vs-fallback reporting work; docs are written. Nothing is co
 | F Web UI + API | Done this session |
 | G Tests + docs + smoke tests | Done this session |
 
+## 1a. Version 2 — Phases 0–3 DONE (2026-10-16, engine 2.0.0 / sim-2.0.0)
+
+Spec: `docs/V2_DEMANDS.md` (user answers Q-1..Q-5 in §11.1). Plan: `docs/V2_IMPLEMENTATION_PLAN.md`. Baseline: `docs/V2_BASELINE.md`. Balance: `docs/V2_BALANCE.md`.
+
+- **Phase 0:** pushed initial commit `d034d0e` to GitHub `Nipun531/adapt-or-die` (main). DB backup at `artifacts/backups/pre-v2-2026-10-16.sql` (sha256 in V2_BASELINE). Baseline `npm test` = 88/88.
+- **Phase 1:**
+  - Versioned catalogue: `game/catalogs/v1.ts` (frozen) and `game/catalogs/v2.ts` (live, 24 items, the user's costs and modifiers). `catalog.ts` exposes `catalogFor` / `itemForHistory`.
+  - Rewards: loss 30 XP / 5 gold, level-up +20 gold.
+  - `ENGINE_VERSION 2.0.0`.
+  - Legacy runs (engine ≠ 2.0.0) are view-only via `assertCurrentEngine` (no DB writes). They display with V1 numbers, and End run is allowed.
+  - `/api/catalog` adds `legacyItems` and `rules.engineVersion`.
+  - Shop is grouped by family. The UI shows a legacy-run notice.
+- **Phase 2:**
+  - Pierce works on any weapon with a spec (melee too). Events record `pierce.weaponId` and `pierce.extraDamage`.
+  - Only the DEX-advantaged ranged fighter gets the opening shot; an equal-DEX tie gives no shot. Initiative records `openingEligible` and `openingRule`.
+  - `expected.ts`, `summary.ts` (`pierceExtraDamage`), the analysis text and the policy's `analyticScore` are updated to match.
+- **Phase 3 (+ part of Phase 5):**
+  - Agents moved to sim-2.0.0: V2 wishlists, new `piercer` and `duelist` agents, 3-style `adaptive`.
+  - Balance harness `npm run balance` (no DB).
+  - Pierce values tuned (buff only, user-delegated): see GAME_MECHANICS §8.
+  - Report in `docs/V2_BALANCE.md`; raw output in `artifacts/balance/`.
+- **Verification:**
+  - `npm test` = **122/122** (95 unit + 27 integration); `npm run typecheck` clean.
+  - Browser: legacy run #389 shows the view-only notice and the legacy opening-shot wording, with no Begin button and no console errors.
+  - The V2 shop UI is **not** browser-verified, because that needs a new run (a dev-DB write). It is covered by typecheck and API tests.
+- **Not done:** Phase 4 (feasibility-based prediction and boss diversity), Phase 6 (ML schema v2, data, retrain), Phase 7 (UI redesign). No V2 data has been generated in the dev DB. The active model `…-s2` now falls back automatically (engine mismatch).
+
 ## 1b. Change log — engine 1.1.0: 2 initial stat points (user request, 2026-10-10) — DONE + verified
 
 Rule: both combatants start every run with 2 unallocated stat points, spent with the normal increments before round 1.
@@ -97,6 +124,6 @@ Artifacts in `artifacts/` (git-ignored); both model directories present.
 ## 8. Resume instructions
 
 1. `docker ps` (start Docker Desktop if needed) → `npm run db:up`.
-2. `npm test` should report 80 passing; `npm run typecheck` clean.
+2. `npm test` should report 122 passing; `npm run typecheck` clean. `npm run balance` re-runs the balance study (no DB).
 3. `npm run dev` → http://localhost:5173. `npm run ml:status` for ML state.
 4. Read `docs/FILE_GUIDE.md` to locate code. Never change mechanics without updating tests + `docs/GAME_MECHANICS.md`.

@@ -37,7 +37,7 @@ describe('round lifecycle', () => {
     const w = winner === 'player' ? v.player : v.boss;
     const l = winner === 'player' ? v.boss : v.player;
     expect([w.xp, w.gold]).toEqual([50, 10]);
-    expect([l.xp, l.gold]).toEqual([20, 4]);
+    expect([l.xp, l.gold]).toEqual([30, 5]);
     const kinds = d.progression.map((p: any) => p.kind);
     expect(kinds.filter((k: string) => k === 'xp').length).toBe(2);
   });
@@ -60,7 +60,7 @@ describe('round lifecycle', () => {
   it('pauses for a Ranged+Melee player and resumes with choices', async () => {
     const runId = await createReadyRun({ seed: 'test-seed-3', maxRounds: 3 });
     // TEST FIXTURE: grant gold directly so the player can afford a bow + sword in round 1.
-    await getPool().query(`UPDATE combatants SET gold = 22 WHERE run_id = $1 AND side = 'player'`, [runId]);
+    await getPool().query(`UPDATE combatants SET gold = 25 WHERE run_id = $1 AND side = 'player'`, [runId]);
     await buy(runId, 'bow');
     await buy(runId, 'sword');
     await setLoadout(runId, { hand1: 'bow', hand2: 'sword', armour: null });

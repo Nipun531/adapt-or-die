@@ -5,10 +5,13 @@
  */
 import { useEffect, useState } from 'react';
 import { api, type Item, type Loadout, type RunView, type StatKey } from '../api';
-import { ErrorBox, modsText, useAction, useCatalog } from '../util';
+import { ErrorBox, findItem, modsText, useAction, useCatalog } from '../util';
 
 const STATS: StatKey[] = ['hp', 'str', 'def', 'dex'];
-const CAT_LABEL: Record<Item['category'], string> = { melee: 'Melee weapons', ranged: 'Ranged weapons', shield: 'Shields', armour: 'Armour' };
+const FAMILY_LABEL: Record<Item['family'], string> = {
+  blade: 'Blades', blunt: 'Blunt weapons', polearm: 'Polearms', bow: 'Bows (First Shot)', shield: 'Shields', armour: 'Armor',
+};
+const FAMILIES: Item['family'][] = ['blade', 'blunt', 'polearm', 'bow', 'shield', 'armour'];
 
 export function PrepPanel({ view, onChange }: { view: RunView; onChange: (v: RunView) => void }) {
   const catalog = useCatalog();
@@ -20,7 +23,7 @@ export function PrepPanel({ view, onChange }: { view: RunView; onChange: (v: Run
 
   if (!catalog) return null;
   const inc = catalog.rules.statAllocationIncrease;
-  const owned = (cat?: Item['category']) => p.inventory.map((id) => catalog.items.find((i) => i.id === id)!).filter((i) => i && (!cat || i.category === cat));
+  const owned = (cat?: Item['category']) => p.inventory.map((id) => findItem(catalog, id)!).filter((i) => i && (!cat || i.category === cat));
   const handItems = owned().filter((i) => i.category !== 'armour');
   const dirty = JSON.stringify(lo) !== JSON.stringify(p.loadout);
   const apply = async (fn: () => Promise<RunView>) => {
@@ -46,17 +49,17 @@ export function PrepPanel({ view, onChange }: { view: RunView; onChange: (v: Run
 
       <h3>Equipment shop <span className="muted">({p.gold} gold)</span></h3>
       <div className="shop">
-        {(['melee', 'ranged', 'shield', 'armour'] as const).map((cat) => (
-          <div key={cat} className="shop-col">
-            <h4>{CAT_LABEL[cat]}</h4>
-            {catalog.items.filter((i) => i.category === cat).map((i) => {
+        {FAMILIES.map((fam) => (
+          <div key={fam} className="shop-col">
+            <h4>{FAMILY_LABEL[fam]}</h4>
+            {catalog.items.filter((i) => i.family === fam).map((i) => {
               const have = p.inventory.includes(i.id);
               const short = i.cost > p.gold;
               return (
                 <div key={i.id} className={`shop-item ${have ? 'owned' : ''}`}>
                   <div>
                     <b>{i.name}</b> <span className="muted small">{modsText(i.mods)}</span>
-                    {i.pierce && <div className="muted small">Pierce {Math.round(i.pierce.chance * 100)}% → ignore {Math.round(i.pierce.defIgnore * 100)}% DEF{i.pierce.placeholder ? ' (approved placeholder)' : ''}</div>}
+                    {i.pierce && <div className="muted small">Pierce {Math.round(i.pierce.chance * 100)}% → ignore {Math.round(i.pierce.defIgnore * 100)}% DEF</div>}
                   </div>
                   {have ? <span className="pill ok">Owned</span> : (
                     <button className="btn small" disabled={short || act.busy} title={short ? `Need ${i.cost - p.gold} more gold` : ''}
@@ -90,7 +93,7 @@ export function PrepPanel({ view, onChange }: { view: RunView; onChange: (v: Run
         <button className="btn" disabled={!dirty || act.busy} onClick={() => apply(() => api.setLoadout(runId, lo))}>Equip</button>
         {dirty && <button className="btn ghost" onClick={() => setLo(p.loadout)}>Reset</button>}
       </div>
-      <p className="muted small">Legal hands: Shield + Melee, Shield + Ranged, Ranged + Melee, a single item, or empty. With Ranged + Melee you choose the attack mode during combat; any ranged weapon gives one opening shot.</p>
+      <p className="muted small">Legal hands: Shield + Melee, Shield + Ranged, Ranged + Melee, a single item, or empty. With Ranged + Melee you choose the attack mode during combat. A bow gives the opening shot — but if both fighters hold one, only the one with higher effective DEX shoots (equal DEX: nobody). Pierce works with any weapon that has it.</p>
     </section>
   );
 }

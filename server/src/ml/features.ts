@@ -9,7 +9,7 @@
  * leakage guarantee (tested in tests/integration/ml.test.ts). If you add/remove/rename a feature,
  * bump FEATURE_SCHEMA_VERSION, rebuild the dataset and retrain.
  */
-import { requireItem } from '../game/catalog.js';
+import { itemForHistory } from '../game/catalog.js';
 import type { CombatSummary } from '../game/summary.js';
 import type { CombatantState, FighterSnapshot, Side } from '../game/types.js';
 
@@ -47,21 +47,25 @@ export const FEATURE_NAMES = [
 export type FeatureName = (typeof FEATURE_NAMES)[number];
 export type FeatureVector = Record<FeatureName, number>;
 
-const cats = (s: FighterSnapshot) =>
-  [s.loadout.hand1, s.loadout.hand2].filter((x): x is string => x !== null).map((id) => requireItem(id).category);
+const cats = (s: FighterSnapshot, ev?: string | null) =>
+  [s.loadout.hand1, s.loadout.hand2].filter((x): x is string => x !== null).map((id) => itemForHistory(id, ev).category);
 
 export function isMostlyRanged(summary: CombatSummary): boolean | null {
   const share = summary.player.rangedShare;
   return share === null ? null : share >= RANGED_LABEL_THRESHOLD;
 }
 
-/** Build features from completed rounds 1..N (must be sorted ascending). Requires N ≥ 1. */
-export function buildFeatures(history: RoundRecord[]): FeatureVector {
+/**
+ * Build features from completed rounds 1..N (must be sorted ascending). Requires N ≥ 1.
+ * `engineVersion` = the run's engine (item ids resolve against that engine's catalogue; default = live rules).
+ */
+export function buildFeatures(history: RoundRecord[], engineVersion?: string | null): FeatureVector {
+  const item = (id: string) => itemForHistory(id, engineVersion);
   if (history.length === 0) throw new Error('buildFeatures needs at least one completed round');
   const last = history[history.length - 1];
   const post = last.playerPost;
-  const inv = post.inventory.map((id) => requireItem(id).category);
-  const lastCats = cats(last.playerSnapshot);
+  const inv = post.inventory.map((id) => item(id).category);
+  const lastCats = cats(last.playerSnapshot, engineVersion);
   const shares = history.map((h) => h.summary.player.rangedShare ?? 0);
   const wins = history.filter((h) => h.winner === 'player').length;
   let lossStreak = 0;
@@ -79,15 +83,15 @@ export function buildFeatures(history: RoundRecord[]): FeatureVector {
     p_dex: post.stats.dex,
     p_stat_points: post.statPoints,
     p_gold: post.gold,
-    p_can_afford_bow: post.gold >= requireItem('bow').cost ? 1 : 0,
-    p_can_afford_crossbow: post.gold >= requireItem('crossbow').cost ? 1 : 0,
+    p_can_afford_bow: post.gold >= item('bow').cost ? 1 : 0,
+    p_can_afford_crossbow: post.gold >= item('crossbow').cost ? 1 : 0,
     p_owns_ranged: inv.includes('ranged') ? 1 : 0,
     p_owns_melee: inv.includes('melee') ? 1 : 0,
     p_owns_shield: inv.includes('shield') ? 1 : 0,
     last_has_ranged: lastCats.includes('ranged') ? 1 : 0,
     last_has_melee: lastCats.includes('melee') ? 1 : 0,
     last_has_shield: lastCats.includes('shield') ? 1 : 0,
-    last_armour_def: armour ? requireItem(armour).mods.def : 0,
+    last_armour_def: armour ? item(armour).mods.def : 0,
     last_ranged_share: last.summary.player.rangedShare ?? 0,
     last_attacks: last.summary.player.attacks,
     hist_mean_ranged_share: shares.reduce((a, c) => a + c, 0) / shares.length,
@@ -104,7 +108,7 @@ export function buildFeatures(history: RoundRecord[]): FeatureVector {
     boss_net_def_last: b.derived.netDef,
     boss_net_atk_last: b.derived.netAtk,
     boss_has_ranged_last: b.derived.rangedWeaponId ? 1 : 0,
-    boss_has_shield_last: cats(b).includes('shield') ? 1 : 0,
+    boss_has_shield_last: cats(b, engineVersion).includes('shield') ? 1 : 0,
   };
 }
 

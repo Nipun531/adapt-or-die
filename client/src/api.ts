@@ -19,13 +19,17 @@ export interface Combatant {
   stats: Stats; inventory: string[]; loadout: Loadout; derived: Derived; xpToNext: number;
 }
 export interface Item {
-  id: string; name: string; category: 'melee' | 'ranged' | 'shield' | 'armour'; cost: number;
+  id: string; name: string; category: 'melee' | 'ranged' | 'shield' | 'armour';
+  family: 'blade' | 'blunt' | 'polearm' | 'bow' | 'shield' | 'armour'; cost: number;
   mods: { str: number; def: number; dex: number };
   pierce?: { chance: number; defIgnore: number; placeholder: boolean };
 }
 export interface Catalog {
   items: Item[];
+  /** Ids that only exist in older engines (shown for historical runs). */
+  legacyItems: Item[];
   rules: {
+    engineVersion: string;
     baseStats: Stats; levelUpIncrease: Stats; statAllocationIncrease: Stats; statPointsPerLevel: number; initialStatPoints: number;
     rewards: { xpWin: number; xpLoss: number; goldWin: number; goldLoss: number; goldLevelUp: number };
     xpCurve: { level: number; xpToNext: number }[];
@@ -54,7 +58,7 @@ export interface RunView {
 }
 export interface AttackCalc {
   attackValueSource: 'netAtk' | 'effDex'; attackValue: number; defenderNetDef: number;
-  pierce: { chance: number; defIgnore: number; roll: number; success: boolean; placeholder: boolean } | null;
+  pierce: { chance: number; defIgnore: number; roll: number; success: boolean; placeholder: boolean; weaponId?: string; extraDamage?: number } | null;
   defUsed: number; netDamage: number; attackerDex: number; defenderDex: number; dexRatio: number;
   mitigationUniform: number; mitigationRoll: number; rawMitigation: number; mitigation: number;
   mitigationClamped: boolean; finalDamage: number;
@@ -98,6 +102,8 @@ export interface Decision {
 }
 export interface Initiative {
   tieBreakRoll: number; tieWinner: Side; dexTie: boolean; openingOrder: Side[]; turnOrder: [Side, Side];
+  /** Engine ≥ 2.0.0 only. */
+  openingEligible?: Side[]; openingRule?: 'none' | 'single' | 'dex_advantage' | 'tie_none';
   bonusAttacks: Record<Side, number>;
 }
 export interface Snapshot { side: Side; level: number; stats: Stats; loadout: Loadout; derived: Derived }

@@ -16,9 +16,9 @@ export async function appendExample(db: Db, runId: number, labelRoundNumber: num
   const prior = rows.filter((r) => r.record.roundNumber < labelRoundNumber);
   if (!labelRow || prior.length === 0) return 0;
   const history = prior.map((r) => r.record); // ← rounds 1..N only: the leakage boundary
-  const features = buildFeatures(history);
-  const label = isMostlyRanged(labelRow.record.summary);
   const run = (await db.query('SELECT source, engine_version, simulator_version, seed FROM runs WHERE id = $1', [runId])).rows[0];
+  const features = buildFeatures(history, run.engine_version);
+  const label = isMostlyRanged(labelRow.record.summary);
   const valid = label !== null;
   const res = await db.query(
     `INSERT INTO training_examples (run_id, feature_round_id, label_round_id, feature_schema_version, source, engine_version,

@@ -108,7 +108,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.2rem 1rem 3rem; display: fl
 
 .prep h3 { margin-top: 1rem; }
 .stat-buttons { display: flex; gap: .5rem; flex-wrap: wrap; }
-.shop { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; }
+.shop { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; }
 .shop-item { display: flex; justify-content: space-between; align-items: center; gap: .4rem; padding: .35rem .4rem; border-bottom: 1px solid var(--line); }
 .shop-item.owned b { color: var(--ok); }
 .loadout-picker { display: flex; gap: .8rem; flex-wrap: wrap; align-items: center; }

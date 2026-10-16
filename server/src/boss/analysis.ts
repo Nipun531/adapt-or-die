@@ -13,7 +13,7 @@ import type { FighterSnapshot, Side } from '../game/types.js';
 export const WEAKNESS_THRESHOLDS = {
   rangedDamageShare: 0.5,      // ≥50% of damage taken came from ranged attacks
   meleeDamageShare: 0.5,
-  heavyWeaponStrMod: 8,         // Iron Club / Greatsword class
+  heavyWeaponStrMod: 8,         // V2: Mace, GreatSword, Warhammer (LongSword/Pike at 7 are not "heavy")
   defensePenetration: 0.6,      // avg (net damage / attack value) the player achieved
   damagePerAttackRatio: 0.85,   // boss dmg/attack below 85% of player's
   narrowMarginHp: 0.2,          // lost with player at ≤20% HP
@@ -42,7 +42,7 @@ export interface BossAnalysis {
     rangedShare: number | null;
     heavyMelee: boolean;
   };
-  damageTaken: { total: number; byMode: Record<string, number>; byPhase: Record<string, number>; byWeapon: Record<string, number>; pierces: number; defIgnoredTotal: number };
+  damageTaken: { total: number; byMode: Record<string, number>; byPhase: Record<string, number>; byWeapon: Record<string, number>; pierces: number; defIgnoredTotal: number; pierceExtraDamage: number };
   damageDealt: { total: number; perAttack: number; byMode: Record<string, number> };
   initiative: { bossEffDex: number; playerEffDex: number; actedFirst: Side; playerBonusPerTurn: number; bossBonusPerTurn: number; avgMitigationBossApplied: number; avgMitigationPlayerApplied: number };
   weaknesses: Weakness[];
@@ -84,8 +84,8 @@ export function analyzeRound(input: {
   if (ps.pierces > 0) {
     weaknesses.push({
       code: 'pierce_exposure', severity: Math.min(1, ps.pierces / Math.max(1, ps.pierceAttempts)),
-      evidence: `Player pierced ${ps.pierces}/${ps.pierceAttempts} ranged attacks, ignoring ${r2(ps.defIgnoredTotal)} total DEF.`,
-      metrics: { pierces: ps.pierces, attempts: ps.pierceAttempts, defIgnored: r2(ps.defIgnoredTotal) },
+      evidence: `Player pierced ${ps.pierces}/${ps.pierceAttempts} attacks, ignoring ${r2(ps.defIgnoredTotal)} total DEF and adding ${r2(ps.pierceExtraDamage)} damage before mitigation.`,
+      metrics: { pierces: ps.pierces, attempts: ps.pierceAttempts, defIgnored: r2(ps.defIgnoredTotal), extraDamage: r2(ps.pierceExtraDamage) },
     });
   }
   const meleeShare = taken > 0 ? (ps.damageByMode.melee + ps.damageByMode.unarmed) / taken : 0;
@@ -145,7 +145,7 @@ export function analyzeRound(input: {
       netAtk: r2(player.derived.netAtk), netDef: r2(player.derived.netDef), effDex: r2(player.derived.effDex),
       attacksByMode: ps.attacksByMode, rangedShare: ps.rangedShare, heavyMelee: heavyWeapon,
     },
-    damageTaken: { total: r2(taken), byMode: ps.damageByMode, byPhase: ps.damageByPhase, byWeapon: ps.damageByWeapon, pierces: ps.pierces, defIgnoredTotal: r2(ps.defIgnoredTotal) },
+    damageTaken: { total: r2(taken), byMode: ps.damageByMode, byPhase: ps.damageByPhase, byWeapon: ps.damageByWeapon, pierces: ps.pierces, defIgnoredTotal: r2(ps.defIgnoredTotal), pierceExtraDamage: r2(ps.pierceExtraDamage) },
     damageDealt: { total: r2(bs.damageDealt), perAttack: r2(bPer), byMode: bs.damageByMode },
     initiative: {
       bossEffDex: r2(boss.derived.effDex), playerEffDex: r2(player.derived.effDex), actedFirst: input.initiative.turnOrder[0],

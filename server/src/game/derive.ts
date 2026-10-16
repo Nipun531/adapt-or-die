@@ -7,7 +7,10 @@
  */
 import { requireItem } from './catalog.js';
 import { effectiveDex, netAtk, netDef, netDex } from './formulas.js';
-import type { AttackMode, CombatantState, DerivedStats, FighterSnapshot, Loadout, Stats } from './types.js';
+import type { AttackMode, CombatantState, DerivedStats, FighterSnapshot, Item, Loadout, Stats } from './types.js';
+
+/** Item resolver: live catalogue by default; history views pass an engine-aware one (catalog.itemForHistory). */
+export type ItemLookup = (id: string) => Item;
 
 export function equippedIds(loadout: Loadout): string[] {
   return [loadout.hand1, loadout.hand2, loadout.armour].filter((x): x is string => x !== null);
@@ -20,8 +23,8 @@ export function equippedIds(loadout: Loadout): string[] {
  *  - only melee              → 'melee'
  *  - no weapon               → 'unarmed' (STR melee, no weapon)
  */
-export function attackModesFor(loadout: Loadout): AttackMode[] {
-  const cats = [loadout.hand1, loadout.hand2].filter((x): x is string => x !== null).map((id) => requireItem(id).category);
+export function attackModesFor(loadout: Loadout, lookup: ItemLookup = requireItem): AttackMode[] {
+  const cats = [loadout.hand1, loadout.hand2].filter((x): x is string => x !== null).map((id) => lookup(id).category);
   const hasRanged = cats.includes('ranged');
   const hasMelee = cats.includes('melee');
   if (hasRanged && hasMelee) return ['ranged', 'melee'];
@@ -30,8 +33,8 @@ export function attackModesFor(loadout: Loadout): AttackMode[] {
   return ['unarmed'];
 }
 
-export function deriveStats(stats: Stats, loadout: Loadout): DerivedStats {
-  const items = equippedIds(loadout).map(requireItem);
+export function deriveStats(stats: Stats, loadout: Loadout, lookup: ItemLookup = requireItem): DerivedStats {
+  const items = equippedIds(loadout).map((id) => lookup(id));
   const strModSum = items.reduce((s, i) => s + i.mods.str, 0);
   const defModSum = items.reduce((s, i) => s + i.mods.def, 0);
   const dexModSum = items.reduce((s, i) => s + i.mods.dex, 0);
@@ -47,7 +50,7 @@ export function deriveStats(stats: Stats, loadout: Loadout): DerivedStats {
     netDef: netDef(stats.def, defModSum),
     netDexRaw,
     effDex: effectiveDex(netDexRaw),
-    attackModes: attackModesFor(loadout),
+    attackModes: attackModesFor(loadout, lookup),
     rangedWeaponId: ranged?.id ?? null,
     meleeWeaponId: melee?.id ?? null,
   };

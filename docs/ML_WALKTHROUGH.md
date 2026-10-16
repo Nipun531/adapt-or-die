@@ -115,6 +115,20 @@ There is **no online learning**: the model changes only when you train and activ
   schema from raw records — old-schema rows stay), retrain. Models of an old schema automatically fall back (schema mismatch).
 - Do not compare metrics across schema versions without noting the change.
 
+### Engine 2.0.0 (Version 2)
+
+Engine 2.0.0 changes the catalogue, the rewards, piercing and the opening shot. The data distribution therefore changes, and the existing guards apply:
+- The active model `m20261010-200001-s2` was trained on engine 1.1.0 data, so it now **automatically falls back** to the transparent baseline, giving the reason "trained on engine 1.1.0 data".
+- `ml:activate` refuses it.
+
+The feature schema is still `v1`. Feature values for older runs resolve item ids against their own engine's catalogue (`buildFeatures(history, engineVersion)`), so rebuilding rows never crashes on removed items (Axe).
+
+Not done yet:
+- the schema v2 work (feasibility flag, label without forced opening shots, NaN for "no attacks");
+- retraining.
+
+Both are planned in `docs/V2_IMPLEMENTATION_PLAN.md` Phase 6, after the boss-policy changes (Phase 4).
+
 ### Game-rules (engine) versions and the initial stat points
 
 Engine **1.1.0** gives both combatants 2 initial stat points before round 1 (`docs/GAME_MECHANICS.md` §1). Traced impact:

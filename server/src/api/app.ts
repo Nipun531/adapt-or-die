@@ -13,7 +13,7 @@ import path from 'node:path';
 import { z, ZodError } from 'zod';
 import { env, REPO_ROOT } from '../config/env.js';
 import { explainDbError, getPool, withTransaction } from '../db/pool.js';
-import { ITEMS } from '../game/catalog.js';
+import { ITEMS, ITEMS_V1 } from '../game/catalog.js';
 import * as C from '../game/constants.js';
 import { RuleError } from '../game/equipment.js';
 import { xpToNextLevel } from '../game/formulas.js';
@@ -78,7 +78,10 @@ export function createApp() {
 
   app.get('/api/catalog', h(async () => ({
     items: ITEMS,
+    // Names for ids that only exist in older engines (e.g. the Axe), so historical runs still display correctly.
+    legacyItems: ITEMS_V1.filter((i) => !ITEMS.some((x) => x.id === i.id)),
     rules: {
+      engineVersion: C.ENGINE_VERSION,
       baseStats: C.BASE_STATS, levelUpIncrease: C.LEVEL_UP_INCREASE, statAllocationIncrease: C.STAT_ALLOCATION_INCREASE,
       statPointsPerLevel: C.STAT_POINTS_PER_LEVEL, initialStatPoints: C.INITIAL_STAT_POINTS, rewards: { xpWin: C.XP_WIN, xpLoss: C.XP_LOSS, goldWin: C.GOLD_WIN, goldLoss: C.GOLD_LOSS, goldLevelUp: C.GOLD_LEVEL_UP },
       xpCurve: Array.from({ length: 10 }, (_, i) => ({ level: i + 1, xpToNext: xpToNextLevel(i + 1) })),

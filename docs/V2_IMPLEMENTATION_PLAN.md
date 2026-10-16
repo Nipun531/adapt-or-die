@@ -1,6 +1,6 @@
 # The Boss Remembers — Version 2 Implementation Plan
 
-**Status:** Proposed, awaiting approval. Nothing in this plan has been implemented.
+**Status (2026-10-16):** Phases 0–3 done (engine 2.0.0); agents part of Phase 5 done. Phase 4, ML part of Phase 5, Phase 6 and Phase 7 not started. See `PROGRESS.md` §1a and `docs/V2_BALANCE.md`.
 **Spec:** [`V2_DEMANDS.md`](V2_DEMANDS.md). Requirement, decision and acceptance IDs (R/D/AC/Q) refer to that document.
 **Prepared:** 2026-10-16 from the working tree on `master`, which has **no commits**: every file is untracked.
 

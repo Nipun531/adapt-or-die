@@ -9,13 +9,14 @@ Purpose of every project file, and where to make common changes. Keep this in sy
 |---|---|
 | Change the initial stat points | `INITIAL_STAT_POINTS` in `server/src/game/constants.ts` (bump `ENGINE_VERSION`, retrain) |
 | Change a stat, reward, XP curve, damage factor, DEX threshold | `server/src/game/constants.ts` (+ `tests/unit/rules.test.ts`, `docs/GAME_MECHANICS.md`, bump `ENGINE_VERSION`) |
-| Change an item's cost/modifiers or pierce values | `server/src/game/catalog.ts` |
+| Change an item's cost/modifiers or pierce values | `server/src/game/catalogs/v2.ts` (never edit `catalogs/v1.ts`, it is frozen history), then `npm run balance` |
 | Change a formula | `server/src/game/formulas.ts` |
 | Change slot legality | `server/src/game/equipment.ts` (`LEGAL_HAND_SETS`) |
 | Change turn order / opening / bonus attacks | `server/src/game/combat.ts` |
 | Tune boss weakness detection | `server/src/boss/analysis.ts` (`WEAKNESS_THRESHOLDS`) |
 | Tune boss decision search | `server/src/boss/policy.ts` (`POLICY_CONFIG`) |
 | Add a simulation strategy | `server/src/sim/agents.ts` |
+| Check game balance (no DB) | `npm run balance` → `server/src/sim/balance.ts`, `balance-cli.ts`, output in `artifacts/balance/` |
 | Change ML features/label | `server/src/ml/features.ts` (bump `FEATURE_SCHEMA_VERSION`) |
 | Change model, split, eligibility | `ml/train.py` |
 | Add an API endpoint | `server/src/api/app.ts` (+ `client/src/api.ts`) |
@@ -73,7 +74,9 @@ Purpose of every project file, and where to make common changes. Keep this in sy
 | `src/db/migrations/002_initial_stat_points.sql` | Engine 1.1.0: `initial_points` ledger kind, `engine_version` on dataset snapshots and model versions. |
 | `src/game/types.ts` | Domain types (stats, items, loadout, combatant, snapshots). |
 | `src/game/constants.ts` | All rule numbers + engine version. |
-| `src/game/catalog.ts` | Equipment catalogue from the plan. |
+| `src/game/catalog.ts` | Catalogue access: live V2 items, `catalogFor`/`itemForHistory` for older engines. |
+| `src/game/catalogs/v1.ts` | Frozen V1 catalogue (engine 1.x history, incl. Axe). |
+| `src/game/catalogs/v2.ts` | Live V2 catalogue (24 items, tuned pierce values). |
 | `src/game/formulas.ts` | One pure function per formula. |
 | `src/game/derive.ts` | Net ATK/DEF/DEX, effective DEX, attack modes from stats + gear. |
 | `src/game/equipment.ts` | Slot legality, purchases, stat allocation (`RuleError`). |
@@ -91,6 +94,8 @@ Purpose of every project file, and where to make common changes. Keep this in sy
 | `src/sim/agents.ts` | Simulated player strategies + `SIMULATOR_VERSION`. |
 | `src/sim/runner.ts` | Batch create/execute, per-run failure handling, counters, summaries, interrupted-batch cleanup. |
 | `src/sim/cli.ts` | `npm run sim` command. |
+| `src/sim/balance.ts` | Balance harness: in-memory runs vs the real boss, weapon matrix, pierce tuning, item-override experiments. |
+| `src/sim/balance-cli.ts` | `npm run balance` — full balance study → `artifacts/balance/report.{md,json}`. |
 | `src/ml/features.ts` | Feature schema v1, label definition, transparent baseline. |
 | `src/ml/examples.ts` | Append / rebuild derived training rows. |
 | `src/ml/dataset.ts` | Dataset statistics and CSV/JSON snapshot export. |
@@ -99,7 +104,9 @@ Purpose of every project file, and where to make common changes. Keep this in sy
 | `src/ml/cli.ts` | `npm run ml:*` commands. |
 | `tests/helpers/db.ts` | Points tests at `TEST_DATABASE_URL`, migrates, truncates between tests; `createReadyRun()` creates a run and spends the initial points. |
 | `tests/unit/rules.test.ts` | Stats, catalogue, formulas, clamp, bonus thresholds, XP, rewards, slots, purchases. |
-| `tests/unit/combat.test.ts` | Opening priority, turn order, bonus attacks, piercing, reproducibility, pause/resume. |
+| `tests/unit/combat.test.ts` | Opening-shot rule (engine 2.0.0), turn order, bonus attacks, piercing on any weapon, reproducibility, pause/resume. |
+| `tests/unit/balance.test.ts` | Balance harness determinism and catalogue restoration. |
+| `tests/integration/legacy-compat.test.ts` | Engine 1.x runs still load (V1 catalogue) and are view-only under 2.0.0. |
 | `tests/integration/lifecycle.test.ts` | Round lifecycle, persistence across pool restart, boss legality over a run, ML fallback honesty. |
 | `tests/integration/sim.test.ts` | Batches, provenance, reproducibility, append-only, config validation, adaptive agent. |
 | `tests/integration/ml.test.ts` | Feature leakage boundary, export, training, eligibility gate, model actually used. |

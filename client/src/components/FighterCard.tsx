@@ -3,7 +3,7 @@
  * (Net ATK / Net DEF / effective DEX) exactly as computed by the server.
  */
 import type { Combatant } from '../api';
-import { Bar, loadoutText, n2, useCatalog } from '../util';
+import { Bar, itemName, loadoutText, n2, useCatalog } from '../util';
 
 export function FighterCard({ c, title, note }: { c: Combatant; title: string; note?: string }) {
   const catalog = useCatalog();
@@ -33,7 +33,7 @@ export function FighterCard({ c, title, note }: { c: Combatant; title: string; n
       </div>
       <p className="loadout"><label>Equipped</label> {loadoutText(catalog, c.loadout)}</p>
       {note && <p className="warn-text small">{note}</p>}
-      <p className="muted small">Attack modes: {d.attackModes.join(' / ')} · Inventory: {c.inventory.length ? c.inventory.map((id) => catalog?.items.find((i) => i.id === id)?.name ?? id).join(', ') : 'empty'}</p>
+      <p className="muted small">Attack modes: {d.attackModes.join(' / ')} · Inventory: {c.inventory.length ? c.inventory.map((id) => itemName(catalog, id)).join(', ') : 'empty'}</p>
     </section>
   );
 }

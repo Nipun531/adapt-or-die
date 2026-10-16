@@ -21,6 +21,8 @@ export interface SideCombatSummary {
   pierces: number;
   /** Sum of DEF points removed by successful pierces on this side's attacks. */
   defIgnoredTotal: number;
+  /** Net damage (before mitigation) added by successful pierces — the pierce's own contribution. */
+  pierceExtraDamage: number;
   /** Mean DEX mitigation applied by the OPPONENT to this side's attacks. */
   avgMitigationSuffered: number;
   /** Share of this side's attacks that were ranged (null if it made no attacks). */
@@ -46,6 +48,7 @@ function emptySide(): SideCombatSummary {
     pierceAttempts: 0,
     pierces: 0,
     defIgnoredTotal: 0,
+    pierceExtraDamage: 0,
     avgMitigationSuffered: 0,
     rangedShare: null,
   };
@@ -70,6 +73,8 @@ export function summarizeCombat(events: CombatEvent[]): CombatSummary {
       if (e.calc.pierce.success) {
         s.pierces++;
         s.defIgnoredTotal += e.calc.defenderNetDef - e.calc.defUsed;
+        s.pierceExtraDamage += e.calc.pierce.extraDamage
+          ?? e.calc.netDamage - e.calc.attackValue * (e.calc.attackValue / (e.calc.attackValue + e.calc.defenderNetDef));
       }
     }
     mitSum[e.attacker] += e.calc.mitigation;

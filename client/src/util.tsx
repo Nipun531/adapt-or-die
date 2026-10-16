@@ -16,10 +16,11 @@ export function useCatalog(): Catalog | null {
 }
 export function itemName(catalog: Catalog | null, id: string | null | undefined): string {
   if (!id) return '—';
-  return catalog?.items.find((i) => i.id === id)?.name ?? id;
+  return findItem(catalog, id)?.name ?? id;
 }
+/** Live item, or an older-engine item (historical runs) when the id no longer exists. */
 export function findItem(catalog: Catalog | null, id: string): Item | undefined {
-  return catalog?.items.find((i) => i.id === id);
+  return catalog?.items.find((i) => i.id === id) ?? catalog?.legacyItems?.find((i) => i.id === id);
 }
 export function loadoutText(catalog: Catalog | null, lo: Loadout): string {
   const parts = [lo.hand1, lo.hand2, lo.armour].filter(Boolean).map((id) => itemName(catalog, id));

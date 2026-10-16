@@ -16,7 +16,9 @@
  *   archer         – DEX, Bow → Crossbow, attacks ranged as soon as it owns a bow
  *   shield_turtle  – DEF/HP, melee + shield + armour
  *   hybrid         – Bow + melee weapon, picks the higher-expected-damage mode each attack
- *   adaptive       – starts melee, switches style (melee ↔ ranged) after two consecutive losses
+ *   adaptive       – starts melee, switches style (melee → ranged → pierce → …) after two consecutive losses
+ *   piercer        – STR/HP, pierce weapons (Spear → Lance/Flail → Pike) + shield, armour-breaking melee
+ *   duelist        – DEX/STR, fast blades (Knife → Sabre → Rapier) + armour
  *   random         – random legal allocations, purchases, loadouts and mode choices (exploration/noise)
  */
 import { getItem, ITEMS, requireItem } from '../game/catalog.js';
@@ -31,8 +33,9 @@ import { STAT_KEYS } from '../game/types.js';
  * Bump when agent behaviour or the meaning of simulated records changes, so data can be traced to the code that produced it.
  *  sim-1.0.0 — engine 1.0.0 (no initial stat points).
  *  sim-1.1.0 — engine 1.1.0: agents spend the 2 initial stat points before round 1 with their normal allocation pattern.
+ *  sim-2.0.0 — engine 2.0.0: V2 catalogue wishlists; new `piercer` and `duelist` agents; adaptive cycles 3 styles.
  */
-export const SIMULATOR_VERSION = 'sim-1.1.0';
+export const SIMULATOR_VERSION = 'sim-2.0.0';
 
 export interface RoundOutcome {
   roundNumber: number;
@@ -64,12 +67,16 @@ export interface Agent {
 const EMPTY: Loadout = { hand1: null, hand2: null, armour: null };
 
 /** Item "power" used to pick the best owned item of a category — a simple, documented heuristic. */
-function itemScore(id: string, weights: { str: number; def: number; dex: number }): number {
-  const m = requireItem(id).mods;
-  return m.str * weights.str + m.def * weights.def + m.dex * weights.dex;
+type Weights = { str: number; def: number; dex: number; pierce?: number };
+
+function itemScore(id: string, weights: Weights): number {
+  const it = requireItem(id);
+  const m = it.mods;
+  const pierceEv = it.pierce ? it.pierce.chance * it.pierce.defIgnore : 0;
+  return m.str * weights.str + m.def * weights.def + m.dex * weights.dex + pierceEv * (weights.pierce ?? 0);
 }
 
-function bestOwned(inv: string[], cat: ItemCategory, w = { str: 1, def: 1, dex: 1 }): string | null {
+function bestOwned(inv: string[], cat: ItemCategory, w: Weights = { str: 1, def: 1, dex: 1 }): string | null {
   const owned = inv.filter((id) => requireItem(id).category === cat);
   if (!owned.length) return null;
   return owned.reduce((a, b) => (itemScore(b, w) > itemScore(a, w) ? b : a));
@@ -79,7 +86,7 @@ function bestOwned(inv: string[], cat: ItemCategory, w = { str: 1, def: 1, dex: 
  * Build a loadout from wanted hand categories (in priority order) + armour, using the best owned item
  * of each category. Falls back to fewer items if a combination would be illegal.
  */
-function loadoutFrom(inv: string[], hands: ItemCategory[], wantArmour: boolean, w = { str: 1, def: 1, dex: 1 }): Loadout {
+function loadoutFrom(inv: string[], hands: ItemCategory[], wantArmour: boolean, w: Weights = { str: 1, def: 1, dex: 1 }): Loadout {
   const picked = hands.map((c) => bestOwned(inv, c, w)).filter((x): x is string => x !== null).slice(0, 2);
   const lo: Loadout = { hand1: picked[0] ?? null, hand2: picked[1] ?? null, armour: wantArmour ? bestOwned(inv, 'armour') : null };
   if (isLegalLoadout(lo, inv)) return lo;
@@ -130,9 +137,9 @@ const after = (state: CombatantState, purchases: string[]) => [...state.inventor
 
 export const meleeBruiser: Agent = {
   name: 'melee_bruiser',
-  description: 'Allocates STR/HP; buys Knuckle → Sword → Greatsword plus armour; always melee.',
+  description: 'Allocates STR/HP; buys Knuckle → Sword → LongSword → Warhammer plus armour; always melee.',
   decide({ state }) {
-    const purchases = buyInOrder(state, ['knuckle', 'sword', 'leather_armour', 'greatsword', 'light_armour', 'heavy_armour']);
+    const purchases = buyInOrder(state, ['knuckle', 'sword', 'leather_armour', 'longsword', 'warhammer', 'light_armour', 'heavy_armour']);
     return {
       allocations: allocateByPattern(state, ['str', 'str', 'hp']),
       purchases,
@@ -145,9 +152,9 @@ export const meleeBruiser: Agent = {
 
 export const archer: Agent = {
   name: 'archer',
-  description: 'Allocates DEX; buys Bow → Leather Armour → Crossbow; attacks ranged once it owns a bow.',
+  description: 'Allocates DEX; buys Bow → Leather Armor → Crossbow → Longbow; attacks ranged once it owns a bow.',
   decide({ state }) {
-    const purchases = buyInOrder(state, ['bow', 'leather_armour', 'crossbow']);
+    const purchases = buyInOrder(state, ['bow', 'leather_armour', 'crossbow', 'longbow']);
     return {
       allocations: allocateByPattern(state, ['dex', 'dex', 'hp']),
       purchases,
@@ -177,7 +184,7 @@ export const hybrid: Agent = {
   name: 'hybrid',
   description: 'Bow + melee weapon; alternates DEX/STR; picks whichever mode has higher expected damage.',
   decide({ state }) {
-    const purchases = buyInOrder(state, ['knuckle', 'bow', 'sword', 'leather_armour', 'crossbow', 'rapier']);
+    const purchases = buyInOrder(state, ['knuckle', 'bow', 'sword', 'leather_armour', 'crossbow', 'sabre', 'rapier']);
     return {
       allocations: allocateByPattern(state, ['dex', 'str', 'hp']),
       purchases,
@@ -188,33 +195,41 @@ export const hybrid: Agent = {
   chooser: () => expectedDamageChooser,
 };
 
+export type AdaptiveStyle = 'melee' | 'ranged' | 'pierce';
+const STYLE_CYCLE: AdaptiveStyle[] = ['melee', 'ranged', 'pierce'];
+
 /** Current style of the adaptive agent = derived from history, so it is reproducible without hidden state. */
-export function adaptiveStyle(history: RoundOutcome[]): 'melee' | 'ranged' {
-  let style: 'melee' | 'ranged' = 'melee';
+export function adaptiveStyle(history: RoundOutcome[]): AdaptiveStyle {
+  let i = 0;
   let streak = 0;
   for (const h of history) {
     streak = h.winner === 'boss' ? streak + 1 : 0;
     if (streak >= 2) {
-      style = style === 'melee' ? 'ranged' : 'melee';
+      i = (i + 1) % STYLE_CYCLE.length;
       streak = 0;
     }
   }
-  return style;
+  return STYLE_CYCLE[i];
 }
 
 export const adaptive: Agent = {
   name: 'adaptive',
-  description: 'Starts melee; after two consecutive losses switches style (melee ↔ ranged) and re-gears.',
+  description: 'Starts melee; after two consecutive losses switches style (melee → ranged → pierce) and re-gears.',
   decide({ state, history }) {
     const style = adaptiveStyle(history);
     const wishlist = style === 'ranged'
-      ? ['bow', 'leather_armour', 'crossbow', 'sword']
-      : ['knuckle', 'sword', 'leather_armour', 'axe', 'greatsword'];
+      ? ['bow', 'leather_armour', 'crossbow', 'longbow']
+      : style === 'pierce'
+        ? ['spear', 'leather_armour', 'lance', 'pike']
+        : ['knuckle', 'sword', 'leather_armour', 'mace', 'greatsword'];
     const purchases = buyInOrder(state, wishlist);
     const inv = after(state, purchases);
+    const hasPierceMelee = inv.some((id) => requireItem(id).category === 'melee' && requireItem(id).pierce);
     const loadout = style === 'ranged' && bestOwned(inv, 'ranged')
       ? loadoutFrom(inv, ['ranged'], true, { str: 0, def: 0.2, dex: 1 })
-      : loadoutFrom(inv, ['melee'], true, { str: 1, def: 0.3, dex: 0.1 });
+      : style === 'pierce' && hasPierceMelee
+        ? loadoutFrom(inv, ['melee'], true, PIERCE_WEIGHTS)
+        : loadoutFrom(inv, ['melee'], true, { str: 1, def: 0.3, dex: 0.1 });
     return {
       allocations: allocateByPattern(state, style === 'ranged' ? ['dex', 'hp'] : ['str', 'hp']),
       purchases,
@@ -223,6 +238,39 @@ export const adaptive: Agent = {
     };
   },
   chooser: () => expectedDamageChooser,
+};
+
+/** Weights that make loadoutFrom prefer pierce weapons (pierce EV = chance × DEF-ignore counts heavily). */
+const PIERCE_WEIGHTS: Weights = { str: 0.4, def: 0.1, dex: 0.1, pierce: 40 };
+
+export const piercer: Agent = {
+  name: 'piercer',
+  description: 'Allocates STR/HP/STR; buys Spear → Leather Armor → Wood Shield → Lance → Flail → Pike; armour-breaking melee.',
+  decide({ state }) {
+    const purchases = buyInOrder(state, ['spear', 'leather_armour', 'wood_shield', 'lance', 'flail', 'pike']);
+    return {
+      allocations: allocateByPattern(state, ['str', 'hp', 'str']),
+      purchases,
+      loadout: loadoutFrom(after(state, purchases), ['melee', 'shield'], true, PIERCE_WEIGHTS),
+      note: 'pierce melee build',
+    };
+  },
+  chooser: () => preferChooser('melee'),
+};
+
+export const duelist: Agent = {
+  name: 'duelist',
+  description: 'Allocates DEX/STR; buys Knife → Leather Armor → Sabre → Rapier → Light Armor; fast blade that strikes first.',
+  decide({ state }) {
+    const purchases = buyInOrder(state, ['knife', 'leather_armour', 'sabre', 'rapier', 'light_armour']);
+    return {
+      allocations: allocateByPattern(state, ['dex', 'str', 'dex']),
+      purchases,
+      loadout: loadoutFrom(after(state, purchases), ['melee'], true, { str: 0.6, def: 0.2, dex: 1, pierce: 20 }),
+      note: 'DEX duelist build',
+    };
+  },
+  chooser: () => preferChooser('melee'),
 };
 
 export const randomAgent: Agent = {
@@ -250,7 +298,7 @@ export const randomAgent: Agent = {
 };
 
 export const AGENTS: Record<string, Agent> = Object.fromEntries(
-  [meleeBruiser, archer, shieldTurtle, hybrid, adaptive, randomAgent].map((a) => [a.name, a]),
+  [meleeBruiser, archer, shieldTurtle, hybrid, adaptive, piercer, duelist, randomAgent].map((a) => [a.name, a]),
 );
 
 export const STRATEGY_NAMES = Object.keys(AGENTS);

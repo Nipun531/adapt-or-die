@@ -3,7 +3,7 @@
  * All writes are transactional and validated by the game rules in game/equipment.ts; every change is
  * appended to the progression_events ledger together with the resulting state.
  */
-import { requireItem } from '../game/catalog.js';
+import { itemForHistory, requireItem } from '../game/catalog.js';
 import { ENGINE_VERSION, INITIAL_STAT_POINTS } from '../game/constants.js';
 import { deriveStats } from '../game/derive.js';
 import { allocateStat, equip, purchase, RuleError } from '../game/equipment.js';
@@ -83,12 +83,24 @@ export async function logProgression(db: Db, e: {
   );
 }
 
+/**
+ * Runs created under an older engine (e.g. 1.x before Version 2) are view-only: their rules, catalogue and
+ * items differ from the live ones, so continuing them would mix rules inside one run (user-approved, V2_DEMANDS Q-2).
+ * Enforced in code only — the run rows are not modified. Ending such a run is still allowed.
+ */
+export function assertCurrentEngine(run: { id: number; engine_version: string }) {
+  if (run.engine_version !== ENGINE_VERSION) {
+    throw new RuleError(`Run ${run.id} was created under older rules (engine ${run.engine_version}); it can be viewed but not continued under engine ${ENGINE_VERSION}. Start a new run.`);
+  }
+}
+
 /** Lock the run and ensure it is in the preparation phase (active, no round in progress). */
-export async function lockRunForPrep(db: Db, runId: number) {
+export async function lockRunForPrep(db: Db, runId: number, opts: { allowLegacy?: boolean } = {}) {
   const r = await db.query('SELECT * FROM runs WHERE id = $1 FOR UPDATE', [runId]);
   const run = r.rows[0];
   if (!run) throw new NotFoundError(`Run ${runId} not found`);
   if (run.status !== 'active') throw new RuleError(`Run ${runId} is ${run.status}`);
+  if (!opts.allowLegacy) assertCurrentEngine(run);
   const ip = await db.query(`SELECT id FROM rounds WHERE run_id = $1 AND status = 'in_progress'`, [runId]);
   if (ip.rowCount) throw new RuleError('A round is in progress — finish it before changing your build');
   return run;
@@ -131,14 +143,15 @@ export async function setLoadout(runId: number, loadout: Loadout, actor: Actor =
 
 export async function endRun(runId: number) {
   return withTransaction(async (c) => {
-    await lockRunForPrep(c, runId);
+    await lockRunForPrep(c, runId, { allowLegacy: true });
     await c.query(`UPDATE runs SET status='completed', end_reason='ended_by_player', ended_at=now(), updated_at=now() WHERE id=$1`, [runId]);
   });
 }
 
 /** Combatant state plus derived combat numbers and XP progress, for the UI. */
-export function presentCombatant(s: CombatantState) {
-  return { ...s, derived: deriveStats(s.stats, s.loadout), xpToNext: xpToNextLevel(s.level) };
+export function presentCombatant(s: CombatantState, engineVersion: string = ENGINE_VERSION) {
+  const lookup = (id: string) => itemForHistory(id, engineVersion); // older runs resolve their own catalogue
+  return { ...s, derived: deriveStats(s.stats, s.loadout, lookup), xpToNext: xpToNextLevel(s.level) };
 }
 
 export async function getRunView(db: Db, runId: number) {
@@ -159,8 +172,8 @@ export async function getRunView(db: Db, runId: number) {
   const losses = rounds.rows.filter((x) => x.winner === 'boss').length;
   return {
     run,
-    player: presentCombatant(player),
-    boss: presentCombatant(boss),
+    player: presentCombatant(player, run.engine_version),
+    boss: presentCombatant(boss, run.engine_version),
     rounds: rounds.rows,
     record: { wins, losses },
     inProgressRoundId: inProgress?.id ?? null,

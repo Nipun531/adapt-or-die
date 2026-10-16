@@ -17,6 +17,7 @@
     "dev:client": "npm run dev -w client",
     "build": "npm run build -w client",
     "start": "npm run start -w server",
+    "balance": "npm run balance -w server --",
     "sim": "npm run sim -w server --",
     "ml:build-dataset": "npm run ml:build-dataset -w server --",
     "ml:export": "npm run ml:export -w server --",
