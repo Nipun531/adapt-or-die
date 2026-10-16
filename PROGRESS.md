@@ -79,7 +79,7 @@ Spec: `docs/V2_DEMANDS.md` (user answers Q-1..Q-5 in §11.1). Plan: `docs/V2_IMP
     - Phases Prepare / Fight / Aftermath, an action bar, and the boss-hand signature.
     - Server: `POST /api/runs/:id/preview` (pure) and buy+equip (`/buy` with `loadout`).
     - Fonts self-hosted (@fontsource). Two browser inspection rounds done. Detector clean.
-    - Screenshots in `client/.impeccable/review/*.png` (native 1440 / 390 via `scratchpad cdp_shots.py`, which drives headless Chrome over CDP).
+    - Screenshots in `client/.impeccable/review/*.png` (native 1440 / 390 via `client/scripts/capture-review.py`, which drives headless Chrome over CDP).
   - **Next steps, in order:**
     1. Get the finish reviewer's verdict (agent `ad8e9042eef5e90b4`, re-review requested on the PNGs). Apply its fixes in one batch, recapture, and send back for a verdict.
     2. Spawn `impeccable-documenter` to write `client/DESIGN.md` + `client/.impeccable/design.json` from the built world.
