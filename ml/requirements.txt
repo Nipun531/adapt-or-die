@@ -1,0 +1,6 @@
+# Python packages for ML training (ml/train.py) and inference (ml/infer_worker.py). Python 3.10+.
+# Install: pip install -r ml/requirements.txt   (versions verified on Python 3.12)
+numpy==1.26.4
+pandas==2.2.1
+scikit-learn==1.4.2
+xgboost==2.0.3

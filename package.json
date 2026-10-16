@@ -1,0 +1,33 @@
+{
+  "//": "Root workspace for The Boss Remembers. Scripts delegate to the server/client workspaces so every documented command runs from the repo root.",
+  "name": "the-boss-remembers",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run migrate -w server",
+    "db:check": "npm run db:check -w server",
+    "dev": "concurrently -n server,client -c yellow,cyan \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "sim": "npm run sim -w server --",
+    "ml:build-dataset": "npm run ml:build-dataset -w server --",
+    "ml:export": "npm run ml:export -w server --",
+    "ml:train": "npm run ml:train -w server --",
+    "ml:activate": "npm run ml:activate -w server --",
+    "ml:status": "npm run ml:status -w server --",
+    "test": "npm run test -w server",
+    "test:unit": "npm run test:unit -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

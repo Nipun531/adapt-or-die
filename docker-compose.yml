@@ -1,0 +1,26 @@
+# Local PostgreSQL for The Boss Remembers.
+# Credentials come from .env (POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB / POSTGRES_PORT).
+# Data lives in the named volume "boss_pgdata", so it survives container restarts.
+# `docker compose down` keeps data; `docker compose down -v` DELETES it.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: boss-remembers-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-boss}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_locally}
+      POSTGRES_DB: ${POSTGRES_DB:-boss_remembers}
+    ports:
+      # Host port defaults to 5433 to avoid clashing with any locally installed Postgres on 5432.
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - boss_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-boss} -d ${POSTGRES_DB:-boss_remembers}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  boss_pgdata:
