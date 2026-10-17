@@ -20,7 +20,7 @@ Purpose of every project file, and where to make common changes. Keep this in sy
 | Change ML features/label | `server/src/ml/features.ts` (bump `FEATURE_SCHEMA_VERSION`) |
 | Change model, split, eligibility | `ml/train.py` |
 | Add an API endpoint | `server/src/api/app.ts` (+ `client/src/api.ts`) |
-| Change the UI | `client/src/views/*`, `client/src/components/*`, `client/src/styles.css` |
+| Change the UI | `client/src/duel/*` (duel screen), `client/src/views/*`, `client/src/ui/*`, `client/src/styles/{tokens,base,app}.css`; design contract in `client/.impeccable/surfaces/src-app-tsx.md` |
 | Change the schema | new `server/src/db/migrations/00N_*.sql` |
 | Default rounds per run, ports, Python path | `.env` (template `.env.example`) |
 
@@ -127,15 +127,23 @@ Purpose of every project file, and where to make common changes. Keep this in sy
 | `vite.config.ts` | Dev server :5173 and `/api` proxy to the API port from `.env`. |
 | `tsconfig.json` | Client type-check config. |
 | `index.html` | HTML entry. |
-| `src/main.tsx` | Mounts the app. |
-| `src/App.tsx` | Top navigation, hash routing, catalogue context. |
-| `src/api.ts` | Typed API client and response types. |
-| `src/util.tsx` | Formatting, data-loading/action hooks, loading/error/empty components, bars. |
-| `src/styles.css` | Theme and layout (responsive). |
-| `src/components/FighterCard.tsx` | One combatant's level, XP, gold, stats and derived numbers. |
-| `src/components/PrepPanel.tsx` | Stat allocation, shop, loadout picker. |
-| `src/components/RoundView.tsx` | Round header/HP, initiative, choice prompt, combat log with calculations, rewards, boss analysis, boss decision. |
-| `src/views/DuelView.tsx` | Start/resume screen and the main run screen. |
-| `src/views/RunsView.tsx` | Paginated run history (manual/simulation). |
-| `src/views/SimView.tsx` | Launch batches, live progress, batch summaries. |
-| `src/views/MlView.tsx` | ML status (data / trained / active / used), train, export, activate, model metrics. |
+| `src/main.tsx` | Mounts the app; self-hosted fonts (@fontsource) and the three stylesheets. |
+| `src/App.tsx` | Baize top bar (Duel + Workshop menu), hash routing, catalogue context, toasts. |
+| `src/api.ts` | Typed API client; `ApiError.kind` tells "server unreachable" from a rule refusal. |
+| `src/util.tsx` | Formatting, item lookups, data-loading/action hooks. |
+| `src/styles/tokens.css` | Court Deck design tokens: baize, card stock, court inks, type, spacing, motion. |
+| `src/styles/base.css` | Element defaults and browser surfaces (selection, focus, scrollbars, tabular numerals). |
+| `src/styles/app.css` | All components and the responsive rules (one card form at three sizes). |
+| `src/ui/Icon.tsx` | Authored SVG suits (♥ HP ♠ STR ♦ DEF ♣ DEX) and UI icons. |
+| `src/ui/states.tsx` | Skeleton, ErrorBox (network vs rule), Empty, Notice, Meter (progressbar), confirm dialog, toasts. |
+| `src/duel/Versus.tsx` | The two fighters as court cards (level index, HP, Net numbers, XP, gold, points). |
+| `src/duel/Armory.tsx` | Prepare: item cards + filters, live server preview, buy & equip, hand slots, stat points, the boss's last hand, Begin round. |
+| `src/duel/loadout.ts` (+ `.test.ts`) | Where a picked item goes in the hand (UX only; the server re-validates). |
+| `src/duel/Fight.tsx` | Fight: First Shot line, two-sided turn-by-turn exchange with HP bars, calculation drawer, Ranged/Melee choice (R/M keys). |
+| `src/duel/Aftermath.tsx` | Aftermath: result + rewards, the boss's hand (signature), what it saw, how it chose, honest prediction basis. |
+| `src/duel/actions.ts` | The one primary action per phase. |
+| `src/views/DuelView.tsx` | Start/resume screen; run screen with the Prepare / Fight / Aftermath phases. |
+| `src/views/RunsView.tsx` | Workshop: paginated run history (manual/simulation, engine). |
+| `src/views/SimView.tsx` | Workshop: launch batches, live progress, batch summaries. |
+| `src/views/MlView.tsx` | Workshop: ML status, train / export / activate, model metrics (pure model and ensemble). |
+| `scripts/capture-review.py` | Native-resolution review screenshots via headless Chrome (needs the API + client running). |

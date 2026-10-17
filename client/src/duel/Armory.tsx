@@ -8,7 +8,10 @@ import { api, type BuildPreview, type Item, type RunView, type StatKey } from '.
 import { StatPip } from '../ui/Icon';
 import { ErrorBox, useToast } from '../ui/states';
 import { findItem, n2, useAction, useCatalog } from '../util';
+import type { PhaseAction } from './actions';
+import { BossHand } from './Aftermath';
 import { proposeLoadout, removeFromSlot, type SlotKey } from './loadout';
+import { Icon } from '../ui/Icon';
 
 const FAMILIES: { id: Item['family']; label: string }[] = [
   { id: 'blade', label: 'Blades' }, { id: 'blunt', label: 'Blunt' }, { id: 'polearm', label: 'Polearms' },
@@ -56,7 +59,7 @@ function Delta({ label, from, to }: { label: string; from: number; to: number })
   );
 }
 
-export function Armory({ view, onChange }: { view: RunView; onChange: (v: RunView) => void }) {
+export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunView; onChange: (v: RunView) => void; begin?: PhaseAction; onShowAftermath?: () => void }) {
   const catalog = useCatalog();
   const toast = useToast();
   const p = view.player;
@@ -186,7 +189,19 @@ export function Armory({ view, onChange }: { view: RunView; onChange: (v: RunVie
             ))}
           </div>
         </div>
+        {view.lastDecision && (
+          <div className="last-hand">
+            <h4>The boss’s last hand</h4>
+            <BossHand d={view.lastDecision} compact onMore={onShowAftermath} />
+          </div>
+        )}
         <ErrorBox error={act.error} />
+        {begin && (
+          <div className="begin">
+            {begin.hint && <p>{begin.hint}</p>}
+            <button className="btn btn-primary btn-big" onClick={begin.onClick} disabled={begin.disabled}>{begin.label} <Icon name="arrow" /></button>
+          </div>
+        )}
         <p className="rules-note">Legal hands: shield + weapon, bow + melee weapon, one item, or empty. If both fighters hold a bow, only the faster one gets the First Shot (equal DEX: nobody). Pierce works with any weapon that has it.</p>
       </aside>
     </div>

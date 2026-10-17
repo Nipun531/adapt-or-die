@@ -144,6 +144,7 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
       <div className="run-bar">
         <h2>Run #{view.run.id}</h2>
         <span className="run-meta">Round {Math.min(view.rounds.length + (canPrepare ? 1 : 0), view.run.max_rounds)} of {view.run.max_rounds}</span>
+        <span className="run-record" aria-label={`Record: you ${view.record.wins}, boss ${view.record.losses}`}><b className="tone-player">{view.record.wins}</b>–<b className="tone-boss">{view.record.losses}</b></span>
         {simulated && <span className="chip chip-dark">simulation · {view.run.player_strategy}</span>}
         {legacy && <span className="chip chip-dark">engine {view.run.engine_version} · view only</span>}
         {!active && <span className="chip chip-dark">{view.run.status}{view.run.end_reason ? ` · ${view.run.end_reason.replace(/_/g, ' ')}` : ''}</span>}
@@ -173,16 +174,16 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
 
       <div className="phase-body" role="tabpanel">
         {current === 'prepare' && (canPrepare
-          ? <Armory view={view} onChange={setView} />
+          ? <Armory view={view} onChange={setView} begin={primary ?? undefined} onShowAftermath={round ? () => setPhase('aftermath') : undefined} />
           : <Empty title={inProgress ? 'A round is in progress' : readOnly ? 'This run is view-only' : 'This run is over'}>
               {inProgress ? <button className="btn btn-primary" onClick={() => setPhase('fight')}>Back to the fight</button>
                 : !readOnly ? <button className="btn btn-primary" onClick={() => go('#/duel')}>Deal a new run</button> : null}
             </Empty>)}
-        {current === 'fight' && round && <Fight detail={round} onChoose={!readOnly ? choose : undefined} busy={act.busy} deal={deal} />}
-        {current === 'aftermath' && round && <Aftermath detail={round} />}
+        {current === 'fight' && round && <Fight detail={round} onChoose={!readOnly ? choose : undefined} busy={act.busy} deal={deal} next={primary ?? undefined} />}
+        {current === 'aftermath' && round && <Aftermath detail={round} next={primary ?? undefined} />}
       </div>
 
-      {primary && (
+      {primary && current === 'prepare' && (
         <div className="action-bar">
           {primary.hint && <p>{primary.hint}</p>}
           <button className="btn btn-primary btn-big" onClick={primary.onClick} disabled={primary.disabled}>{primary.label} <Icon name="arrow" /></button>

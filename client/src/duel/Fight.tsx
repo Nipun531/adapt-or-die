@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { AttackMode, CombatEvent, RoundDetail, Side } from '../api';
 import { Icon } from '../ui/Icon';
 import { Meter } from '../ui/states';
+import type { PhaseAction } from './actions';
 import { itemName, n2, pct, sideName, useCatalog } from '../util';
 
 export function openingText(i: RoundDetail['round']['initiative']): string {
@@ -42,19 +43,24 @@ function AttackRow({ e, maxHp }: { e: CombatEvent; maxHp: Record<Side, number> }
   const ko = e.defenderHpAfter <= 0;
   return (
     <li className={`attack attack-${e.attacker} ${open ? 'is-open' : ''}`}>
-      <button className="attack-line" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span className="attack-who">{sideName(e.attacker)}</span>
-        <span className="attack-what">
-          {e.mode === 'ranged' ? 'shoots' : 'strikes'} with <b>{weapon}</b>
-          {e.phase === 'opening' && <span className="tag tag-yellow">First Shot</span>}
-          {e.phase === 'dex_bonus' && <span className="tag tag-ink">DEX bonus</span>}
-          {e.calc.pierce?.success && <span className="tag tag-blue">Pierce −{Math.round(e.calc.pierce.defIgnore * 100)}% DEF</span>}
-          {ko && <span className="tag tag-red">KO</span>}
-        </span>
-        <span className="attack-dmg">{n2(e.damage)}</span>
-        <span className="attack-hp">
-          <Meter value={Math.max(0, e.defenderHpAfter)} max={maxHp[e.defender]} label={`${sideName(e.defender)} HP after`} tone={e.defender === 'player' ? 'player' : 'boss'} />
-          <small>{sideName(e.defender)} {n2(Math.max(0, e.defenderHpAfter))}</small>
+      {/* Two-sided exchange: your strikes play on the left of the table, the boss's on the right. */}
+      <button className="attack-line" onClick={() => setOpen(!open)} aria-expanded={open}
+        aria-label={`${sideName(e.attacker)} ${e.mode === 'ranged' ? 'shoots' : 'strikes'} with ${weapon} for ${n2(e.damage)}; ${sideName(e.defender)} at ${n2(Math.max(0, e.defenderHpAfter))} HP`}>
+        <span className="attack-side">
+          <span className="attack-dmg">{n2(e.damage)}</span>
+          <span className="attack-body">
+            <span className="attack-what">
+              <b className="attack-who">{sideName(e.attacker)}</b> {e.mode === 'ranged' ? 'shoots' : 'strikes'} with <b>{weapon}</b>
+              {e.phase === 'opening' && <span className="tag tag-yellow">First Shot</span>}
+              {e.phase === 'dex_bonus' && <span className="tag tag-ink">DEX bonus</span>}
+              {e.calc.pierce?.success && <span className="tag tag-blue">Pierce −{Math.round(e.calc.pierce.defIgnore * 100)}% DEF</span>}
+              {ko && <span className="tag tag-red">KO</span>}
+            </span>
+            <span className="attack-hp">
+              <Meter value={Math.max(0, e.defenderHpAfter)} max={maxHp[e.defender]} label={`${sideName(e.defender)} HP after`} tone={e.defender === 'player' ? 'player' : 'boss'} />
+              <small>{sideName(e.defender)} {n2(Math.max(0, e.defenderHpAfter))} HP</small>
+            </span>
+          </span>
         </span>
       </button>
       {open && <Calc e={e} />}
@@ -101,8 +107,8 @@ function Summary({ events, side }: { events: CombatEvent[]; side: Side }) {
   );
 }
 
-export function Fight({ detail, onChoose, busy, deal }: {
-  detail: RoundDetail; onChoose?: (mode: AttackMode, repeat: boolean) => void; busy?: boolean; deal?: boolean;
+export function Fight({ detail, onChoose, busy, deal, next }: {
+  detail: RoundDetail; onChoose?: (mode: AttackMode, repeat: boolean) => void; busy?: boolean; deal?: boolean; next?: PhaseAction;
 }) {
   const r = detail.round;
   const events = detail.events;
@@ -133,6 +139,7 @@ export function Fight({ detail, onChoose, busy, deal }: {
         {done && !dealing && <span className={`result-chip ${r.winner === 'player' ? 'is-win' : 'is-loss'}`}>{r.winner === 'player' ? 'Victory' : 'Defeat'}</span>}
         {!done && <span className="result-chip is-live">In progress</span>}
         {dealing && <button className="btn btn-quiet btn-small" onClick={() => setShown(events.length)}>Show all</button>}
+        {next && !dealing && <button className="btn btn-primary panel-head-action" onClick={next.onClick}>{next.label} <Icon name="arrow" /></button>}
       </header>
       <div className="fight-top">
         <Summary events={visible} side="player" />
@@ -149,6 +156,7 @@ export function Fight({ detail, onChoose, busy, deal }: {
         ))}
       </ol>
       {r.pending_choice && onChoose && !dealing && <ChoicePrompt options={r.pending_choice.options} turn={r.pending_choice.turn} phase={r.pending_choice.phase} onChoose={onChoose} busy={busy} />}
+      {next && !dealing && <div className="phase-end"><button className="btn btn-primary btn-big" onClick={next.onClick}>{next.label} <Icon name="arrow" /></button></div>}
       <p className="fight-seed">Round seed {r.seed} · engine {r.engine_version}: the seed plus the stored snapshots reproduce this fight.</p>
     </section>
   );

@@ -21,10 +21,10 @@ The boss has no hidden advantages. It records evidence-backed weaknesses, predic
 - The game is in testing; the developer plays it and reads the boss reasoning to tune rules and ML.
 
 ## Capabilities and Constraints
-- Client: React 18 + Vite + TypeScript, plain CSS (`src/styles.css`). All game rules live on the server; the client only displays state and sends player intents.
-- Views: Duel, Runs, Simulations, ML Lab.
-- 16-item physical medieval gear catalogue, 2 hand slots + armour.
-- No art assets today; the game is text-focused. Whether to add art is undecided.
+- Client: React 18 + Vite + TypeScript, plain CSS (`src/styles/*.css`). All game rules live on the server; the client only displays state and sends player intents (stat previews come from a pure server endpoint).
+- Views: Duel (Prepare / Fight / Aftermath), plus the developer's Workshop: Runs, Simulations, ML Lab.
+- 24-item medieval gear catalogue (engine 2.0.0: blades, blunt weapons, polearms, bows, shields, armor), 2 hand slots + armor.
+- Visual world: "Court Deck" (baize table, card stock, court inks, suit pips). No raster art yet; the user welcomes some art where it helps.
 - Deployment is not configured.
 
 ## Evidence on Hand

@@ -5,6 +5,7 @@
  */
 import type { Decision, ProgressionRow, RoundDetail, Side } from '../api';
 import { Icon, SuitIcon } from '../ui/Icon';
+import type { PhaseAction } from './actions';
 import { itemName, loadoutText, n2, pct, signed, useCatalog } from '../util';
 
 const METRIC_LABEL: Record<string, string> = { netAtk: 'Net ATK', netDef: 'Net DEF', effDex: 'Eff. DEX', maxHp: 'HP' };
@@ -22,7 +23,7 @@ function rewardText(p: ProgressionRow): string {
   return p.kind;
 }
 
-function Result({ detail }: { detail: RoundDetail }) {
+function Result({ detail, next }: { detail: RoundDetail; next?: PhaseAction }) {
   const r = detail.round;
   const won = r.winner === 'player';
   const rows = detail.progression.filter((p) => p.actor === 'rules');
@@ -33,6 +34,7 @@ function Result({ detail }: { detail: RoundDetail }) {
       <div className="result-main">
         <h2>{won ? 'Victory' : 'Defeat'}</h2>
         <p>Round {r.round_number} · {won ? 'you' : 'the boss'} finished with {n2(Math.max(0, hpLeft ?? 0))} HP · {r.attack_count} attacks</p>
+        {next && <button className="btn btn-on-color" onClick={next.onClick} disabled={next.disabled}>{next.label} <Icon name="arrow" /></button>}
       </div>
       <div className="result-rewards">
         {(['player', 'boss'] as Side[]).map((s) => (
@@ -66,28 +68,48 @@ export function PredictionLine({ p }: { p: Decision['predictor'] }) {
   );
 }
 
-/** The signature: the boss's hand — the equally strong plans fanned, the played one face up. */
-export function BossHand({ d }: { d: Decision }) {
+interface HandCard { label: string; archetype: string; weighted: number; probability: number | null; kind: 'played' | 'equal' | 'weaker' }
+
+/**
+ * The signature: the boss's hand. The equally strong plans it drew from stand face up with their draw chance;
+ * the stronger-than-the-rest plan it played is lifted; the weaker verified plans it passed on are dealt dimmed, so
+ * even a one-plan decision reads as a hand that was chosen from.
+ */
+export function BossHand({ d, compact = false, onMore }: { d: Decision; compact?: boolean; onMore?: () => void }) {
   const plan = d.selected.plan;
   const band = d.selected.band && d.selected.band.length ? d.selected.band : [{ label: plan.label, archetype: plan.archetype ?? 'bruiser', weighted: plan.weighted, cost: plan.cost, probability: 1 }];
-  const playedIdx = Math.max(0, band.findIndex((b) => b.label === plan.label));
-  const n = band.length;
+  const equal: HandCard[] = band.map((b) => ({ ...b, kind: b.label === plan.label ? 'played' : 'equal' }));
+  const inBand = new Set(band.map((b) => b.label));
+  const weaker: HandCard[] = d.options.alternatives
+    .filter((a) => !inBand.has(a.label))
+    .sort((a, b) => b.weighted - a.weighted)
+    .slice(0, Math.max(0, (compact ? 4 : 5) - equal.length))
+    .map((a) => ({ label: a.label, archetype: a.archetype ?? '—', weighted: a.weighted, probability: null, kind: 'weaker' }));
+  // Weaker plans to the sides, the played card in the middle.
+  const left = weaker.filter((_, i) => i % 2 === 1).reverse();
+  const right = weaker.filter((_, i) => i % 2 === 0);
+  const cards = [...left, ...equal.filter((c) => c.kind === 'equal').slice(0, 1), equal.find((c) => c.kind === 'played')!, ...equal.filter((c) => c.kind === 'equal').slice(1), ...right];
+  const n = cards.length;
+  const nEqual = equal.length;
+  const played = equal.find((c) => c.kind === 'played')!;
   return (
-    <figure className="boss-hand" aria-label={`The boss drew from ${n} equally strong plan${n > 1 ? 's' : ''} and played ${plan.archetype ?? 'its plan'}`}>
+    <figure className={`boss-hand ${compact ? 'is-compact' : ''}`}
+      aria-label={`The boss compared ${n} plans; ${nEqual} were equally strong and it played ${plan.archetype ?? 'its plan'}`}>
       <div className="fan" style={{ ['--n' as string]: n }}>
-        {band.map((b, i) => (
-          <div key={i} className={`fan-card ${i === playedIdx ? 'is-played' : ''}`} style={{ ['--i' as string]: i - (n - 1) / 2 }}>
-            <span className="fan-index">{Math.round(b.probability * 100)}<small>%</small></span>
-            <span className="fan-arch">{b.archetype}</span>
-            <span className="fan-label">{b.label}</span>
-            <span className="fan-margin">margin {signed(b.weighted)}</span>
+        {cards.map((c, i) => (
+          <div key={`${c.label}-${i}`} className={`card-face fan-card is-${c.kind}`} style={{ ['--i' as string]: i - (n - 1) / 2 }}>
+            <span className="fan-index">{c.probability !== null ? <>{Math.round(c.probability * 100)}<small>%</small></> : <small>passed</small>}</span>
+            <span className="fan-arch">{c.archetype}</span>
+            {!compact && <span className="fan-label">{c.label}</span>}
+            <span className="fan-margin">margin {signed(c.weighted)}</span>
           </div>
         ))}
       </div>
       <figcaption>
-        {n > 1
-          ? <>Drew from <b>{n}</b> equally strong plans and played the <b>{plan.archetype}</b> ({pct(band[playedIdx].probability)} chance). A seeded draw, never a weaker plan.</>
-          : <>One plan was clearly best{plan.archetype ? <>: <b>{plan.archetype}</b></> : null}.</>}
+        {nEqual > 1
+          ? <>Drew from <b>{nEqual}</b> equally strong plans and played the <b>{plan.archetype}</b> ({pct(played.probability)} chance). A seeded draw, never a weaker plan.</>
+          : <>Played the <b>{plan.archetype ?? 'plan'}</b>: clearly ahead of the {weaker.length} other plan{weaker.length === 1 ? '' : 's'} it verified.</>}
+        {onMore && <> <button className="link link-on-baize" onClick={onMore}>Why</button></>}
       </figcaption>
     </figure>
   );
@@ -136,14 +158,15 @@ export function DecisionDetail({ d }: { d: Decision }) {
   );
 }
 
-export function Aftermath({ detail }: { detail: RoundDetail }) {
+export function Aftermath({ detail, next }: { detail: RoundDetail; next?: PhaseAction }) {
   const a = detail.analysis;
   const d = detail.decision;
   return (
     <div className="aftermath">
-      {detail.round.status === 'completed' && <Result detail={detail} />}
+      {detail.round.status === 'completed' && <Result detail={detail} next={next} />}
       <section className="memory stock" aria-labelledby="memory-h">
         <header className="panel-head"><h3 id="memory-h">The Boss Remembers</h3><span className="panel-meta">round {detail.round.round_number}</span></header>
+        {d && <BossHand d={d} />}
         <div className="memory-grid">
           <div className="memory-col">
             <h4>What it saw this round</h4>
@@ -167,11 +190,12 @@ export function Aftermath({ detail }: { detail: RoundDetail }) {
             <p className="memory-next">It answers this when round {detail.round.round_number + 1} begins.</p>
           </div>
           <div className="memory-col">
-            <h4>The hand it played before this round</h4>
-            {d ? <><BossHand d={d} /><DecisionDetail d={d} /></> : <p className="muted-ink">No decision recorded.</p>}
+            <h4>How it chose the hand above</h4>
+            {d ? <DecisionDetail d={d} /> : <p className="muted-ink">No decision recorded.</p>}
           </div>
         </div>
       </section>
+      {next && <div className="phase-end"><button className="btn btn-primary btn-big" onClick={next.onClick} disabled={next.disabled}>{next.label} <Icon name="arrow" /></button></div>}
     </div>
   );
 }

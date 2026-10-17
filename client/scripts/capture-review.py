@@ -45,8 +45,10 @@ try:
     js(f"({click_tab})('Prepare')"); time.sleep(1)
     js("[...document.querySelectorAll('.item-card')].find(b=>b.textContent.includes('Rapier')).click()"); time.sleep(1.5)
     js("document.querySelector('.armory').scrollIntoView({block:'start'}); window.scrollBy(0,-76)"); time.sleep(0.5); shot("desktop-armory-preview.png")
+    js("document.querySelector('.hand .begin').scrollIntoView({block:'end'})"); time.sleep(0.5); shot("desktop-prepare-hand.png")
     cmd("Page.navigate", url="http://localhost:5173/#/duel/2"); time.sleep(3)
     js("window.scrollTo(0,0)"); shot("mobile.png", 390, 844, True)
+    js(f"({click_tab})('Fight')"); time.sleep(1.2); js("document.querySelector('.fight').scrollIntoView({block:'start'}); window.scrollBy(0,-60)"); time.sleep(0.4); shot("mobile-fight.png", 390, 844, True)
     ws.close()
 finally:
     proc.terminate()

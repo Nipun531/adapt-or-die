@@ -72,20 +72,30 @@ Spec: `docs/V2_DEMANDS.md` (user answers Q-1..Q-5 in §11.1). Plan: `docs/V2_IMP
     - On identical games, the boss decides equally well with all three (HP margin 0.659–0.661).
   - **Not activated; no rule was relaxed.** Root cause: the balance (one hybrid build beats both styles) plus 44% rule-determined rounds. Details: `docs/ML_WALKTHROUGH.md` §10c.
   - **Tests:** `npm test` = **157/157**.
-- **Phase 7 UI redesign: IN PROGRESS (checkpoint 2026-10-16).** Resume from here:
+- **Phase 7 UI redesign: IN PROGRESS (checkpoint 2026-10-17).** Resume from here:
   - **Done:**
-    - Direction "Court Deck" (baize table, card stock, court inks, suit pips ♥HP ♠STR ♦DEF ♣DEX as SVG). Contract: `client/.impeccable/surfaces/src-app-tsx.md`, seed:d9614f1b4440c060.
-    - New client: `styles/{tokens,base,app}.css`; `ui/{Icon,states}.tsx`; `duel/{Versus,Armory,loadout,Fight,Aftermath}.tsx`; `views/*` restyled.
-    - Phases Prepare / Fight / Aftermath, an action bar, and the boss-hand signature.
-    - Server: `POST /api/runs/:id/preview` (pure) and buy+equip (`/buy` with `loadout`).
-    - Fonts self-hosted (@fontsource). Two browser inspection rounds done. Detector clean.
-    - Screenshots in `client/.impeccable/review/*.png` (native 1440 / 390 via `client/scripts/capture-review.py`, which drives headless Chrome over CDP).
+    - Direction "Court Deck". Contract: `client/.impeccable/surfaces/src-app-tsx.md`, seed:d9614f1b4440c060.
+    - New client: `styles/*`, `ui/*`, `duel/*`, `views/*`. Server: `POST /api/runs/:id/preview` (pure) and buy+equip.
+    - Fonts self-hosted. Detector clean.
+    - Finish review #1 returned **fix** with 8 items. **All 8 applied** (not yet re-verified):
+      1. The boss's last hand in Prepare.
+      2. Two-sided fight exchange.
+      3. Inline phase actions; the floating bar is now phones-only, with space reserved.
+      4. The hand deals the weaker plans as dimmed cards.
+      5. One framed card form everywhere.
+      6. Compact side-by-side court cards on mobile.
+      7. Boss hand full-width in the memory section.
+      8. The run header move is recorded in the brief.
+    - Client tests: `client/src/duel/loadout.test.ts` (5 passing). Root `npm test` now runs server and client.
+    - Docs: FILE_GUIDE (client files) and client/PRODUCT.md updated.
+  - **Blocked on Docker Desktop being started** (the database is down, so the API can't run for screenshots).
   - **Next steps, in order:**
-    1. Get the finish reviewer's verdict (agent `ad8e9042eef5e90b4`, re-review requested on the PNGs). Apply its fixes in one batch, recapture, and send back for a verdict.
-    2. Spawn `impeccable-documenter` to write `client/DESIGN.md` + `client/.impeccable/design.json` from the built world.
-    3. Client unit tests (`duel/loadout.ts` slot logic). Run `npm test`, typecheck and build.
-    4. Update docs (`V2_IMPLEMENTATION_PLAN.md` status, `FILE_GUIDE.md` for the new client files, `client/PRODUCT.md` with 24 items and the Workshop). Commit and push.
-  - Safe UI testing: `npm run dev:testdb` (launch config `api-testdb`) plus `client`. Test run #2 exists in the test DB (wiped by `npm test`).
+    1. Start Docker Desktop.
+    2. `npm run dev:testdb` (or launch config `api-testdb`) plus `client`. Recreate test run #2 if `npm test` wiped it (see the commands in this session: create run, allocate dex+str, play round 1, buy knuckle, play round 2).
+    3. `python client/scripts/capture-review.py client/.impeccable/review`. Validate the files, then send them to a **fresh** finish reviewer for a verdict pass on the 8 fixes (the old agent's context is gone).
+    4. Run `impeccable-documenter`: `client/DESIGN.md` + `client/.impeccable/design.json`.
+    5. Run `npm test`, typecheck and build. Update `V2_IMPLEMENTATION_PLAN.md` status. Commit and push (ask the user first).
+  - `client/.impeccable/review/state-api-down.png` shows the backend-down state (honest "Can't reach the game server" with Try again).
 - **Not done:** Phase 8 (final verification). The old active model `…-s2` is still flagged active but falls back automatically (engine mismatch). Deactivating it (`npm run ml:activate -- --none`) is only cosmetic and needs your OK.
 
 ## 1b. Change log — engine 1.1.0: 2 initial stat points (user request, 2026-10-10) — DONE + verified
