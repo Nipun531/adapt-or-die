@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-17T16:10:00Z",
+  "title": "Design System: The Boss Remembers",
+  "extensions": {
+    "colorMeta": {
+      "baize-950": { "role": "neutral", "displayName": "Baize 950", "canonical": "#0b2219", "tonalRamp": ["#0b2219", "#0f2a20", "#163a2c", "#1e4b39", "#285f49", "#4f8770", "#9cc2b0", "#e3efe8"] },
+      "baize-900": { "role": "neutral", "displayName": "Baize 900 (top bar)", "canonical": "#0f2a20", "tonalRamp": ["#0b2219", "#0f2a20", "#163a2c", "#1e4b39", "#285f49", "#4f8770", "#9cc2b0", "#e3efe8"] },
+      "baize-800": { "role": "neutral", "displayName": "Baize 800 (resting tab)", "canonical": "#163a2c", "tonalRamp": ["#0b2219", "#0f2a20", "#163a2c", "#1e4b39", "#285f49", "#4f8770", "#9cc2b0", "#e3efe8"] },
+      "baize-700": { "role": "neutral", "displayName": "Baize (table ground)", "canonical": "#1e4b39", "tonalRamp": ["#0b2219", "#0f2a20", "#163a2c", "#1e4b39", "#285f49", "#4f8770", "#9cc2b0", "#e3efe8"] },
+      "baize-600": { "role": "neutral", "displayName": "Baize 600 (tab hover)", "canonical": "#285f49", "tonalRamp": ["#0b2219", "#0f2a20", "#163a2c", "#1e4b39", "#285f49", "#4f8770", "#9cc2b0", "#e3efe8"] },
+      "on-baize": { "role": "neutral", "displayName": "On-Baize", "canonical": "#eef3ef" },
+      "on-baize-2": { "role": "neutral", "displayName": "On-Baize 2", "canonical": "#b9d0c2" },
+      "on-baize-player": { "role": "secondary", "displayName": "Player Tint on Felt", "canonical": "#9db4f0" },
+      "on-baize-boss": { "role": "primary", "displayName": "Boss Tint on Felt", "canonical": "#ff9aa9" },
+      "stock": { "role": "neutral", "displayName": "Card Stock", "canonical": "#f7f5f0", "tonalRamp": ["#3a3833", "#5a5750", "#8a8578", "#b8b1a2", "#d3ccbd", "#e2ddd1", "#eeeae1", "#f7f5f0"] },
+      "stock-2": { "role": "neutral", "displayName": "Stock Well", "canonical": "#eeeae1" },
+      "stock-3": { "role": "neutral", "displayName": "Stock Rule", "canonical": "#e2ddd1" },
+      "card-face": { "role": "neutral", "displayName": "Card Face White", "canonical": "#ffffff" },
+      "line": { "role": "neutral", "displayName": "Card Edge", "canonical": "#d3ccbd" },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#141414", "tonalRamp": ["#141414", "#2b2a27", "#474540", "#6b675e", "#8f8a7f", "#b3ada1", "#d3ccbd", "#eeeae1"] },
+      "ink-2": { "role": "neutral", "displayName": "Ink 2", "canonical": "#474540" },
+      "ink-3": { "role": "neutral", "displayName": "Ink 3", "canonical": "#6b675e" },
+      "court-red": { "role": "primary", "displayName": "Court Red", "canonical": "#c4122f", "tonalRamp": ["#3d0610", "#6a0b1b", "#a50f27", "#c4122f", "#e0485f", "#f08a99", "#f9dde1", "#fff6f7"] },
+      "court-red-ink": { "role": "primary", "displayName": "Red Ink", "canonical": "#a50f27" },
+      "court-blue": { "role": "secondary", "displayName": "Court Blue", "canonical": "#1f3c8c", "tonalRamp": ["#0b1633", "#132556", "#182f70", "#1f3c8c", "#4a66b8", "#9db4f0", "#dfe8f8", "#f3f6fd"] },
+      "court-blue-ink": { "role": "secondary", "displayName": "Blue Ink", "canonical": "#182f70" },
+      "court-yellow": { "role": "tertiary", "displayName": "Court Yellow", "canonical": "#f0b323", "tonalRamp": ["#3d2c00", "#6e4a00", "#a87800", "#d89d10", "#f0b323", "#f5cc66", "#f8e2a6", "#fff6dc"] },
+      "court-yellow-soft": { "role": "tertiary", "displayName": "Soft Yellow", "canonical": "#f8e2a6" },
+      "owned-tint": { "role": "secondary", "displayName": "Owned Face", "canonical": "#f3f6fd" },
+      "owned-line": { "role": "secondary", "displayName": "Owned Edge", "canonical": "#b9c6e8" },
+      "warn-bg": { "role": "neutral", "displayName": "Warning Paper", "canonical": "#fbecc4" },
+      "warn-ink": { "role": "neutral", "displayName": "Warning Ink", "canonical": "#6e4a00" },
+      "err-bg": { "role": "neutral", "displayName": "Error Paper", "canonical": "#f9dde1" },
+      "err-ink": { "role": "neutral", "displayName": "Error Ink", "canonical": "#8a0c21" },
+      "ok-bg": { "role": "neutral", "displayName": "Success Paper", "canonical": "#dfe8f8" },
+      "ok-ink": { "role": "neutral", "displayName": "Success Ink", "canonical": "#182f70" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Start screen title and round result headline only." },
+      "headline": { "displayName": "Headline", "purpose": "Panel headings, run title, court card names; uppercase index face." },
+      "title": { "displayName": "Title", "purpose": "Sub-section headings, phase tabs, big primary button." },
+      "index-numeral": { "displayName": "Index Numeral", "purpose": "Every compared number: HP, level, Net stats, damage, cost, gold, probability; 1.5 to 3rem by card size." },
+      "index-label": { "displayName": "Index Label", "purpose": "Small printed labels on a card or row: LVL, Hand 1 / Hand 2 / Body, Turn N." },
+      "body": { "displayName": "Body", "purpose": "All reading text; ledes capped at 72ch." },
+      "body-small": { "displayName": "Body Small", "purpose": "Card meta, captions, fight calculation, memory evidence." },
+      "label": { "displayName": "Label", "purpose": "Stat pip labels, tags, kbd hints." }
+    },
+    "shadows": [
+      { "name": "lift-1", "value": "0 1px 2px rgb(11 34 25 / 0.25), 0 2px 8px rgb(11 34 25 / 0.18)", "purpose": "Panels, court cards, brand mark, hovered item cards, result panels." },
+      { "name": "lift-2", "value": "0 4px 12px rgb(11 34 25 / 0.28), 0 12px 32px rgb(11 34 25 / 0.22)", "purpose": "Menu, dialogs, toasts, phone action bar." },
+      { "name": "primary-glow", "value": "0 1px 2px rgb(11 34 25 / 0.3), 0 6px 14px rgb(196 18 47 / 0.25)", "purpose": "Red primary button only." },
+      { "name": "fan-card", "value": "0 2px 4px rgb(0 0 0 / 0.25), 0 8px 16px rgb(0 0 0 / 0.2)", "purpose": "Stacked cards in the boss's hand." },
+      { "name": "fan-card-played", "value": "0 0 0 3px #f0b323, 0 14px 28px rgb(0 0 0 / 0.38)", "purpose": "The played card in the boss's hand." },
+      { "name": "focus", "value": "0 0 0 3px #f0b323", "purpose": "Focus token on baize; the global focus-visible style is a 3px yellow outline at 2px offset, switched to court blue (#1f3c8c) inside card stock, dialogs and menus where yellow is only about 1.7:1." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "All lifts, deals, meters and fan transforms." },
+      { "name": "t-fast", "value": "140ms", "purpose": "Hover lifts, button presses, border shifts." },
+      { "name": "t-med", "value": "320ms", "purpose": "Card deal-in (6px drop and fade), meter width, fan rearrangement, toasts." },
+      { "name": "level-up", "value": "600ms scale(0.94) to 1", "purpose": "Level-up reward row." },
+      { "name": "reduced-motion", "value": "1ms", "purpose": "All animation and transition durations collapse under prefers-reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "tablet", "value": "1080px" },
+      { "name": "phone", "value": "760px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one action that advances the loop (Begin round, Prepare next round).",
+      "html": "<button class=\"ds-btn-primary\">Begin round 3 <svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 10px; background: var(--red, #c4122f); color: #fff; font: 700 1rem 'Atkinson Hyperlegible', system-ui, sans-serif; box-shadow: 0 1px 2px rgb(11 34 25 / 0.3), 0 6px 14px rgb(196 18 47 / 0.25); cursor: pointer; transition: background 140ms, transform 140ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-primary:hover { background: var(--red-ink, #a50f27); } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 3px solid var(--yellow, #f0b323); outline-offset: 2px; }"
+    },
+    {
+      "name": "Big Primary Button",
+      "kind": "button",
+      "refersTo": "button-big",
+      "description": "Primary action at the foot of a column or in the phone action bar; index face, uppercase.",
+      "html": "<button class=\"ds-btn-big\">Begin round 3</button>",
+      "css": ".ds-btn-big { min-height: 52px; padding: 0 24px; border: 0; border-radius: 10px; background: var(--red, #c4122f); color: #fff; font: 800 1.3rem/1 'Big Shoulders Display', sans-serif; text-transform: uppercase; letter-spacing: 0.04em; box-shadow: 0 1px 2px rgb(11 34 25 / 0.3), 0 6px 14px rgb(196 18 47 / 0.25); cursor: pointer; transition: background 140ms; } .ds-btn-big:hover { background: var(--red-ink, #a50f27); } .ds-btn-big:active { transform: translateY(1px); } .ds-btn-big:focus-visible { outline: 3px solid var(--yellow, #f0b323); outline-offset: 2px; }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Secondary action on card stock (Remove, Export snapshot).",
+      "html": "<button class=\"ds-btn-quiet\">Remove</button>",
+      "css": ".ds-btn-quiet { min-height: 44px; padding: 0 16px; border: 1px solid var(--line, #d3ccbd); border-radius: 10px; background: var(--stock-2, #eeeae1); color: var(--ink, #141414); font: 700 1rem 'Atkinson Hyperlegible', system-ui, sans-serif; cursor: pointer; transition: background 140ms; } .ds-btn-quiet:hover { background: var(--stock-3, #e2ddd1); } .ds-btn-quiet:active { transform: translateY(1px); } .ds-btn-quiet:focus-visible { outline: 3px solid var(--blue, #1f3c8c); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button on Baize",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Actions that sit directly on felt (End run).",
+      "html": "<div class=\"ds-felt\"><button class=\"ds-btn-ghost\">End run</button></div>",
+      "css": ".ds-felt { padding: 16px; background: var(--baize-700, #1e4b39); } .ds-btn-ghost { min-height: 36px; padding: 0 12px; border: 1px solid rgb(255 255 255 / 0.25); border-radius: 10px; background: none; color: var(--on-baize, #eef3ef); font: 700 0.875rem 'Atkinson Hyperlegible', system-ui, sans-serif; cursor: pointer; } .ds-btn-ghost:hover { background: rgb(255 255 255 / 0.08); } .ds-btn-ghost:focus-visible { outline: 3px solid var(--yellow, #f0b323); outline-offset: 2px; }"
+    },
+    {
+      "name": "Filter Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Armory filters; selected is solid ink.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip is-on\">All</button><button class=\"ds-chip\">Affordable</button><button class=\"ds-chip\">Blades</button></div>",
+      "css": ".ds-chips { display: flex; gap: 8px; padding: 16px; background: var(--stock, #f7f5f0); } .ds-chip { min-height: 32px; padding: 0 12px; border: 1px solid var(--line, #d3ccbd); border-radius: 999px; background: #fff; color: var(--ink, #141414); font: 700 0.875rem 'Atkinson Hyperlegible', system-ui, sans-serif; cursor: pointer; } .ds-chip:hover { border-color: var(--ink-3, #6b675e); } .ds-chip.is-on { background: var(--ink, #141414); color: #fff; border-color: var(--ink, #141414); } .ds-chip:focus-visible { outline: 3px solid var(--blue, #1f3c8c); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "White field on stock; number inputs use tabular figures.",
+      "html": "<label class=\"ds-field\">Seed<input class=\"ds-input\" type=\"number\" value=\"42\"></label>",
+      "css": ".ds-field { display: grid; gap: 4px; padding: 16px; background: var(--stock, #f7f5f0); color: var(--ink-2, #474540); font: 700 0.875rem 'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-input { min-height: 40px; width: 6rem; padding: 0 12px; border: 1px solid var(--line, #d3ccbd); border-radius: 8px; background: #fff; color: var(--ink, #141414); font: 400 1rem 'Atkinson Hyperlegible', system-ui, sans-serif; font-variant-numeric: tabular-nums; } .ds-input:focus-visible { outline: 3px solid var(--blue, #1f3c8c); outline-offset: 2px; }"
+    },
+    {
+      "name": "Top Bar",
+      "kind": "nav",
+      "refersTo": "nav",
+      "description": "Sticky baize bar: card-mark brand, Duel / Workshop with a yellow current underline.",
+      "html": "<nav class=\"ds-topbar\"><span class=\"ds-brand\"><span class=\"ds-mark\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M3 8l4.5 4L12 5l4.5 7L21 8l-2 10H5z\"/></svg></span>The Boss Remembers</span><a class=\"ds-nav is-current\" href=\"#\">Duel</a><a class=\"ds-nav\" href=\"#\">Workshop</a></nav>",
+      "css": ".ds-topbar { display: flex; align-items: center; gap: 8px; height: 60px; padding: 0 16px; background: var(--baize-900, #0f2a20); border-bottom: 1px solid var(--baize-950, #0b2219); } .ds-brand { display: inline-flex; align-items: center; gap: 12px; margin-right: auto; color: var(--on-baize, #eef3ef); font: 800 1.35rem/1 'Big Shoulders Display', sans-serif; text-transform: uppercase; letter-spacing: 0.04em; } .ds-mark { display: grid; place-items: center; width: 30px; height: 40px; border-radius: 6px; background: var(--stock, #f7f5f0); color: var(--red, #c4122f); box-shadow: 0 1px 2px rgb(11 34 25 / 0.25), 0 2px 8px rgb(11 34 25 / 0.18); } .ds-nav { padding: 8px 12px; border-radius: 8px; color: var(--on-baize-2, #b9d0c2); font: 700 1rem 'Atkinson Hyperlegible', system-ui, sans-serif; text-decoration: none; } .ds-nav:hover { color: var(--on-baize, #eef3ef); background: rgb(255 255 255 / 0.06); } .ds-nav.is-current { color: var(--on-baize, #eef3ef); box-shadow: inset 0 -3px 0 var(--yellow, #f0b323); } .ds-nav:focus-visible { outline: 3px solid var(--yellow, #f0b323); outline-offset: 2px; }"
+    },
+    {
+      "name": "Item Card",
+      "kind": "card",
+      "refersTo": "item-card",
+      "description": "Armory card at the 168px module: printed inner frame, index-face cost, suit-pip modifiers.",
+      "html": "<div class=\"ds-table\"><button class=\"ds-item\"><span class=\"ds-item-cost\">10</span><span class=\"ds-item-name\">Sword</span><span class=\"ds-item-family\">Blades · melee</span><span class=\"ds-mods\"><span><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"#141414\"><path d=\"M12 2.5C9.2 6.3 3.8 9.2 3.8 13.4a4.1 4.1 0 0 0 7.1 2.8c-.2 2.1-1 3.9-2.6 5.3h7.4c-1.6-1.4-2.4-3.2-2.6-5.3a4.1 4.1 0 0 0 7.1-2.8C20.2 9.2 14.8 6.3 12 2.5z\"/></svg>+4</span><span><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"#c4122f\"><path d=\"M12 2.2l7.4 9.8L12 21.8 4.6 12z\"/></svg>+1</span></span></button></div>",
+      "css": ".ds-table { padding: 24px; background: var(--stock, #f7f5f0); } .ds-item { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 168px; min-height: 168px; padding: 12px; border: 1.5px solid var(--line, #d3ccbd); border-radius: 12px; background: #fff; color: var(--ink, #141414); text-align: left; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; cursor: pointer; transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 140ms, border-color 140ms; } .ds-item::before { content: ''; position: absolute; inset: 5px; border: 1.5px solid var(--ink, #141414); border-radius: 9px; opacity: 0.45; pointer-events: none; } .ds-item:hover { transform: translateY(-3px); border-color: var(--ink-3, #6b675e); box-shadow: 0 1px 2px rgb(11 34 25 / 0.25), 0 2px 8px rgb(11 34 25 / 0.18); } .ds-item:focus-visible { outline: 3px solid var(--blue, #1f3c8c); outline-offset: 2px; } .ds-item:active { border-color: var(--red, #c4122f); box-shadow: 0 0 0 2px var(--red, #c4122f); transform: translateY(-4px) rotate(-0.6deg); } .ds-item-cost { position: absolute; top: 8px; right: 12px; font: 800 1.5rem/1 'Big Shoulders Display', sans-serif; } .ds-item-name { font-weight: 700; font-size: 1.05rem; padding-right: 44px; } .ds-item-family { font-size: 0.78rem; color: var(--ink-3, #6b675e); } .ds-mods { margin-top: auto; display: flex; gap: 8px; font-weight: 700; font-size: 0.875rem; font-variant-numeric: tabular-nums; } .ds-mods span { display: inline-flex; align-items: center; gap: 2px; }"
+    },
+    {
+      "name": "Phase Tabs",
+      "kind": "nav",
+      "refersTo": "phase-tab",
+      "description": "Prepare / Fight / Aftermath as folder tabs that merge into the stock panel below.",
+      "html": "<div class=\"ds-felt-tabs\"><div class=\"ds-phases\"><button class=\"ds-phase is-on\">Prepare</button><button class=\"ds-phase\">Fight</button><button class=\"ds-phase\">Aftermath</button></div><div class=\"ds-phase-panel\">Armory</div></div>",
+      "css": ".ds-felt-tabs { padding: 16px; background: var(--baize-700, #1e4b39); } .ds-phases { display: flex; gap: 4px; } .ds-phase { min-height: 44px; padding: 0 24px; border: 0; border-radius: 10px 10px 0 0; background: var(--baize-800, #163a2c); color: var(--on-baize-2, #b9d0c2); font: 800 1.15rem 'Big Shoulders Display', sans-serif; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; } .ds-phase:hover:not(.is-on) { background: var(--baize-600, #285f49); color: var(--on-baize, #eef3ef); } .ds-phase.is-on { background: var(--stock, #f7f5f0); color: var(--ink, #141414); } .ds-phase:focus-visible { outline: 3px solid var(--yellow, #f0b323); outline-offset: 2px; } .ds-phase-panel { padding: 24px; border-radius: 0 14px 14px 14px; background: var(--stock, #f7f5f0); color: var(--ink, #141414); font: 800 1.75rem 'Big Shoulders Display', sans-serif; text-transform: uppercase; }"
+    },
+    {
+      "name": "The Boss's Hand",
+      "kind": "custom",
+      "refersTo": "fan-card",
+      "description": "Signature: the boss's equal plans fanned on baize; the played card upright, raised, ringed in yellow with its draw probability.",
+      "html": "<figure class=\"ds-boss-hand\"><div class=\"ds-fan\"><div class=\"ds-fan-card is-weaker\" style=\"--i:-1\"><span class=\"ds-fan-arch\">Duelist</span><span class=\"ds-fan-margin\">margin +0.01</span></div><div class=\"ds-fan-card is-played\" style=\"--i:0\"><span class=\"ds-fan-index\">100<small>%</small></span><span class=\"ds-fan-arch\">Bruiser</span><span class=\"ds-fan-margin\">margin +0.36</span></div><div class=\"ds-fan-card is-weaker\" style=\"--i:1\"><span class=\"ds-fan-arch\">Duelist</span><span class=\"ds-fan-margin\">margin -0.18</span></div></div><figcaption>Played the <b>bruiser</b>: clearly ahead of the other plans it verified.</figcaption></figure>",
+      "css": ".ds-boss-hand { margin: 0; display: grid; gap: 12px; padding: 16px; border-radius: 12px; background: var(--baize-700, #1e4b39); color: var(--on-baize, #eef3ef); font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-fan { position: relative; height: 210px; } .ds-fan-card { position: absolute; bottom: 6px; left: 50%; width: 132px; height: 184px; margin-left: -66px; padding: 12px; display: flex; flex-direction: column; gap: 4px; border-radius: 11px; background: var(--stock, #f7f5f0); color: var(--ink, #141414); box-shadow: 0 2px 4px rgb(0 0 0 / 0.25), 0 8px 16px rgb(0 0 0 / 0.2); transform: translateX(calc(var(--i) * 92px)) rotate(calc(var(--i) * 5deg)); transform-origin: 50% 130%; transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-fan-card::before { content: ''; position: absolute; inset: 5px; border: 1.5px solid var(--red, #c4122f); border-radius: 9px; opacity: 0.45; pointer-events: none; } .ds-fan-card.is-weaker { background: var(--stock-2, #eeeae1); color: var(--ink-2, #474540); filter: saturate(0.4); } .ds-fan-card.is-weaker::before { border-color: var(--ink-3, #6b675e); } .ds-fan-card.is-played { z-index: 3; transform: translateX(0) translateY(-18px); box-shadow: 0 0 0 3px var(--yellow, #f0b323), 0 14px 28px rgb(0 0 0 / 0.38); } .ds-fan-index { font: 800 1.9rem/1 'Big Shoulders Display', sans-serif; color: var(--red, #c4122f); } .ds-fan-index small { font-size: 0.85rem; } .ds-fan-arch { font: 800 1rem 'Big Shoulders Display', sans-serif; text-transform: uppercase; letter-spacing: 0.06em; } .ds-fan-margin { margin-top: auto; font-size: 0.8rem; font-weight: 700; color: var(--ink-3, #6b675e); font-variant-numeric: tabular-nums; } .ds-boss-hand figcaption { font-size: 0.875rem; color: var(--on-baize-2, #b9d0c2); } .ds-boss-hand figcaption b { color: var(--on-baize, #eef3ef); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Court Deck",
+    "overview": "Every screen is a card table. The ground is deep green baize; every working surface is a sheet of off-white card stock laid on it; every item, fighter and plan is a playing card with rounded corners and a thin printed inner frame. Colour is printed, not lit: four flat court inks (red, blue, yellow, black) that appear only on card faces and on state. The shell itself is baize, stock and ink, so when red or blue appears it carries meaning (the boss, the player, a loss, a win).\n\nDensity is that of a working card game, not a dashboard: a grid of equal-sized item cards, two large face-up court cards for the fighters, and a fan of cards for the boss's plans. Numbers are read like card indices, in a tall condensed face, large and tabular; everything that has to be read as language is set in Atkinson Hyperlegible. Depth is the physical depth of cards on felt: soft green-tinted shadows, a lift on hover, a tilt when a card is picked.\n\nThe world explicitly refuses the dark-parchment RPG panel and the grey analytics dashboard.",
+    "keyCharacteristics": [
+      "Baize ground, card-stock panels, white card faces: three material layers, always in that order.",
+      "Four flat court inks; saturated colour only on card faces and state.",
+      "One card form (rounded corners plus a printed inner frame) used at three sizes: court card, item card, fan card.",
+      "Suit pips stand for stats everywhere: heart HP, spade STR, diamond DEF, club DEX, drawn as authored SVG.",
+      "Condensed uppercase index face for headings and numerals; hyperlegible sans for all reading text.",
+      "Blue is always the player, red is always the boss."
+    ],
+    "rules": [
+      { "name": "The Printed Ink Rule", "body": "Saturated red, blue and yellow appear only on card faces and on state. The shell (top bar, page ground, panel stock) is baize, stock and ink, never a court colour.", "section": "colors" },
+      { "name": "The Two Sides Rule", "body": "Blue is the player and red is the boss, everywhere: level numerals, damage, HP meters, fight-log sides, the record, result panels. Never swap them and never use either as decoration.", "section": "colors" },
+      { "name": "The Felt Legibility Rule", "body": "On baize, the court inks are replaced by their on-baize tints (on-baize-player, on-baize-boss) or by yellow; dark red or blue text never sits directly on felt.", "section": "colors" },
+      { "name": "The Index Rule", "body": "Every number a player compares (HP, stats, damage, cost, gold, probability) is set in the index face at a size larger than its label, with tabular figures. Sentences are never set in the index face.", "section": "typography" },
+      { "name": "The Uppercase Index Rule", "body": "Headings in the index face are uppercase with slight tracking (0.02 to 0.06em); Atkinson text is never uppercased except table header cells and the small fight-summary side labels.", "section": "typography" },
+      { "name": "The Felt Shadow Rule", "body": "Shadows are tinted toward baize and always blurred. A card lifts by moving up (2 to 4px, plus a slight tilt when selected), not by gaining a hard edge.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do put every working surface on card stock (stock, 14px corners, Lift 1) laid on baize; put individual items on white card faces laid on that stock.",
+      "Do keep blue for the player and red for the boss in every numeral, meter, log side and result.",
+      "Do give every card face the printed inner frame (1.5px, inset 5px, 45% opacity, in the owner's ink).",
+      "Do show stats with the authored SVG suit pips (heart HP, spade STR, diamond DEF, club DEX) with the text label alongside on first read.",
+      "Do set compared numbers in Big Shoulders Display 800 with tabular figures, larger than their labels.",
+      "Do size Armory-style grids from the 168px card module.",
+      "Do use the yellow 3px ring for focus and for \"the one that was chosen\"."
+    ],
+    "donts": [
+      "Don't colour the shell: no red, blue or yellow top bars, page grounds or panel fills (result panels and the played card are state, not shell).",
+      "Don't put court-red or court-blue text directly on baize; use the on-baize tints or yellow.",
+      "Don't use Unicode suit or icon glyphs; suits and icons are the authored SVG set.",
+      "Don't use hard offset or black block shadows; depth is soft, baize-tinted lift.",
+      "Don't set sentences in the index face or uppercase Atkinson body text.",
+      "Don't drift toward the dark-parchment RPG panel or the grey dashboard."
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # The Boss Remembers — Version 2 Implementation Plan
 
-**Status (2026-10-16):** Phases 0–6 done (engine 2.0.0, policy v2, schema v2; the V2 model was trained but is not eligible, so the boss keeps using the baseline). Phase 7 (UI) and Phase 8 not started. See `PROGRESS.md` §1a and `docs/V2_BALANCE.md`.
+**Status (2026-10-17):** Phases 0–7 done (engine 2.0.0, policy v2, schema v3, Court Deck UI). The V2 model and ensemble were trained but are not eligible, so the boss uses the transparent baseline (docs/ML_WALKTHROUGH.md §10c). Phase 8 (final verification) remains. See `PROGRESS.md` §1a.
 **Spec:** [`V2_DEMANDS.md`](V2_DEMANDS.md). Requirement, decision and acceptance IDs (R/D/AC/Q) refer to that document.
 **Prepared:** 2026-10-16 from the working tree on `master`, which has **no commits**: every file is untracked.
 

@@ -28,6 +28,8 @@ button:disabled { cursor: not-allowed; }
 ::selection { background: var(--yellow); color: var(--ink); }
 :focus { outline: none; }
 :focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; border-radius: 6px; }
+/* On card stock and white faces yellow is too faint (≈1.7:1); court blue keeps the ring above 3:1 */
+.stock :focus-visible, .dialog :focus-visible, .menu-list :focus-visible { outline-color: var(--blue); }
 
 * { scrollbar-width: thin; scrollbar-color: var(--baize-600) transparent; }
 .stock * { scrollbar-color: var(--stock-3) transparent; }
