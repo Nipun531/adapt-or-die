@@ -74,7 +74,9 @@ function ChoicePrompt({ options, turn, phase, onChoose, busy }: {
   const [repeat, setRepeat] = useState(false);
   useEffect(() => {
     const key = (ev: KeyboardEvent) => {
-      if (busy || (ev.target as HTMLElement)?.tagName === 'INPUT') return;
+      const t = ev.target as HTMLElement | null;
+      const typing = !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['checkbox', 'radio', 'button'].includes((t as HTMLInputElement).type)));
+      if (busy || typing || ev.ctrlKey || ev.metaKey || ev.altKey) return;
       if (ev.key.toLowerCase() === 'r' && options.includes('ranged')) onChoose('ranged', repeat);
       if (ev.key.toLowerCase() === 'm' && options.includes('melee')) onChoose('melee', repeat);
     };
