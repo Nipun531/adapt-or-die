@@ -171,7 +171,7 @@ input[type='number'] { width: 6rem; font-variant-numeric: tabular-nums; }
 .armory { border-top-left-radius: 0; }
 .filters { display: flex; flex-wrap: wrap; gap: var(--s2); margin-bottom: var(--s4); }
 .filters-sep { width: 1px; background: var(--line); margin: 0 var(--s1); }
-.item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--module), 1fr)); gap: var(--s3); }
+.item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--module), 1fr)); grid-auto-flow: row dense; gap: var(--s3); }
 .item-card {
   --court-ink: var(--ink);
   position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 168px; padding: var(--s3);
@@ -206,7 +206,10 @@ input[type='number'] { width: 6rem; font-variant-numeric: tabular-nums; }
 .slot-empty { color: var(--ink-3); }
 .slot-put { margin-top: auto; min-height: 32px; border: 1px solid var(--line); border-radius: 8px; background: var(--stock-2); font-size: var(--fs-xs); font-weight: 700; }
 .slot-put[aria-pressed='true'] { background: var(--ink); color: #fff; border-color: var(--ink); }
-.pick-panel { display: grid; gap: var(--s3); padding: var(--s3) var(--s4); border-radius: 12px; background: var(--stock-2); }
+.pick-panel { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s3) var(--s5); align-items: center; padding: var(--s4); border-radius: 12px; background: var(--stock-2); border: 1.5px solid var(--red); animation: deal var(--t-med) var(--ease-out); }
+.pick-panel > .pick-head, .pick-panel > .pick-problem, .pick-panel > .pick-hint { grid-column: 1 / -1; }
+.pick-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); }
+.pick-slots { display: inline-flex; gap: var(--s1); }
 .pick-title b { font-size: 1.1rem; }
 .pick-problem { color: var(--err-ink); font-weight: 700; font-size: var(--fs-sm); }
 .pick-hint { color: var(--err-ink); font-size: var(--fs-sm); }
@@ -429,6 +432,7 @@ input[type='number'] { width: 6rem; font-variant-numeric: tabular-nums; }
   .phase { flex: 1; padding: 0 var(--s2); font-size: 1rem; }
   .panel, .armory, .hand, .fight, .memory, .resume { padding: var(--s4); }
   .item-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pick-panel { grid-template-columns: 1fr; }
   .fight-top { grid-template-columns: 1fr 1fr; }
   .fight-opening { grid-column: 1 / -1; order: 3; }
   .turn { grid-template-columns: 1fr; gap: var(--s1); }

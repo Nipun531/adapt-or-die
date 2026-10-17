@@ -3,7 +3,7 @@
  * Net numbers (server-computed, nothing written), then "Buy & equip" does both in one step. The hand (two hands +
  * body) and stat points sit beside it. The server re-validates every action; its message is shown if refused.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { api, type BuildPreview, type Item, type RunView, type StatKey } from '../api';
 import { StatPip } from '../ui/Icon';
 import { ErrorBox, useToast } from '../ui/states';
@@ -116,8 +116,48 @@ export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunVi
         </div>
         <div className="item-grid">
           {items.map((i) => (
-            <ItemCard key={i.id} item={i} owned={p.inventory.includes(i.id)} equipped={equippedIds.includes(i.id)} gold={p.gold}
-              selected={picked === i.id} onPick={() => { setPicked(picked === i.id ? null : i.id); setSlot(undefined); }} />
+            <Fragment key={i.id}>
+              <ItemCard item={i} owned={p.inventory.includes(i.id)} equipped={equippedIds.includes(i.id)} gold={p.gold}
+                selected={picked === i.id} onPick={() => { setPicked(picked === i.id ? null : i.id); setSlot(undefined); }} />
+              {picked === i.id && pickedItem && proposal && (
+                <div className="pick-panel" aria-live="polite" role="region" aria-label={`Preview: ${pickedItem.name}`}>
+                  <div className="pick-head">
+                    <p className="pick-title"><b>{pickedItem.name}</b> → {SLOT_LABEL[proposal!.slot]}</p>
+                    {pickedItem.category !== 'armour' && (
+                      <span className="pick-slots" role="group" aria-label="Hand">
+                        {(['hand1', 'hand2'] as const).map((h) => (
+                          <button key={h} className={`chip ${proposal!.slot === h ? 'is-on' : ''}`} aria-pressed={proposal!.slot === h} onClick={() => setSlot(h)}>{SLOT_LABEL[h]}</button>
+                        ))}
+                      </span>
+                    )}
+                  </div>
+                  {preview?.problem && <p className="pick-problem">{preview.problem}</p>}
+                  {preview?.preview && (
+                    <div className="deltas">
+                      <Delta label="Net ATK" from={preview.current.netAtk} to={preview.preview.netAtk} />
+                      <Delta label="Net DEF" from={preview.current.netDef} to={preview.preview.netDef} />
+                      <Delta label="Eff. DEX" from={preview.current.effDex} to={preview.preview.effDex} />
+                    </div>
+                  )}
+                  <div className="pick-actions">
+                    {ownsPicked ? (
+                      <button className="btn btn-primary" disabled={act.busy || !!preview?.problem} onClick={() => apply(() => api.setLoadout(runId, proposal!.loadout), `${pickedItem.name} equipped`)}>Equip</button>
+                    ) : (
+                      <>
+                        <button className="btn btn-primary" disabled={act.busy || pickedItem.cost > p.gold || !!preview?.problem}
+                          title={pickedItem.cost > p.gold ? `Need ${pickedItem.cost - p.gold} more gold` : undefined}
+                          onClick={() => apply(() => api.buy(runId, pickedItem.id, proposal!.loadout), `Bought and equipped ${pickedItem.name}`)}>
+                          Buy &amp; equip · {pickedItem.cost}g
+                        </button>
+                        <button className="btn btn-quiet" disabled={act.busy || pickedItem.cost > p.gold} onClick={() => apply(() => api.buy(runId, pickedItem.id), `Bought ${pickedItem.name}`)}>Buy only</button>
+                      </>
+                    )}
+                    <button className="btn btn-quiet" onClick={() => { setPicked(null); setSlot(undefined); }}>Cancel</button>
+                  </div>
+                  {pickedItem.cost > p.gold && !ownsPicked && <p className="pick-hint">Need {pickedItem.cost - p.gold} more gold.</p>}
+                </div>
+              )}
+            </Fragment>
           ))}
           {!items.length && <p className="muted-ink">Nothing here yet.</p>}
         </div>
@@ -144,36 +184,6 @@ export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunVi
             );
           })}
         </div>
-
-        {pickedItem && (
-          <div className="pick-panel" aria-live="polite">
-            <p className="pick-title"><b>{pickedItem.name}</b> → {SLOT_LABEL[proposal!.slot]}</p>
-            {preview?.problem && <p className="pick-problem">{preview.problem}</p>}
-            {preview?.preview && (
-              <div className="deltas">
-                <Delta label="Net ATK" from={preview.current.netAtk} to={preview.preview.netAtk} />
-                <Delta label="Net DEF" from={preview.current.netDef} to={preview.preview.netDef} />
-                <Delta label="Eff. DEX" from={preview.current.effDex} to={preview.preview.effDex} />
-              </div>
-            )}
-            <div className="pick-actions">
-              {ownsPicked ? (
-                <button className="btn btn-primary" disabled={act.busy || !!preview?.problem} onClick={() => apply(() => api.setLoadout(runId, proposal!.loadout), `${pickedItem.name} equipped`)}>Equip</button>
-              ) : (
-                <>
-                  <button className="btn btn-primary" disabled={act.busy || pickedItem.cost > p.gold || !!preview?.problem}
-                    title={pickedItem.cost > p.gold ? `Need ${pickedItem.cost - p.gold} more gold` : undefined}
-                    onClick={() => apply(() => api.buy(runId, pickedItem.id, proposal!.loadout), `Bought and equipped ${pickedItem.name}`)}>
-                    Buy &amp; equip · {pickedItem.cost}g
-                  </button>
-                  <button className="btn btn-quiet" disabled={act.busy || pickedItem.cost > p.gold} onClick={() => apply(() => api.buy(runId, pickedItem.id), `Bought ${pickedItem.name}`)}>Buy only</button>
-                </>
-              )}
-              <button className="btn btn-quiet" onClick={() => { setPicked(null); setSlot(undefined); }}>Cancel</button>
-            </div>
-            {pickedItem.cost > p.gold && !ownsPicked && <p className="pick-hint">Need {pickedItem.cost - p.gold} more gold.</p>}
-          </div>
-        )}
 
         <div className="points">
           <header className="points-head">
