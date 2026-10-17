@@ -194,7 +194,9 @@ input[type='number'] { width: 6rem; font-variant-numeric: tabular-nums; }
 .mod-neg { color: var(--red-ink); }
 .mod-none { color: var(--ink-3); font-weight: 400; }
 .item-short { font-size: var(--fs-xs); color: var(--err-ink); font-weight: 700; }
-.hand { position: sticky; top: 76px; display: grid; gap: var(--s4); }
+.hand { display: grid; gap: var(--s4); }
+/* Begin round: in the phase bar (first viewport) and again at the foot of the hand column */
+.phase-bar-action { margin-left: auto; }
 .hand .panel-head { margin-bottom: 0; }
 .slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
 .slot { display: flex; flex-direction: column; gap: 4px; min-height: 124px; padding: var(--s2) var(--s3); border: 2px dashed var(--line); border-radius: 12px; font-size: var(--fs-sm); }
@@ -353,12 +355,14 @@ input[type='number'] { width: 6rem; font-variant-numeric: tabular-nums; }
 .btn-on-color:not(:disabled):hover { background: #fff; }
 .result-main { display: grid; align-content: start; }
 .run-record { display: none; font: 800 1.3rem var(--font-index); }
+.run-record .tone-player { color: #9db4f0; }
+.run-record .tone-boss { color: #ff9aa9; }
 
 /* ---------- Action bar (phones, Prepare only) ---------- */
 .action-bar {
   display: none;
   position: sticky; bottom: var(--s4); z-index: 15; align-self: flex-end;
-  display: flex; align-items: center; gap: var(--s4); padding: var(--s2) var(--s2) var(--s2) var(--s4);
+  align-items: center; gap: var(--s4); padding: var(--s2) var(--s2) var(--s2) var(--s4);
   border-radius: 16px; background: var(--baize-950); box-shadow: var(--lift-2);
 }
 .action-bar p { max-width: 42ch; font-size: var(--fs-sm); color: var(--on-baize-2); }
@@ -395,7 +399,7 @@ input[type='number'] { width: 6rem; font-variant-numeric: tabular-nums; }
 /* ---------- Responsive ---------- */
 @media (max-width: 1080px) {
   .prepare { grid-template-columns: 1fr; }
-  .hand { position: static; }
+  .phase-bar-action { display: none; }
   .memory-grid, .result { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
@@ -429,8 +433,12 @@ input[type='number'] { width: 6rem; font-variant-numeric: tabular-nums; }
   .fight-opening { grid-column: 1 / -1; order: 3; }
   .turn { grid-template-columns: 1fr; gap: var(--s1); }
   .turn-label { padding-top: 0; }
-  .attack-side { padding: var(--s2); gap: var(--s2); align-items: flex-start; }
-  .attack-dmg { font-size: 1.4rem; }
+  .attack-side { flex-direction: column; padding: var(--s2); gap: 2px; }
+  .attack-player .attack-side { align-items: flex-end; }
+  .attack-boss .attack-side { align-items: flex-start; }
+  .attack-player .attack-dmg { order: 0; }
+  .attack-dmg { font-size: 1.5rem; }
+  .attack-what { font-size: var(--fs-xs); }
   .calc { padding-left: var(--s3); }
   .result-rewards { grid-template-columns: 1fr; }
   .action-bar { display: flex; position: fixed; left: var(--s3); right: var(--s3); bottom: var(--s3); padding: var(--s2); }

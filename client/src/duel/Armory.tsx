@@ -196,13 +196,13 @@ export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunVi
           </div>
         )}
         <ErrorBox error={act.error} />
+        <p className="rules-note">Legal hands: shield + weapon, bow + melee weapon, one item, or empty. If both fighters hold a bow, only the faster one gets the First Shot (equal DEX: nobody). Pierce works with any weapon that has it.</p>
         {begin && (
           <div className="begin">
             {begin.hint && <p>{begin.hint}</p>}
             <button className="btn btn-primary btn-big" onClick={begin.onClick} disabled={begin.disabled}>{begin.label} <Icon name="arrow" /></button>
           </div>
         )}
-        <p className="rules-note">Legal hands: shield + weapon, bow + melee weapon, one item, or empty. If both fighters hold a bow, only the faster one gets the First Shot (equal DEX: nobody). Pierce works with any weapon that has it.</p>
       </aside>
     </div>
   );

@@ -163,6 +163,9 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
             </button>
           ))}
         </div>
+        {primary && current === 'prepare' && (
+          <button className="btn btn-primary phase-bar-action" onClick={primary.onClick} disabled={primary.disabled} title={primary.hint}>{primary.label} <Icon name="arrow" /></button>
+        )}
         {view.rounds.length > 0 && current !== 'prepare' && (
           <label className="round-pick">Round
             <select value={round?.round.id ?? ''} onChange={(e) => viewRound(Number(e.target.value))}>
