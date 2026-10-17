@@ -1,11 +1,54 @@
-# Project Progress — The Boss Remembers (Adaptive Boss Duel V1)
+# Project Progress — The Boss Remembers (Adaptive Boss Duel, Version 2)
 
 > Living handoff document. **Verify claims against the repo before relying on them.**
 > Mechanics source of truth: `context/adaptive_boss_duel_v1_game_plan_updated.docx` (faithfully transcribed in `docs/GAME_MECHANICS.md`).
 > Requirements/acceptance: `context/antigravity_build_prompt_the_boss_remembers.md`. Architecture/ML guidance: `context/the_boss_remembers_project_walkthrough.md`.
-> Last updated: 2026-10-10 (Claude Code session 2: initial stat allocation change, engine 1.1.0).
+> Last updated: 2026-10-17 (Version 2 complete: Phase 8 final verification). Older sections below are history.
 
-## 1. Status summary
+## 0. Version 2 — Phase 8 final verification DONE (2026-10-17) — start here
+
+Handoff: `docs/HANDOFF.md`. Detailed V2 log: §1a below.
+
+**Acceptance (`docs/V2_DEMANDS.md` §13), with evidence:**
+
+| # | Criterion | Status | Evidence |
+|---|---|---|---|
+| 1 | Catalogue + rewards | ✓ | `catalogs/v2.ts` (24 items); `catalog-guard.test.ts` (no item ids outside the catalogue); dev DB engine 2.0.0: win 50 XP/10 g, loss 30 XP/5 g, level-up +20 g |
+| 2 | Opening shot | ✓ | Dev DB: opening events per round never > 1 (2156 rounds 0, 6444 rounds 1); rules none 2138 / tie_none 18 / dex_advantage 2122 / single 4322 |
+| 3 | Round-zero p | ✓ | Every engine-2.0.0 round-1 decision has basis `rule` (860/860); semantics in `ML_WALKTHROUGH.md` (round-zero note); AC-P0 tests pass |
+| 4 | Boss diversity | ✓ | Policy v2-diverse (V2_BALANCE §6); v1 kept for rollback |
+| 5 | Armor penetration | ✓ | Melee pierce 308/4373 attempts, ranged 2411/7593; logged per attack (`calc.pierce`), in features (schema v3); ML impact in ML_WALKTHROUGH §10b–10c |
+| 6 | UI redesign | ✓ | Court Deck; finish reviewer verdict SHIP (round 3); `client/DESIGN.md`; token text contrast ≥ 4.69:1. Workshop views were not visually reviewed by the reviewer |
+| 7 | Sim / data / models | ✓ (honest) | sim-2.2.0, 11 agents; schema v3 dataset; model and 30/70 ensemble trained, **neither eligible → baseline** (rules not relaxed) |
+| 8 | Tests / types / build | ✓ | `npm test` 160 server + 5 client pass; `npm run typecheck` clean; `npm run build` OK |
+| 9 | Docs | ✓ | README updated to V2 in Phase 8; GAME_MECHANICS, ARCHITECTURE, SIMULATIONS, ML_WALKTHROUGH, FILE_GUIDE, V2_BALANCE, DESIGN.md |
+| 10 | PROGRESS.md | ✓ | this section + §1a |
+
+**V1 (engine 1.1.0) → V2 (engine 2.0.0):**
+
+| Measure | V1 | V2 |
+|---|---|---|
+| Catalogue | 16 items | 24 items (V1 frozen for history) |
+| Opening shots | every bow holder shot | at most one per round |
+| Round-1 boss build | +2 STR in 243/243 runs, p = 0.5 placeholder | rule-based, basis `rule`, feasibility-aware |
+| Pierce | approved placeholders, ~1–3% of damage | tuned by simulation, melee and ranged both pierce |
+| Boss vs scripted agents | 80–100% | ~97–100% (agents do not adapt) |
+| Boss vs mirror player | 13% (policy v1) | 58% (inside the 55–70% Q-3 band) |
+| ML | old model active (1.1.0) | no eligible model; baseline used |
+| UI | tabbed V1 screens | Court Deck, three-phase duel |
+
+**Phase 8 smoke checks:** test-DB sim 12 runs / 48 rounds / 0 failures (`--seed phase8-smoke`); browser keyboard check of the Ranged+Melee choice (Enter on Begin, M, checkbox + R) → fixed a bug where R/M ignored keys while the checkbox had focus.
+
+**Remaining limitations / decisions for the user:**
+- No eligible ML model; the boss uses the transparent baseline. The hybrid build answering both styles (#9) leaves ML little leverage.
+- Stale active-model flag `m20261010-200001-s2` (engine 1.1.0); it falls back automatically. Clearing it (`npm run ml:activate -- --none`) waits for user OK.
+- Deferred balance fixes `V2_BALANCE.md` §4 #1–#9 (DEX dominance first) — next version, per the user.
+- Boss vs scripted agents ~100%: an agent intelligence gap, not a rules gap.
+- Workshop views (Runs, Simulations, ML Lab) were rebuilt but not visually reviewed by the reviewer.
+
+**Reproduce:** `npm run db:up`; `npm test`; `npm run typecheck`; `npm run build`; `DATABASE_URL=$TEST_DATABASE_URL npm run sim -- --runs 12 --rounds 4 --seed phase8-smoke`; `npm run balance`; `npm run ml:status`.
+
+## 1. Status summary (V1, 2026-10-10 — history)
 
 All milestones A–G are implemented and verified locally. The game is playable in the browser end-to-end; simulations, ML training,
 activation and model-vs-fallback reporting work; docs are written. Nothing is committed to git yet (repo has no commits; branch `master`).

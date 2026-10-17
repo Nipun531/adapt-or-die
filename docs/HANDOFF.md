@@ -13,22 +13,22 @@ Spec: `docs/V2_DEMANDS.md` (user answers in §11.1). Balance: `docs/V2_BALANCE.m
 | 4 Feasibility prediction + boss diversity (policy v2) | done |
 | 5–6 Agents (sim-2.2.0), ML schema v3, ensemble candidate | done; **no model is eligible → boss uses the baseline** (honest; rules not relaxed) |
 | 7 UI redesign "Court Deck" | done; reviewer verdict **ship**; `client/DESIGN.md` written |
-| 8 Final verification | **in progress** — see below |
+| 8 Final verification | done — `PROGRESS.md` §0 (acceptance table, V1→V2 comparison) |
 
 Git: `main` on github.com/Nipun531/adapt-or-die; last pushed `a2b09ef`. Commits after that are local until pushed.
 
-## Phase 8 — done so far
+## Phase 8 — what was done
 - Pushed Phase 7.
 - Added `server/tests/unit/catalog-guard.test.ts` (AC-CAT-2: no item ids outside the catalogue).
 - Token contrast check: all text pairs ≥ 4.5:1 (lowest 4.69).
 - Read-only dev-DB checks (engine 2.0.0): never more than one opening shot per round; rewards 50/10 win, 30/5 loss, +20 level-up; melee pierce happens; every round-1 decision basis = `rule`.
 - Smoke sim on the test DB: 12 runs, 0 failures.
+- `npm test` 160 server + 5 client pass; typecheck and build clean. README updated to V2.
 - Browser keyboard check of the Ranged+Melee choice (first time this was ever exercised in a browser): M and R work; **fixed a bug** where R/M did nothing while the "use for the rest of this round" checkbox had focus (`client/src/duel/Fight.tsx`).
 
-## Phase 8 — still to do
-1. Commit + run `npm test` (expect 160 server + 5 client), `npm run typecheck`, `npm run build`.
-2. Write a short V1→V2 comparison (numbers already in `V2_BASELINE.md`, `V2_BALANCE.md` §3/§6, `ML_WALKTHROUGH.md` §10c) and tick the acceptance list of `V2_DEMANDS.md` §13 in `PROGRESS.md`.
-3. Ask the user before: pushing; deactivating the stale active model `m20261010-200001-s2` (`npm run ml:activate -- --none`; it already falls back automatically, so this is cosmetic).
+## Waiting on the user
+- Push the Phase 8 commits.
+- OK to clear the stale active model `m20261010-200001-s2` (`npm run ml:activate -- --none`; cosmetic, it already falls back).
 
 ## Open decisions for the user (next version)
 - Balance fixes in `V2_BALANCE.md` §4 (#1 DEX dominance first) and #8 round-1 STR, #9 hybrid build answering both styles (why ML has no leverage).
