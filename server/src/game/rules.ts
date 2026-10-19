@@ -78,6 +78,11 @@ export interface V3Combat {
    * rangedModAgilityShare 1 = current rules, 0.5 = half, 0 = shots only (`rangedModShotsOnly: true` is the same as 0).
    */
   dex?: { rangedModShotsOnly?: boolean; rangedModAgilityShare?: number };
+  /**
+   * Ranged shots only (absent = none): attack value × attackFactor; pierce chance + pierceBonus (capped at 100%);
+   * focusFactor = extra × on the attack value when the shooter holds NO melee weapon (a dedicated archer, not a hybrid).
+   */
+  ranged?: { attackFactor?: number; pierceBonus?: number; focusFactor?: number };
   round: {
     /**
      * Owner decision D-19 (2026-10-19): when turn `turnLimit` has been fully played and both fighters still stand,
@@ -104,6 +109,8 @@ export const RULES_V2: RuleSet = Object.freeze({ id: 'v2', dexBenefits: ALL_DEX,
  *  - dodge base 0 → 0.10 (everyone has a dodge option; the DEX lead still adds 2% per point),
  *  - stun gain base/span 10/10 → 17.5/17.5 (per landed hit 17.5–35 instead of 10–20).
  * Owner's original values: dodge base 0; stun base 10, span 10.
+ * Phase D2 (engine 3.1.0): a ranged weapon's DEX counts 50% toward agility (its shots keep 100%); a shooter holding no
+ * melee weapon gets ×1.3 attack value on shots (keeps dedicated archers viable). Fixes the hybrid's DEX stacking.
  */
 export const V3_COMBAT: V3Combat = Object.freeze({
   dodge: { perDexPoint: 0.02, cap: 0.7, base: 0.1, delta: 'points' },
@@ -112,6 +119,9 @@ export const V3_COMBAT: V3Combat = Object.freeze({
   stun: { threshold: 100, base: 17.5, span: 17.5, sumCap: 1, boostScale: 1, heavyBlockFraction: 0.25, extraDamageFraction: 0.25, trigger: true },
   stim: { healBase: 0.2, healPerUpgrade: 0.05 },
   round: { turnLimit: 30 },
+  // Phase D2 (owner, 2026-10-20: "use 50% bow DEX toward agility, add a small ranged buff, tune it"; V3_BALANCE §12):
+  dex: { rangedModAgilityShare: 0.5 },
+  ranged: { focusFactor: 1.3 },
 }) as V3Combat;
 
 export const RULES_V3: RuleSet = Object.freeze({ id: 'v3', dexBenefits: ALL_DEX, v3: V3_COMBAT });

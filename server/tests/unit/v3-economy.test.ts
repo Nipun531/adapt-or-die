@@ -10,7 +10,7 @@ const rich = (gold: number) => ({ ...initialCombatant('player'), gold });
 
 describe('engine 3.0.0 economy', () => {
   it('starts with 10 gold, 1 empty stim slot; the live catalogue is V3', () => {
-    expect(ENGINE_VERSION).toBe('3.0.0');
+    expect(ENGINE_VERSION).toBe('3.1.0');
     expect(STARTING_GOLD).toBe(10);
     expect(initialCombatant('boss')).toMatchObject({ gold: 10, supplies: { stims: 0, slots: 1, effectiveness: 0 } });
     expect(ITEMS).toBe(ITEMS_V3);

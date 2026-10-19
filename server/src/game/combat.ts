@@ -501,7 +501,9 @@ function computeAttack(
   rules: RuleSet,
 ): AttackCalc {
   const ranged = mode === 'ranged';
-  const attackValue = ranged ? att.derived.effDex : att.derived.netAtk;
+  const r3 = rules.v3?.ranged;
+  const focus = ranged && !att.derived.meleeWeaponId ? r3?.focusFactor ?? 1 : 1;
+  const attackValue = ranged ? att.derived.effDex * (r3?.attackFactor ?? 1) * focus : att.derived.netAtk;
   const defenderNetDef = def.derived.netDef;
 
   let pierce: PierceRoll | null = null;
@@ -510,8 +512,9 @@ function computeAttack(
   const spec = weaponId ? itemLookup(rules)(weaponId).pierce : undefined;
   if (spec) {
     const roll = drawPierce();
-    const success = roll < spec.chance;
-    pierce = { chance: spec.chance, defIgnore: spec.defIgnore, roll, success, placeholder: spec.placeholder, weaponId: weaponId!, extraDamage: 0 };
+    const chance = ranged ? Math.min(1, spec.chance + (rules.v3?.ranged?.pierceBonus ?? 0)) : spec.chance;
+    const success = roll < chance;
+    pierce = { chance, defIgnore: spec.defIgnore, roll, success, placeholder: spec.placeholder, weaponId: weaponId!, extraDamage: 0 };
     ignore = success ? spec.defIgnore : 0;
   }
   const defUsed = defAfterPierce(defenderNetDef, ignore);

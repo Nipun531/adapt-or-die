@@ -206,7 +206,7 @@ Details fixed while building. Each is consistent with the decisions above; they 
 
 ## 14. Open after Phase D (2026-10-20)
 
-- **[OPEN D-20] Hybrid dominance.** Recommended: a ranged weapon's DEX counts for its shots only, plus a compensating ranged buff, tuned in a D2 lab pass. Options and numbers: V3_BALANCE §11.2.
+- **[OWNER D-20, decided 2026-10-20] Hybrid dominance.** A ranged weapon's DEX counts 50% toward agility; dedicated archers (no melee weapon) get ×1.3 on shots. Engine 3.1.0; V3_BALANCE §12.
 - **[OPEN D-13] Difficulty yardstick.** Recommended: judge mechanics in the random-build lab and difficulty against searching players; optionally add a difficulty setting.
 - **[OPEN D-17] Economy comeback.** For example, loss gold 5 → 10.
 

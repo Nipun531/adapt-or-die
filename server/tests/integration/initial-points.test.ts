@@ -172,7 +172,7 @@ describe('ML data and model versioning', () => {
     const features = (await getPool().query('SELECT features FROM training_examples LIMIT 1')).rows[0].features;
     const p = await predictPlayerStyle(getPool(), features, 0.5);
     expect(p.kind).toBe('fallback');
-    expect(p.fallbackReason).toMatch(/engine 1\.0\.0 data; current rules are engine 3\.0\.0/);
+    expect(p.fallbackReason).toMatch(/engine 1\.0\.0 data; current rules are engine 3\.1\.0/);
     await expect(activateModel(getPool(), 'legacy-model')).rejects.toThrow(/trained on engine 1\.0\.0/);
   });
 });

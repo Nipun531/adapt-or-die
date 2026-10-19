@@ -40,9 +40,9 @@ describe('bow-DEX experiment switch (harness only, off in the shipped rules)', (
     expect(archer.derived.effDexAgility).toBe(20);
     const exp = withRules(RULES_V3, { v3: { dex: { rangedModShotsOnly: true } } as never });
     expect(exp.v3!.dex!.rangedModShotsOnly).toBe(true);
-    expect(agilityDex(archer, RULES_V3)).toBe(40);
+    expect(agilityDex(archer, RULES_V3)).toBe(30); // engine 3.1.0: the bow's +4 counts half → 20 × (1 + 0.25 × 2)
     expect(agilityDex(archer, exp)).toBe(20);
-    expect(RULES_V3.v3!.dex).toBeUndefined();
+    expect(agilityDex(archer, withRules(RULES_V3, { v3: { dex: { rangedModAgilityShare: 1 } } as never }))).toBe(40);
   });
 });
 

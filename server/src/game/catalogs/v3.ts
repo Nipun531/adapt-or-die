@@ -1,6 +1,5 @@
 /**
- * V3 catalogue (engine 3.0.0) — docs/V3_DEMANDS.md §7. NOT LIVE YET: the live tables stay V2 until Phase C2;
- * RuleSet v3 (game/rules.ts) reads this table.
+ * V3 catalogue (live since engine 3.0.0) — docs/V3_DEMANDS.md §7. The live table (catalog.ts ITEMS); RuleSet v3 reads it too.
  *
  * - Costs and STR/DEF/DEX modifiers: the V3 design doc (identical to V2 except Warhammer 40 → 45, owner Q-4).
  * - Pierce: the tuned V2 values (owner decision).

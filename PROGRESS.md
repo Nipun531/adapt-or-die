@@ -65,7 +65,10 @@ V3 plan written: `docs/V3_IMPLEMENTATION_PLAN.md` (audit, requirements matrix, b
   - exploits clean.
 - Root cause: gear DEX stacking (the bow as an agility accessory). Lab tests show single-item tweaks don't help; "ranged DEX for shots only" fixes hybrid but needs a ranged buff.
 - Harness switch `v3.dex.rangedModShotsOnly` (off).
-- **Waiting on the owner: D-20 (hybrid fix), D-13 (difficulty yardstick), D-17 (economy).**
+- **Phase D2 DONE (engine 3.1.0):** a bow's DEX counts 50% toward agility; dedicated archers ×1.3 (owner D-20; V3_BALANCE §12).
+  - The boss's hybrid share 91% → 77%; mirror still about 50%; the stun/dodge sweet spot holds.
+  - Open: D-13, D-17, and a possible stronger hybrid setting.
+- Tests: 207 server + 5 client.
 
 ## 0. Version 2 — Phase 8 final verification DONE (2026-10-17) — start here
 

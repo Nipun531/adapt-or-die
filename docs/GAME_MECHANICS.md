@@ -70,6 +70,10 @@ The spec of record is `docs/V3_DEMANDS.md` (owner decisions plus documented defa
    - **Dodge counter:** chance = min(70%, DEX lead % + weapon dodge-counter modifier). Needs a dodge-counter weapon. Damage × 0.75; no stun.
    - Counters cannot be blocked, dodged or countered.
 
+**Ranged weapons (engine 3.1.0, owner D-20)**
+- A ranged weapon's DEX modifier counts **50%** toward the holder's agility (turn order, First Shot, bonus attacks, mitigation, dodge). Its shots use the full modifier.
+- A shooter holding no melee weapon deals shots at ×1.3 attack value.
+
 **Round end**
 - KO, or the **turn limit** (owner D-19): after turn 30, the higher HP share wins; an exact tie goes to the initiative coin-flip winner.
 

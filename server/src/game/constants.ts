@@ -6,14 +6,15 @@
 import type { Stats } from './types.js';
 
 /** Engine version — stored on every run/round so historical data can be tied to the rules that produced it. */
-export const ENGINE_VERSION = '3.0.0';
+export const ENGINE_VERSION = '3.1.0';
 /** Engine version history (rules that change data meaning):
  *  1.0.0 — original V1 rules; combatants start with 0 stat points.
  *  1.1.0 — DEVELOPER RULE (user-approved): each combatant starts a run with INITIAL_STAT_POINTS unallocated points.
  *  2.0.0 — Version 2 (docs/V2_DEMANDS.md): V2 catalogue (catalogs/v2.ts), loss reward 30 XP / 5 gold, level-up +20 gold,
  *          pierce on any weapon that has a pierce spec, only the DEX-advantaged ranged fighter gets the opening shot.
  *  3.0.0 — Version 3 (docs/V3_DEMANDS.md): RuleSet v3 combat (block/dodge, counters, stun, stims, turn limit),
- *          V3 catalogue (catalogs/v3.ts), 10 starting gold, healing-stim economy. */
+ *          V3 catalogue (catalogs/v3.ts), 10 starting gold, healing-stim economy.
+ *  3.1.0 — Phase D2 (owner-approved hybrid fix): ranged weapon DEX counts 50% toward agility; dedicated archers ×1.3. */
 
 /** Plan §1: starting values. */
 export const BASE_STATS: Stats = { hp: 100, str: 20, def: 10, dex: 10 };

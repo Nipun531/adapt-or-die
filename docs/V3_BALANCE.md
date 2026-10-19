@@ -374,3 +374,51 @@ Harness switch `v3.dex.rangedModAgilityShare`: the share of a ranged weapon's DE
 - Below 50%, melee + shield becomes the new top shape.
 - Pure archers lose about 6–8 points at 50% (vs 12–14 at 0%), so a smaller ranged buff is still needed.
 - These are lab numbers. The boss suite has to confirm them before anything is adopted.
+
+
+## 12. Phase D2 — the hybrid fix (owner decision D-20, 2026-10-20; engine 3.1.0)
+
+**Owner's decision:** "use 50% bow DEX toward agility, add a small ranged buff, tune it in the lab, then re-run the boss suite."
+
+**Adopted** (`V3_COMBAT.dex` and `V3_COMBAT.ranged`):
+- A ranged weapon's DEX modifier counts **50%** toward the holder's agility: turn order, First Shot, bonus attacks, DEX mitigation, dodge. Its own shots keep 100%.
+- **Archer focus:** a shooter holding **no melee weapon** gets **×1.3** attack value on shots.
+
+**Tuning (lab, 1,500 builds × 20,000 fights per stage, seed `lab-d2`):**
+- Ranged buffs that apply to every shot (×1.1–1.3, pierce +10–20 pp, +1 bow DEX) also buff hybrids, which shoot too: hybrid went back to 66–69%. Rejected.
+- A buff only for dedicated archers works:
+
+| Bow DEX toward agility · focus | Hybrid mid / late | Melee + shield | Melee | Ranged only |
+|---|---|---|---|---|
+| 50% · ×1.0 | 61.4 / 65.0 | 60.8 / 60.2 | 61.1 / 58.8 | 24.3 / 34.2 |
+| **50% · ×1.3 (adopted)** | **60.4 / 63.9** | 59.0 / 58.2 | 59.3 / 56.7 | 32.9 / 43.0 |
+| 50% · ×1.5 | 59.4 / 62.9 | 57.6 / 57.1 | 57.6 / 55.6 | 38.9 / 48.1 |
+
+×1.3 brings dedicated archers back to at least today's level, and the hybrid lead falls from about 12 points to 1–6.
+
+**Stun/dodge sweet spot re-check** (`lab-verify`, `docs/v3-baseline/d2/v3-lab-confirm-lab-verify.md`):
+- Score 1.73 (6.61 before D2; lower is better).
+- Stun effect +3.3 / +3.5 pp.
+- Dodge success 12 / 19 / 23%.
+- Faster fighter wins 59–62% (V2: 61–65%).
+- No stalls.
+
+**Boss suite** (paired: same seeds as §11; `docs/v3-baseline/d2/`):
+
+| Measure | Before D2 (§11) | After D2 |
+|---|---|---|
+| Top boss archetype, rounds 3–10 | hybrid 90.7% | **hybrid 77.4%** (bruiser 12.2%, duelist 5.3%) |
+| Mirror / mirror_sym boss win | 49.3% / 48.8% | 50.1% / 48.5% (still fair) |
+| Boss win vs fixed-plan agents | 86–99.5% | 84–99% (most −0.3 to −4 pp) |
+| Duelist | 76.5% | **64.3%** (player comeback 11% → 21%) |
+| Healer / counter_puncher | 88.8% / 86.4% | 84.7% / 83.7% |
+| Mirror comebacks (boss / player) | 10 / 10% | 14 / 14% |
+| Exploits (chains / heal share / turn limit) | 0.3% / 2.9% / 0% | 0.1% / 4.1% / 0% |
+
+**Verdict:**
+- The hybrid's DEX stacking is broken: in the lab its lead over melee + shield is now 1–6 points, and the boss's hybrid share fell from 91% to 77%. Fairness is unchanged.
+- Hybrid is still the boss's most common pick. The boss optimises, so even a small edge decides its choice.
+- **The diversity target (≤ 40%) is still missed.**
+- Two options remain (owner's call):
+  - a stronger setting (25% agility share with ×1.4 focus, lab: hybrid about 60–61%);
+  - accept the result and move on: the remaining gap is small, and the boss's dominance over scripted agents is an agent-quality effect (mirror ≈ 50%).
