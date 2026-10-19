@@ -173,7 +173,7 @@ export interface Initiative {
   openingEligible?: Side[]; openingRule?: 'none' | 'single' | 'dex_advantage' | 'tie_none';
   bonusAttacks: Record<Side, number>;
 }
-export interface Snapshot { side: Side; level: number; stats: Stats; loadout: Loadout; derived: Derived }
+export interface Snapshot { side: Side; level: number; stats: Stats; loadout: Loadout; derived: Derived; supplies?: Supplies }
 export interface ProgressionRow { id: number; side: Side; kind: string; actor: string; payload: any }
 export interface RoundDetail {
   round: RoundRow & {

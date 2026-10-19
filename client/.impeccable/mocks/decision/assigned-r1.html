@@ -1,0 +1,56 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Lead-light — first viewport</title>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus+SC&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--nave:#0e0f12;--stone:#17191d;--stone2:#1f2227;--lead:#2c2f35;--text:#e6e3dc;--text2:#a7a49d;--azure:#3d74d8;--gules:#cf3b41;--amber:#dfa634;--clear:#c9d3d8;--violet:#8a64d6;--vert:#4f9d66}
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:var(--nave);color:var(--text);font:15px/1.45 "Atkinson Hyperlegible",sans-serif}
+.m{font-family:"Marcellus SC",serif;letter-spacing:.05em}
+header{height:56px;display:flex;align-items:center;padding:0 40px;border-bottom:1px solid var(--lead)}
+header .b{font-size:21px} header nav{margin-left:auto;display:flex;gap:24px;color:var(--text2)} header nav b{color:var(--text)}
+.run{display:flex;align-items:baseline;gap:16px;padding:18px 40px 8px}
+.run h1{font-size:30px} .run span{color:var(--text2)} .run .end{margin-left:auto;border:1px solid var(--lead);padding:4px 12px;color:var(--text2);font-size:13px}
+.stage{display:grid;grid-template-columns:320px 1fr 320px;gap:32px;padding:8px 40px}
+.f{background:var(--stone);padding:18px 20px;border-radius:3px}
+.f h2{font-size:24px} .f .g{color:var(--text2);font-size:13px;margin:2px 0 14px}
+.l{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);display:flex;justify-content:space-between;margin-top:12px}
+.big{font-family:"Marcellus SC",serif;font-size:42px;line-height:1.1}
+.panes{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;padding:3px;background:var(--lead);margin-top:6px}
+.panes i{height:18px;background:#22252b}
+.p.you i.on{background:var(--azure)} .p.boss i.on{background:var(--gules)} .p.stun i.on{background:var(--violet)}
+.vials{display:flex;gap:6px;margin-top:6px} .vials i{width:14px;height:22px;border:1.5px solid var(--vert);border-radius:3px 3px 7px 7px} .vials i.on{background:var(--vert)}
+.window{background:var(--stone);border-radius:3px;padding:24px 28px;text-align:center;outline:1.5px solid var(--amber);outline-offset:-1.5px}
+.window .k{color:var(--amber);font-size:13px;letter-spacing:.14em}
+.window h3{font-size:34px;margin:6px 0 2px} .window p{color:var(--text2)}
+.ch{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;text-align:left}
+.c{background:var(--stone2);border:1px solid var(--lead);border-radius:3px;padding:16px}
+.c .t{display:flex;justify-content:space-between;align-items:baseline} .c b{font-family:"Marcellus SC",serif;font-size:26px} .c em{font-style:normal;font-size:26px;color:var(--amber)}
+.c small{display:block;color:var(--text2);margin-top:6px} kbd{border:1px solid var(--lead);padding:0 6px;border-radius:3px;font-size:12px}
+.last{margin-top:16px;color:var(--text2)} .last b{color:var(--text)}
+.strip{margin:22px 40px 0;background:var(--stone);border-radius:3px;padding:14px 20px}
+.lancet{display:flex;gap:3px;padding:3px;background:var(--lead);margin-top:8px}
+.pane{flex:1;height:64px;display:flex;flex-direction:column;justify-content:flex-end;padding:6px;font-size:11px;color:#0e0f12;font-weight:700}
+.pane.y{background:#2f60bd;color:#fff} .pane.bo{background:#b3313a;color:#fff} .pane.cl{background:var(--clear)} .pane.ct{background:var(--amber)} .pane.st{background:#6c4ab8;color:#fff} .pane.dk{background:#22252b;color:var(--text2)}
+.pane.now{background:#22252b;outline:2px solid var(--amber);outline-offset:-2px;color:var(--amber)}
+.key{display:flex;gap:18px;color:var(--text2);font-size:12px;margin-top:8px} .key i{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
+</style></head><body>
+<header><span class="b m">The Boss Remembers</span><nav><b>Duel</b><span>Rules</span><span>Workshop</span></nav></header>
+<div class="run"><h1 class="m">Round 4</h1><span>of 10 · turn 3 · the boss is faster and acts first</span><span>You 1 — 2 Boss</span><span class="end">End run</span></div>
+<section class="stage">
+ <div class="f"><h2 class="m">You · level 3</h2><div class="g">Sword · Small Shield · Leather Armor</div>
+  <div class="l"><span>Health</span><span>of 115</span></div><div class="big">72</div><div class="panes p you"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+  <div class="l"><span>Stun</span><span>40 / 100</span></div><div class="panes p stun"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="l"><span>Healing stims</span><span>+23 HP each</span></div><div class="vials"><i class="on"></i><i></i></div></div>
+ <div><div class="window"><div class="k">INCOMING · TURN 3</div><h3 class="m">The boss swings its Mace</h3><p>melee · about 31 damage if it lands · heavy, can stun</p>
+  <div class="ch"><div class="c"><div class="t"><b>Block <kbd>B</kbd></b><em>30%</em></div><small>No damage if it holds; 39% chance to counter ×1.5 (+20 boss stun). Heavy: your stun still rises.</small></div>
+   <div class="c"><div class="t"><b>Dodge <kbd>D</kbd></b><em>10%</em></div><small>No damage if it works. You are slower than the boss; your sword cannot dodge-counter.</small></div></div></div>
+  <p class="last">Last: you struck with Sword, the boss <b>blocked</b> and <b>countered</b> for 19.</p></div>
+ <div class="f"><h2 class="m">The Boss · level 4</h2><div class="g">Mace · Crossbow · Leather Armor</div>
+  <div class="l"><span>Health</span><span>of 120</span></div><div class="big">88</div><div class="panes p boss"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+  <div class="l"><span>Stun</span><span>60 / 100</span></div><div class="panes p stun"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+  <div class="l"><span>Healing stims</span><span>+24 HP each</span></div><div class="vials"><i class="on"></i></div></div>
+</section>
+<section class="strip"><div class="l" style="margin:0"><span>This round in glass — one pane per exchange</span><span>click a pane for the full calculation</span></div>
+ <div class="lancet"><div class="pane bo">Boss shot · 12</div><div class="pane y">You · 18</div><div class="pane bo">Boss · 31</div><div class="pane cl">Blocked</div><div class="pane ct">Counter · 19</div><div class="pane now">Your answer?</div><div class="pane dk"></div><div class="pane dk"></div><div class="pane dk"></div><div class="pane dk"></div></div>
+ <div class="key"><span><i style="background:var(--azure)"></i>your hit</span><span><i style="background:var(--gules)"></i>boss hit</span><span><i style="background:var(--clear)"></i>blocked or dodged</span><span><i style="background:var(--amber)"></i>counter</span><span><i style="background:var(--violet)"></i>stun</span></div></section>
+</body></html>

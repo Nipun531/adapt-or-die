@@ -66,6 +66,7 @@ V3 plan written: `docs/V3_IMPLEMENTATION_PLAN.md` (audit, requirements matrix, b
 - Root cause: gear DEX stacking (the bow as an agility accessory). Lab tests show single-item tweaks don't help; "ranged DEX for shots only" fixes hybrid but needs a ranged buff.
 - Harness switch `v3.dex.rangedModShotsOnly` (off).
 - **Phase D2 DONE (engine 3.1.0):** a bow's DEX counts 50% toward agility; dedicated archers ×1.3 (owner D-20; V3_BALANCE §12).
+- **Phase E DONE (client UI):** Cathedral Lead-Light redesign. The fight is a stage: your window, the incoming decision pane (Block / Dodge with exact odds, stim and shoot/strike prompts, keyboard B/D/U/K/R/M), the boss's window; HP and stun as leaded pane meters, gear as roundels, stims as vials; one animation per outcome (hit, block, dodge, counter, stun, heal, turn lost, KO) with a held still state under reduced motion; round-by-round history at the bottom. Armory shows each item's traits in words and a "Your build" column plus "The boss now". Rules drawer (`?`), first-run hints. Design system recorded in `client/DESIGN.md`.
   - The boss's hybrid share 91% → 77%; mirror still about 50%; the stun/dodge sweet spot holds.
   - Open: D-13, D-17, and a possible stronger hybrid setting.
 - Tests: 207 server + 5 client.

@@ -4,11 +4,11 @@
  * draw probability), and an honest statement of where its read of your style came from.
  */
 import type { Decision, ProgressionRow, RoundDetail, Side } from '../api';
-import { Icon, SuitIcon } from '../ui/Icon';
+import { GlyphIcon, Icon } from '../ui/Icon';
 import type { PhaseAction } from './actions';
 import { itemName, loadoutText, n2, pct, signed, useCatalog } from '../util';
 
-const METRIC_LABEL: Record<string, string> = { netAtk: 'Net ATK', netDef: 'Net DEF', effDex: 'Eff. DEX', maxHp: 'HP' };
+const METRIC_LABEL: Record<string, string> = { netAtk: 'Attack', netDef: 'Defence', effDex: 'Speed', maxHp: 'HP' };
 const metricText = (s: string) => s.replace(/^(netAtk|netDef|effDex|maxHp)/, (m) => METRIC_LABEL[m] ?? m);
 
 const WEAKNESS_LABEL: Record<string, string> = {
@@ -33,7 +33,7 @@ function Result({ detail, next }: { detail: RoundDetail; next?: PhaseAction }) {
     <section className={`result ${won ? 'is-win' : 'is-loss'}`} aria-live="polite">
       <div className="result-main">
         <h2>{won ? 'Victory' : 'Defeat'}</h2>
-        <p>Round {r.round_number} · {won ? 'you' : 'the boss'} finished with {n2(Math.max(0, hpLeft ?? 0))} HP · {r.attack_count} attacks</p>
+        <p>Round {r.round_number} · {won ? 'you' : 'the boss'} finished with {Math.round(Math.max(0, hpLeft ?? 0))} HP · {r.attack_count} attacks</p>
         {next && <button className="btn btn-on-color" onClick={next.onClick} disabled={next.disabled}>{next.label} <Icon name="arrow" /></button>}
       </div>
       <div className="result-rewards">
@@ -173,13 +173,13 @@ export function Aftermath({ detail, next }: { detail: RoundDetail; next?: PhaseA
             {a ? (
               <>
                 <p className="memory-facts">
-                  Took <b>{n2(a.damageTaken.total)}</b> damage ({n2(a.damageTaken.byMode.ranged ?? 0)} ranged, {n2((a.damageTaken.byMode.melee ?? 0) + (a.damageTaken.byMode.unarmed ?? 0))} melee{a.damageTaken.pierces ? `, ${a.damageTaken.pierces} pierces` : ''}) · dealt <b>{n2(a.damageDealt.total)}</b> · DEX you {n2(a.initiative.playerEffDex)} vs {n2(a.initiative.bossEffDex)}
+                  Took <b>{Math.round(a.damageTaken.total)}</b> damage ({Math.round(a.damageTaken.byMode.ranged ?? 0)} ranged, {Math.round((a.damageTaken.byMode.melee ?? 0) + (a.damageTaken.byMode.unarmed ?? 0))} melee{a.damageTaken.pierces ? `, ${a.damageTaken.pierces} pierces` : ''}) · dealt <b>{Math.round(a.damageDealt.total)}</b> · speed you {Math.round(a.initiative.playerEffDex)} vs boss {Math.round(a.initiative.bossEffDex)}
                 </p>
                 {a.weaknesses.length ? (
                   <ul className="evidence">
                     {a.weaknesses.map((w) => (
                       <li key={w.code}>
-                        <span className="evidence-head"><SuitIcon suit="diamond" size={12} /><b>{WEAKNESS_LABEL[w.code] ?? w.code}</b><span className="evidence-sev" aria-label={`severity ${n2(w.severity)}`}><span style={{ width: `${Math.min(1, w.severity) * 100}%` }} /></span></span>
+                        <span className="evidence-head"><GlyphIcon glyph="star" size={12} /><b>{WEAKNESS_LABEL[w.code] ?? w.code}</b><span className="evidence-sev" aria-label={`severity ${n2(w.severity)}`}><span style={{ width: `${Math.min(1, w.severity) * 100}%` }} /></span></span>
                         <span>{w.evidence}</span>
                       </li>
                     ))}

@@ -1,11 +1,14 @@
 /**
- * PREPARE — the Armory. Item cards grouped by family with filters; picking a card previews its effect on your
- * Net numbers (server-computed, nothing written), then "Buy & equip" does both in one step. The hand (two hands +
- * body) and stat points sit beside it. The server re-validates every action; its message is shown if refused.
+ * PREPARE — the Armory and your build. Gear as glass cells grouped by family, each with what it does in words; picking
+ * one previews its effect on your Attack / Defence / Speed (server-computed, nothing written), then "Buy & equip" does
+ * both in one step. Beside it: your build (gear roundels, stats, points, stims) and what the boss brought last round.
+ * The server re-validates every action; its message is shown if refused.
  */
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { api, type BuildPreview, type Item, type RunView, type StatKey } from '../api';
-import { StatPip } from '../ui/Icon';
+import { GlyphIcon, StatPip } from '../ui/Icon';
+import { Hint } from '../ui/Hint';
+import { itemTraits, Roundel } from './Fight';
 import { ErrorBox, useToast } from '../ui/states';
 import { findItem, n2, useAction, useCatalog } from '../util';
 import type { PhaseAction } from './actions';
@@ -38,14 +41,7 @@ function ItemCard({ item, owned, equipped, gold, selected, onPick }: { item: Ite
       <span className="item-cost" aria-label={owned ? 'owned' : `${item.cost} gold`}>{owned ? (equipped ? 'In hand' : 'Owned') : item.cost}</span>
       <span className="item-name">{item.name}</span>
       <span className="item-family">{FAMILIES.find((f) => f.id === item.family)?.label}{item.category === 'ranged' ? ' · ranged' : item.category === 'melee' ? ' · melee' : ''}</span>
-      <span className="item-tags">
-        {item.category === 'ranged' && <span className="tag tag-yellow">First Shot</span>}
-        {item.pierce && <span className="tag tag-blue">Pierce {Math.round(item.pierce.chance * 100)}% · ignores {Math.round(item.pierce.defIgnore * 100)}% DEF</span>}
-        {item.combat?.blockBonus ? <span className="tag tag-ink">Block +{Math.round(item.combat.blockBonus * 100)}%</span> : null}
-        {item.combat?.canStun ? <span className="tag tag-red">Can stun</span> : null}
-        {item.combat?.stunBoost ? <span className="tag tag-ink">Stun boost +{Math.round(item.combat.stunBoost * 100)}%</span> : null}
-        {item.combat?.dodgeCounter ? <span className="tag tag-ink">Dodge counter +{Math.round(item.combat.dodgeCounter * 100)}%</span> : null}
-      </span>
+      {itemTraits(item).length > 0 && <span className="item-traits">{itemTraits(item).join(' · ')}</span>}
       <Mods item={item} />
       {short && <span className="item-short">Need {item.cost - gold} more gold</span>}
     </button>
@@ -63,7 +59,7 @@ function Delta({ label, from, to }: { label: string; from: number; to: number })
   );
 }
 
-export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunView; onChange: (v: RunView) => void; begin?: PhaseAction; onShowAftermath?: () => void }) {
+export function Armory({ view, onChange, begin, onShowAftermath, bossNote }: { view: RunView; onChange: (v: RunView) => void; begin?: PhaseAction; onShowAftermath?: () => void; bossNote?: string }) {
   const catalog = useCatalog();
   const toast = useToast();
   const p = view.player;
@@ -138,9 +134,9 @@ export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunVi
                   {preview?.problem && <p className="pick-problem">{preview.problem}</p>}
                   {preview?.preview && (
                     <div className="deltas">
-                      <Delta label="Net ATK" from={preview.current.netAtk} to={preview.preview.netAtk} />
-                      <Delta label="Net DEF" from={preview.current.netDef} to={preview.preview.netDef} />
-                      <Delta label="Eff. DEX" from={preview.current.effDex} to={preview.preview.effDex} />
+                      <Delta label="Attack" from={preview.current.netAtk} to={preview.preview.netAtk} />
+                      <Delta label="Defence" from={preview.current.netDef} to={preview.preview.netDef} />
+                      <Delta label="Speed" from={preview.current.effDex} to={preview.preview.effDex} />
                     </div>
                   )}
                   <div className="pick-actions">
@@ -168,7 +164,15 @@ export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunVi
       </section>
 
       <aside className="hand stock" aria-labelledby="hand-h">
-        <header className="panel-head"><h3 id="hand-h">Your hand</h3><span className="panel-meta">2 hands + body</span></header>
+        <header className="panel-head"><h3 id="hand-h">Your build</h3><span className="panel-meta">level {p.level} · <b>{p.gold}</b> gold</span></header>
+        {firstRound && <Hint id="prepare-1">Spend your two starting points, then pick a weapon from the armory. Each item says what it does; picking it shows how your numbers change before you buy.</Hint>}
+        <dl className="build-stats">
+          <div><dt><GlyphIcon glyph="heart" size={14} />Health</dt><dd>{p.derived.maxHp}</dd></div>
+          <div title="Melee damage (strength with weapon bonuses)"><dt><GlyphIcon glyph="sword" size={14} />Attack</dt><dd>{Math.round(p.derived.netAtk)}</dd></div>
+          <div title="Less damage taken; your DEF stat also improves blocks"><dt><GlyphIcon glyph="shield" size={14} />Defence</dt><dd>{Math.round(p.derived.netDef)}</dd></div>
+          <div title="Acts first, dodges, ranged damage"><dt><GlyphIcon glyph="feather" size={14} />Speed</dt><dd>{Math.round(p.derived.effDex)}</dd></div>
+        </dl>
+        <div className="build-xp"><span>XP {p.xp} / {p.xpToNext}</span><span className="xp-bar"><i style={{ width: `${Math.min(100, (p.xp / p.xpToNext) * 100)}%` }} /></span></div>
         <div className="slots">
           {(['hand1', 'hand2', 'armour'] as SlotKey[]).map((s) => {
             const id = p.loadout[s];
@@ -176,8 +180,8 @@ export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunVi
             const target = proposal?.slot === s;
             return (
               <div key={s} className={`slot ${it ? 'is-filled' : ''} ${target ? 'is-target' : ''}`}>
-                <span className="slot-label">{SLOT_LABEL[s]}</span>
-                {it ? <><b>{it.name}</b><Mods item={it} /></> : <span className="slot-empty">empty</span>}
+                <ul className="roundels"><Roundel id={id} slot={SLOT_LABEL[s]} /></ul>
+                {it && <Mods item={it} />}
                 {pickedItem && pickedItem.category !== 'armour' && s !== 'armour' && (
                   <button className="slot-put" onClick={() => setSlot(s)} aria-pressed={target}>Put here</button>
                 )}
@@ -223,6 +227,17 @@ export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunVi
             </div>
           </div>
         )}
+        <div className="boss-plate" aria-label="The boss right now">
+          <h4>The boss now</h4>
+          <p>Level {view.boss.level} · {view.boss.gold} gold{view.boss.supplies ? ` · ${view.boss.supplies.stims} stim${view.boss.supplies.stims === 1 ? '' : 's'}` : ''}</p>
+          <ul className="roundels roundels-compact">
+            <Roundel id={view.boss.loadout.hand1} slot="Hand" />
+            <Roundel id={view.boss.loadout.hand2} slot="Hand" />
+            <Roundel id={view.boss.loadout.armour} slot="Body" />
+          </ul>
+          {bossNote && <p className="muted">{bossNote}</p>}
+          <p className="muted">It prepares after you press Begin, from your last round only.</p>
+        </div>
         {view.lastDecision && (
           <div className="last-hand">
             <h4>The boss’s last hand</h4>
@@ -230,7 +245,7 @@ export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunVi
           </div>
         )}
         <ErrorBox error={act.error} />
-        <p className="rules-note">Legal hands: shield + weapon, bow + melee weapon, one item, or empty. If both fighters hold a bow, only the faster one gets the First Shot (equal DEX: nobody). Pierce works with any weapon that has it. Every incoming attack can be blocked (DEF and shields) or dodged (a DEX lead); a successful block or a dodge with a long weapon can counter, except against ranged attacks.</p>
+        <p className="rules-note">Legal hands: shield + weapon, bow + melee weapon, one item, or empty. The full rules (blocks, dodges, counters, stun) are under Rules in the top bar, or press ?.</p>
         {begin && (
           <div className="begin">
             {begin.hint && <p>{begin.hint}</p>}

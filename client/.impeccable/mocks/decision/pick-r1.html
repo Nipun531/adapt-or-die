@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Forge temper — first viewport</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--steel:#121315;--steel2:#1b1d20;--edge:#30333a;--text:#e7e3dc;--text2:#a6a29b;--cold:#6f93c9;--hot:#e0612f;--straw:#d9b45a;--bronze:#b77b3a;--purple:#8a59a3;--blue:#4a74c4}
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:var(--steel);color:var(--text);font:15px/1.45 "Atkinson Hyperlegible",sans-serif}
+.o{font-family:Oswald,sans-serif;letter-spacing:.04em;text-transform:uppercase}
+header{height:56px;display:flex;align-items:center;padding:0 40px;border-bottom:1px solid var(--edge)} header nav{margin-left:auto;display:flex;gap:24px;color:var(--text2)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding:24px 40px}
+.f h2{font-size:22px} .f small{color:var(--text2)}
+.hp{display:flex;gap:16px;align-items:center;margin-top:8px} .hp b{font-family:Oswald;font-size:44px} .bar{flex:1;height:10px;background:var(--steel2)} .bar i{display:block;height:100%}
+.temper{height:14px;margin-top:10px;background:linear-gradient(90deg,var(--straw),var(--bronze),var(--purple),var(--blue));position:relative}
+.temper::after{content:"";position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--text)}
+.f.you .temper::after{left:40%} .f.boss .temper::after{left:60%}
+.anvil{margin:6px 40px;background:var(--steel2);border:1px solid var(--edge);padding:24px;text-align:center}
+.anvil h3{font-size:34px} .anvil p{color:var(--text2)}
+.btns{display:flex;justify-content:center;gap:16px;margin-top:18px} .btn{border:1.5px solid var(--edge);padding:12px 28px;font-size:20px} .btn.p{background:var(--hot);border-color:var(--hot);color:#121315}
+.log{margin:18px 40px;display:flex;gap:10px} .log span{flex:1;border-top:3px solid var(--edge);padding-top:6px;color:var(--text2);font-size:13px} .log span.h{border-color:var(--hot);color:var(--text)} .log span.c{border-color:var(--cold);color:var(--text)}
+</style></head><body>
+<header><span class="o" style="font-size:20px">The Boss Remembers</span><nav><span>Duel</span><span>Rules</span><span>Workshop</span></nav></header>
+<div class="two"><div class="f you"><h2 class="o">You</h2><small>Sword · Small Shield · Leather · 1 stim</small><div class="hp"><b>72</b><div class="bar"><i style="width:63%;background:var(--cold)"></i></div></div><div class="temper"></div><small>stun 40 — the steel heats toward blue</small></div>
+<div class="f boss"><h2 class="o">The Boss</h2><small>Mace · Crossbow · Leather · 1 stim</small><div class="hp"><b>88</b><div class="bar"><i style="width:73%;background:var(--hot)"></i></div></div><div class="temper"></div><small>stun 60</small></div></div>
+<div class="anvil"><h3 class="o">Incoming: Mace</h3><p>heavy · can stun · about 31 damage</p><div class="btns"><span class="btn p o">Block 30%</span><span class="btn o">Dodge 10%</span></div></div>
+<div class="log"><span class="h">Boss shot · 12</span><span class="c">You · 18</span><span class="h">Boss · 31</span><span>Blocked</span><span class="c">Counter · 19</span><span>…</span></div>
+</body></html>

@@ -1,14 +1,13 @@
 /**
- * The Duel. Without a run: start a new run or resume one. With a run: the Versus bar, then the round loop as three
- * phases — Prepare (Armory), Fight (the replay) and Aftermath (result, rewards, what the boss remembers) — with one
- * primary action per phase in the action bar.
+ * The Duel. Without a run: the start screen (what this is, start a duel, resume one). With a run: a compact run line,
+ * then the round loop as three phases — Prepare (armory and your build), Fight (the combat stage) and Aftermath
+ * (result, rewards, what the boss remembers) — with one primary action per phase.
  */
 import { useEffect, useState } from 'react';
 import { api, type RoundDetail, type RunView, type PlayerAnswer } from '../api';
 import { Aftermath } from '../duel/Aftermath';
 import { Armory } from '../duel/Armory';
 import { Fight } from '../duel/Fight';
-import { Versus } from '../duel/Versus';
 import { Icon } from '../ui/Icon';
 import { Empty, ErrorBox, Skeleton, useConfirm, useToast } from '../ui/states';
 import { useAction, useCatalog, useLoad } from '../util';
@@ -33,12 +32,20 @@ function StartScreen({ go }: { go: (hash: string) => void }) {
     <div className="start">
       <section className="start-hero">
         <h1>The Boss Remembers</h1>
-        <p>A duel over many rounds. You and the boss start from the same cards: level 1, 10 gold, no gear, two stat points each. Win or lose, both of you earn XP and gold, level up and re-arm. The boss studies every fight and adapts under exactly the same rules.</p>
+        <p className="start-lede">Duel a boss over several rounds. Before each round you arm yourself; in the fight you answer every blow it throws with a block or a dodge. The boss studies every fight and comes back ready for you, under exactly the same rules.</p>
+        <ol className="start-steps">
+          <li><b>Prepare.</b> Spend your two starting points, buy a weapon, maybe a healing stim.</li>
+          <li><b>Fight.</b> When the boss attacks, choose Block or Dodge. A good defence can strike back.</li>
+          <li><b>Learn.</b> See what the boss noticed about you, then prepare the next round.</li>
+        </ol>
         <div className="start-form">
-          <label>Rounds in this run
-            <input type="number" min={1} max={100} value={maxRounds} onChange={(e) => setMaxRounds(Number(e.target.value))} />
-          </label>
-          <button className="btn btn-primary btn-big" disabled={act.busy || down} onClick={start}>Deal a new run <Icon name="arrow" /></button>
+          <button className="btn btn-primary btn-big" disabled={act.busy || down} onClick={start}>Start a duel <Icon name="arrow" /></button>
+          <details className="start-more">
+            <summary>More options</summary>
+            <label>Rounds in this run
+              <input type="number" min={1} max={100} value={maxRounds} onChange={(e) => setMaxRounds(Number(e.target.value))} />
+            </label>
+          </details>
         </div>
         <ErrorBox error={act.error} />
       </section>
@@ -142,9 +149,9 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
     <div className="run">
       {dialog}
       <div className="run-bar">
-        <h2>Run #{view.run.id}</h2>
-        <span className="run-meta">Round {Math.min(view.rounds.length + (canPrepare ? 1 : 0), view.run.max_rounds)} of {view.run.max_rounds}</span>
-        <span className="run-record" aria-label={`Record: you ${view.record.wins}, boss ${view.record.losses}`}><b className="tone-player">{view.record.wins}</b>–<b className="tone-boss">{view.record.losses}</b></span>
+        <h2>Round <span className="num">{Math.max(1, Math.min(view.rounds.length + (canPrepare ? 1 : 0), view.run.max_rounds))}</span> <small>of {view.run.max_rounds}</small></h2>
+        <span className="run-record" aria-label={`Record: you ${view.record.wins}, boss ${view.record.losses}`}><span>You</span><b className="tone-player">{view.record.wins}</b><span>–</span><b className="tone-boss">{view.record.losses}</b><span>Boss</span></span>
+        <span className="run-meta">Run #{view.run.id}</span>
         {simulated && <span className="chip chip-dark">simulation · {view.run.player_strategy}</span>}
         {legacy && <span className="chip chip-dark">engine {view.run.engine_version} · view only</span>}
         {!active && <span className="chip chip-dark">{view.run.status}{view.run.end_reason ? ` · ${view.run.end_reason.replace(/_/g, ' ')}` : ''}</span>}
@@ -153,7 +160,6 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
       {legacy && <p className="banner">This run was created under older rules (engine {view.run.engine_version}). You can review it, but it can’t continue under the current rules (engine {catalog?.rules.engineVersion}).</p>}
       <ErrorBox error={act.error} />
 
-      <Versus player={view.player} boss={view.boss} record={view.record} playerTitle={simulated ? `Agent: ${view.run.player_strategy}` : 'You'} bossNote={bossNote} />
 
       <div className="phase-bar">
         <div className="phases" role="tablist" aria-label="Round phase">
@@ -169,7 +175,7 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
         {view.rounds.length > 0 && current !== 'prepare' && (
           <label className="round-pick">Round
             <select value={round?.round.id ?? ''} onChange={(e) => viewRound(Number(e.target.value))}>
-              {view.rounds.map((r) => <option key={r.id} value={r.id}>{r.round_number} · {r.status !== 'completed' ? r.status : r.winner === 'player' ? 'won' : 'lost'}</option>)}
+              {view.rounds.map((r) => <option key={r.id} value={r.id}>{r.round_number} · {r.status !== 'completed' ? 'playing' : r.winner === 'player' ? 'won' : 'lost'}</option>)}
             </select>
           </label>
         )}
@@ -177,12 +183,12 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
 
       <div className="phase-body" role="tabpanel">
         {current === 'prepare' && (canPrepare
-          ? <Armory view={view} onChange={setView} begin={primary ?? undefined} onShowAftermath={round ? () => setPhase('aftermath') : undefined} />
+          ? <Armory view={view} onChange={setView} begin={primary ?? undefined} onShowAftermath={round ? () => setPhase('aftermath') : undefined} bossNote={bossNote} />
           : <Empty title={inProgress ? 'A round is in progress' : readOnly ? 'This run is view-only' : 'This run is over'}>
               {inProgress ? <button className="btn btn-primary" onClick={() => setPhase('fight')}>Back to the fight</button>
                 : !readOnly ? <button className="btn btn-primary" onClick={() => go('#/duel')}>Deal a new run</button> : null}
             </Empty>)}
-        {current === 'fight' && round && <Fight detail={round} onChoose={!readOnly ? choose : undefined} busy={act.busy} deal={deal} next={primary ?? undefined} />}
+        {current === 'fight' && round && <Fight detail={round} onChoose={!readOnly ? choose : undefined} busy={act.busy} deal={deal} next={primary ?? undefined} rounds={view.rounds} onOpenRound={viewRound} />}
         {current === 'aftermath' && round && <Aftermath detail={round} next={primary ?? undefined} />}
       </div>
 

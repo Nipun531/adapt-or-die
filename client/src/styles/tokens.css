@@ -1,54 +1,53 @@
-/* Court Deck — design tokens. Baize table, white card stock, flat four-colour court printing.
-   Saturated colour lives on card faces and state only; the shell is baize, stock and ink. */
+/* Cathedral Lead-Light — design tokens (V3).
+   A dark nave where colour exists only as lit glass, and glass lights only when something happens.
+   Stone surfaces, dark lead seams instead of borders and shadows, jewel tinctures that each mean one thing. */
 :root {
-  /* Baize (the table) */
-  --baize-950: #0b2219;
-  --baize-900: #0f2a20;
-  --baize-800: #163a2c;
-  --baize-700: #1e4b39;
-  --baize-600: #285f49;
-  --on-baize: #eef3ef;
-  --on-baize-2: #b9d0c2;
+  /* Nave and stone */
+  --nave: #0e0f12;
+  --nave-2: #121418;
+  --stone: #17191d;
+  --stone-2: #1f2227;
+  --stone-3: #272a30;
+  --lead: #2c2f35;
+  --lead-2: #3a3e46;
+  --text: #e6e3dc;
+  --text-2: #b2aea6;
+  --text-3: #8b8780;
 
-  /* Card stock and ink */
-  --stock: #f7f5f0;
-  --stock-2: #eeeae1;
-  --stock-3: #e2ddd1;
-  --line: #d3ccbd;
-  --ink: #141414;
-  --ink-2: #474540;
-  --ink-3: #6b675e;
-
-  /* Court printing */
-  --red: #c4122f;
-  --red-ink: #a50f27;
-  --blue: #1f3c8c;
-  --blue-ink: #182f70;
-  --yellow: #f0b323;
-  --yellow-soft: #f8e2a6;
+  /* Glass tinctures — each means exactly one thing */
+  --azure: #3d74d8;        /* you */
+  --azure-glass: #2f60bd;
+  --azure-text: #8fb3f2;
+  --gules: #cf3b41;        /* the boss */
+  --gules-glass: #b3313a;
+  --gules-text: #f0868a;
+  --amber: #dfa634;        /* your decision now, and counters */
+  --amber-text: #f0c56a;
+  --violet: #8a64d6;       /* stun */
+  --violet-text: #b9a0f0;
+  --verdant: #4f9d66;      /* healing */
+  --verdant-text: #8cd2a2;
+  --clear: #c9d3d8;        /* blocked / dodged: clear glass */
+  --pane-off: #22252b;     /* unlit glass */
 
   /* Roles */
-  --player: var(--blue);
-  --boss: var(--red);
-  --win: var(--blue);
-  --loss: var(--red);
-  --warn-bg: #fbecc4;
-  --warn-ink: #6e4a00;
-  --err-bg: #f9dde1;
-  --err-ink: #8a0c21;
-  --ok-bg: #dfe8f8;
-  --ok-ink: #182f70;
+  --player: var(--azure);
+  --boss: var(--gules);
+  --now: var(--amber);
+  --err-ink: #f0868a;
+  --warn-ink: #f0c56a;
+  --ok-ink: #8cd2a2;
 
   /* Type */
   --font-ui: 'Atkinson Hyperlegible', system-ui, sans-serif;
-  --font-index: 'Big Shoulders Display', 'Atkinson Hyperlegible', sans-serif;
+  --font-inscription: 'Marcellus SC', 'Atkinson Hyperlegible', serif;
   --fs-xs: 0.78rem;
   --fs-sm: 0.875rem;
   --fs-md: 1rem;
   --fs-lg: 1.25rem;
-  --fs-xl: 1.75rem;
-  --fs-2xl: 2.5rem;
-  --fs-3xl: 3.5rem;
+  --fs-xl: 1.6rem;
+  --fs-2xl: 2.25rem;
+  --fs-3xl: 3.25rem;
 
   /* Space (4-pt) */
   --s1: 4px;
@@ -59,20 +58,16 @@
   --s6: 32px;
   --s7: 48px;
 
-  /* Shape and depth */
-  --r-card: 14px;
-  --r-sm: 8px;
+  /* Shape */
+  --r: 3px;
   --r-pill: 999px;
-  --lift-1: 0 1px 2px rgb(11 34 25 / 0.25), 0 2px 8px rgb(11 34 25 / 0.18);
-  --lift-2: 0 4px 12px rgb(11 34 25 / 0.28), 0 12px 32px rgb(11 34 25 / 0.22);
-  --focus: 0 0 0 3px var(--yellow);
+  --seam: 1px solid var(--lead);
 
-  /* Motion */
+  /* Motion: exponential ease-out from a visible default */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --t-fast: 140ms;
   --t-med: 320ms;
+  --t-fx: 620ms;
 
-  /* Layout: the card-width module */
-  --module: 168px;
-  --page-max: 1320px;
+  --page-max: 1360px;
 }

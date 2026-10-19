@@ -1,43 +1,37 @@
 <!doctype html>
-<html><head><meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;700&family=Alegreya+SC:wght@700&display=swap" rel="stylesheet">
+<html><head><meta charset="utf-8"><title>Fencing-treatise plates — first viewport</title>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
 <style>
+:root{--slate:#16181b;--slate2:#202328;--line:#3a3e45;--bone:#ece6da;--bone2:#aaa397;--rubric:#b8322f;--blue:#5a86c9;--gold:#c9a24a}
 *{box-sizing:border-box;margin:0}
-body{width:1440px;height:900px;overflow:hidden;background:#ece3cf;color:#2b2118;font:16px/1.45 'Alegreya Sans',sans-serif}
-.top{display:flex;gap:28px;align-items:baseline;padding:18px 40px;border-bottom:1.5px solid #2b2118}
-.brand{font:700 26px 'Alegreya SC'}.nav span{margin-right:18px}.nav .on{color:#b23a26;font-weight:700}
-.run{margin-left:auto}
-.page{display:grid;grid-template-columns:1fr 360px;height:840px}
-.main{padding:24px 40px;border-right:1.5px solid #2b2118}
-.fighters{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:end;height:250px;border-bottom:1px solid #b9a98a}
-.fig{display:flex;gap:18px;align-items:flex-end}
-.fig h2{font:700 28px 'Alegreya SC'}.fig .s{font-size:14px}
-svg{width:140px;height:200px}
-.plays h3{font:700 20px 'Alegreya SC';color:#b23a26;margin:18px 0 8px}
-.play{display:grid;grid-template-columns:50px 1fr 90px;gap:12px;padding:8px 0;border-bottom:1px dotted #b9a98a}
-.play b{font:700 22px 'Alegreya SC';color:#b23a26}.play .d{text-align:right;font-weight:700}
-.margin{padding:24px 24px;font-size:15px}
-.margin h3{font:700 20px 'Alegreya SC';margin-bottom:10px}
-.note{border-left:3px solid #b23a26;padding:4px 12px;margin-bottom:14px}
-.note i{color:#4f7d6a;font-style:normal;font-weight:700}
-.go{margin-top:20px;display:inline-block;background:#2b2118;color:#ece3cf;padding:12px 24px;font:700 20px 'Alegreya SC'}
+body{width:1440px;height:900px;overflow:hidden;background:var(--slate);color:var(--bone);font:15px/1.45 "Atkinson Hyperlegible",sans-serif}
+.s{font-family:Spectral,serif}
+header{height:56px;display:flex;align-items:center;padding:0 40px;border-bottom:1px solid var(--line)}
+header .b{font-size:21px} header nav{margin-left:auto;display:flex;gap:22px;color:var(--bone2)} header nav b{color:var(--bone)}
+.top{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding:20px 40px}
+.f h2{font-size:26px} .f .g{color:var(--bone2);font-size:13px}
+.row{display:flex;gap:24px;margin-top:10px;align-items:center}
+.row b{font-size:36px;font-family:Spectral,serif}
+.bar{flex:1;height:8px;background:var(--slate2)} .bar i{display:block;height:100%}
+.r{text-align:right} .r .row{flex-direction:row-reverse}
+.plates{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;padding:4px 40px}
+.pl{border:1px solid var(--line);background:var(--slate2);padding:16px;height:300px;display:flex;flex-direction:column}
+.pl .n{color:var(--rubric);font-family:Spectral,serif;font-size:14px;letter-spacing:.1em}
+.pl svg{flex:1;margin:10px 0}
+.pl p{color:var(--bone2);font-size:13px}
+.pl.now{border-color:var(--gold)}
+.ask{margin:18px 40px;border-top:1px solid var(--line);padding-top:16px;display:flex;gap:18px;align-items:center}
+.ask h3{font-size:26px;flex:1}
+.btn{border:1.5px solid var(--bone);padding:12px 26px;font-size:18px}
+.btn.p{background:var(--rubric);border-color:var(--rubric)}
 </style></head><body>
-<div class="top"><div class="brand">The Boss Remembers</div><div class="nav"><span class="on">Duel</span><span>Workshop</span></div><div class="run">Run 12 · Round 3 of 10 · You 1 – 1 Boss</div></div>
-<div class="page"><div class="main">
-<div class="fighters">
-<div class="fig"><svg viewBox="0 0 140 200"><g stroke="#2b2118" stroke-width="3" fill="none"><circle cx="60" cy="30" r="14"/><path d="M60 44 L60 110 M60 60 L110 40 M60 60 L30 85 M60 110 L35 180 M60 110 L95 175"/><path d="M110 40 L138 28" stroke="#b23a26"/></g></svg>
-<div><h2>You</h2><div class="s">Level 2 · HP 105<br>Spear, Wood Shield, Leather Armor<br>ATK 40.3 · DEF 38.5 · DEX 16.3</div></div></div>
-<div class="fig"><svg viewBox="0 0 140 200"><g stroke="#2b2118" stroke-width="3" fill="none"><circle cx="80" cy="30" r="14"/><path d="M80 44 L80 110 M80 60 L30 45 M80 60 L110 85 M80 110 L105 180 M80 110 L45 175"/><path d="M30 45 L4 36" stroke="#b23a26"/></g></svg>
-<div><h2>The Boss</h2><div class="s">Level 2 · HP 110<br>Crossbow, LongSword, Leather Armor<br>ATK 77.0 · DEF 33.0 · DEX 32.0</div></div></div>
-</div>
-<div class="plays"><h3>Plays of round 2</h3>
-<div class="play"><b>I</b><span>The Boss looses the opening bolt; you hold no bow, so it alone shoots.</span><span class="d">21.4</span></div>
-<div class="play"><b>II</b><span>The Boss strikes with the LongSword, faster by 15 DEX, and strikes again.</span><span class="d">38.0</span></div>
-<div class="play"><b>III</b><span>You thrust the Spear; it pierces, ignoring 35% of the Boss's armour.</span><span class="d">29.7</span></div>
-<div class="play"><b>IV</b><span>The Boss strikes twice more; you fall.</span><span class="d">KO</span></div>
-</div><div class="go">Prepare round 3</div></div>
-<div class="margin"><h3>The Boss's notes</h3>
-<div class="note">Your Spear pierced once, adding 9.2 damage. <i>Answer:</i> more HP over DEF.</div>
-<div class="note">You can afford a Bow now. <i>Weighing</i> both styles.</div>
-<div class="note">Chose from three equal plans; drew the hybrid.</div></div></div>
+<header><span class="b s">The Boss Remembers</span><nav><b>Duel</b><span>Rules</span><span>Workshop</span></nav></header>
+<div class="top"><div class="f"><h2 class="s">You</h2><div class="g">Sword · Small Shield · Leather · stun 40 · 1 stim</div><div class="row"><b>72</b><div class="bar"><i style="width:63%;background:var(--blue)"></i></div></div></div>
+<div class="f r"><h2 class="s">The Boss</h2><div class="g">Mace · Crossbow · Leather · stun 60 · 1 stim</div><div class="row"><b>88</b><div class="bar"><i style="width:73%;background:var(--rubric)"></i></div></div></div></div>
+<section class="plates">
+ <div class="pl"><span class="n">PLATE 7 · TURN 2</span><svg viewBox="0 0 200 120"><g stroke="#ece6da" fill="none" stroke-width="2"><circle cx="60" cy="25" r="9"/><path d="M60 34 L60 75 M60 75 L45 110 M60 75 L75 110 M60 45 L95 30"/><circle cx="140" cy="25" r="9"/><path d="M140 34 L140 75 M140 75 L125 110 M140 75 L155 110 M140 45 L110 40 M110 30 L110 55"/></g></svg><p>You strike with Sword. The boss <b>blocks</b> and <b>counters</b>: 19 damage.</p></div>
+ <div class="pl"><span class="n">PLATE 8 · TURN 2</span><svg viewBox="0 0 200 120"><g stroke="#ece6da" fill="none" stroke-width="2"><circle cx="60" cy="25" r="9"/><path d="M60 34 L60 75 M60 75 L45 110 M60 75 L75 110 M60 45 L85 55"/><circle cx="140" cy="25" r="9"/><path d="M140 34 L140 75 M140 75 L125 110 M140 75 L155 110 M140 45 L100 25"/></g></svg><p>The boss swings Mace. Your block fails: 31 damage. Stun 40.</p></div>
+ <div class="pl now"><span class="n">PLATE 9 · NOW</span><svg viewBox="0 0 200 120"><g stroke="#c9a24a" fill="none" stroke-width="2" stroke-dasharray="4 4"><circle cx="140" cy="25" r="9"/><path d="M140 34 L140 75 M140 75 L125 110 M140 75 L155 110 M140 45 L100 20"/></g></svg><p>The boss raises its Mace. How do you answer?</p></div>
+</section>
+<div class="ask"><h3 class="s">Incoming: Mace, heavy, can stun</h3><span class="btn p">Block · 30% (B)</span><span class="btn">Dodge · 10% (D)</span></div>
 </body></html>

@@ -1,8 +1,7 @@
 // Client entry point: self-hosted fonts, global styles, then the React app.
 import '@fontsource/atkinson-hyperlegible/400.css';
 import '@fontsource/atkinson-hyperlegible/700.css';
-import '@fontsource/big-shoulders-display/700.css';
-import '@fontsource/big-shoulders-display/800.css';
+import '@fontsource/marcellus-sc/400.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';

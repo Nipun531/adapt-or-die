@@ -1,11 +1,12 @@
 /**
- * App shell: baize top bar (brand, Duel, Workshop menu) + hash routing (#/duel, #/duel/:runId, #/runs, #/sim, #/ml).
+ * App shell: nave top bar (brand, Duel, Rules drawer, Workshop menu) + hash routing (#/duel, #/duel/:runId, #/runs, #/sim, #/ml).
  * The Duel is the product; Runs, Simulations and ML Lab are the developer's Workshop.
  * Loads the equipment catalogue once and shares it via context.
  */
 import { useEffect, useRef, useState } from 'react';
 import { api, type Catalog } from './api';
 import { Icon } from './ui/Icon';
+import { RulesButton } from './ui/Rules';
 import { ErrorBox, ToastHost } from './ui/states';
 import { CatalogContext } from './util';
 import { DuelView } from './views/DuelView';
@@ -80,11 +81,12 @@ export function App() {
         <a className="skip" href="#main">Skip to content</a>
         <header className="topbar">
           <a className="brand" href="#/duel" aria-label="The Boss Remembers — start">
-            <span className="brand-mark" aria-hidden="true"><Icon name="crown" size={18} /></span>
+            <span className="brand-mark" aria-hidden="true"><Icon name="lancet" size={18} /></span>
             The Boss Remembers
           </a>
           <nav aria-label="Main">
             <a className={`nav-link ${inDuel ? 'is-current' : ''}`} href="#/duel" aria-current={inDuel ? 'page' : undefined}>Duel</a>
+            <RulesButton />
             <WorkshopMenu hash={hash} />
           </nav>
         </header>

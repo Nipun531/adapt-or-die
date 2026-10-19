@@ -1,89 +1,101 @@
 ---
 name: The Boss Remembers
-description: Court Deck — a duel played as a hand of court cards on a green baize table.
+description: A duel against a boss that learns you, set as lit glass in a dark nave.
 colors:
-  baize-950: "#0b2219"
-  baize-900: "#0f2a20"
-  baize-800: "#163a2c"
-  baize-700: "#1e4b39"
-  baize-600: "#285f49"
-  on-baize: "#eef3ef"
-  on-baize-2: "#b9d0c2"
-  on-baize-player: "#9db4f0"
-  on-baize-boss: "#ff9aa9"
-  stock: "#f7f5f0"
-  stock-2: "#eeeae1"
-  stock-3: "#e2ddd1"
-  card-face: "#ffffff"
-  line: "#d3ccbd"
-  ink: "#141414"
-  ink-2: "#474540"
-  ink-3: "#6b675e"
-  court-red: "#c4122f"
-  court-red-ink: "#a50f27"
-  court-blue: "#1f3c8c"
-  court-blue-ink: "#182f70"
-  court-yellow: "#f0b323"
-  court-yellow-soft: "#f8e2a6"
-  owned-tint: "#f3f6fd"
-  owned-line: "#b9c6e8"
-  warn-bg: "#fbecc4"
-  warn-ink: "#6e4a00"
-  err-bg: "#f9dde1"
-  err-ink: "#8a0c21"
-  ok-bg: "#dfe8f8"
-  ok-ink: "#182f70"
+  nave: "#0e0f12"
+  nave-2: "#121418"
+  stone: "#17191d"
+  stone-2: "#1f2227"
+  stone-3: "#272a30"
+  lead: "#2c2f35"
+  lead-2: "#3a3e46"
+  pane-off: "#22252b"
+  text: "#e6e3dc"
+  text-2: "#b2aea6"
+  text-3: "#8b8780"
+  azure: "#3d74d8"
+  azure-glass: "#2f60bd"
+  azure-text: "#8fb3f2"
+  gules: "#cf3b41"
+  gules-glass: "#b3313a"
+  gules-text: "#f0868a"
+  amber: "#dfa634"
+  amber-text: "#f0c56a"
+  violet: "#8a64d6"
+  violet-text: "#b9a0f0"
+  verdant: "#4f9d66"
+  verdant-text: "#8cd2a2"
+  clear: "#c9d3d8"
+  fan-equal: "#26222c"
+  fan-played: "#2a1a1c"
+  fx-hit-gules: "rgb(207 59 65 / 0.12)"
+  fx-hit-azure: "rgb(61 116 216 / 0.12)"
+  fx-block: "rgb(201 211 216 / 0.22)"
+  fx-clear-held: "rgb(201 211 216 / 0.08)"
+  fx-counter: "rgb(223 166 52 / 0.38)"
+  fx-counter-held: "rgb(223 166 52 / 0.1)"
+  fx-stun: "rgb(138 100 214 / 0.34)"
+  fx-stun-held: "rgb(138 100 214 / 0.12)"
+  fx-heal: "rgb(79 157 102 / 0.4)"
+  fx-heal-held: "rgb(79 157 102 / 0.12)"
+  fx-skip: "rgb(14 15 18 / 0.5)"
+  fx-word-plate: "rgb(14 15 18 / 0.86)"
+  backdrop: "rgb(8 9 11 / 0.72)"
 typography:
   display:
-    fontFamily: "Big Shoulders Display, Atkinson Hyperlegible, sans-serif"
-    fontSize: "clamp(2.6rem, 6vw, 5rem)"
-    fontWeight: 800
-    lineHeight: 0.92
-    letterSpacing: "0.02em"
+    fontFamily: "Marcellus SC, Atkinson Hyperlegible, serif"
+    fontSize: "3.25rem"
+    fontWeight: 400
+    lineHeight: 1.1
+    letterSpacing: "0.04em"
   headline:
-    fontFamily: "Big Shoulders Display, Atkinson Hyperlegible, sans-serif"
-    fontSize: "1.75rem"
-    fontWeight: 800
-    lineHeight: 1.05
-    letterSpacing: "0.02em"
+    fontFamily: "Marcellus SC, Atkinson Hyperlegible, serif"
+    fontSize: "1.6rem"
+    fontWeight: 400
+    lineHeight: 1.1
+    letterSpacing: "0.04em"
   title:
-    fontFamily: "Big Shoulders Display, Atkinson Hyperlegible, sans-serif"
+    fontFamily: "Marcellus SC, Atkinson Hyperlegible, serif"
     fontSize: "1.25rem"
-    fontWeight: 800
-    lineHeight: 1.05
-    letterSpacing: "0.02em"
-  index-numeral:
-    fontFamily: "Big Shoulders Display, Atkinson Hyperlegible, sans-serif"
-    fontSize: "2.6rem"
-    fontWeight: 800
+    fontWeight: 400
+    lineHeight: 1.1
+    letterSpacing: "0.04em"
+  inscription-word:
+    fontFamily: "Marcellus SC, Atkinson Hyperlegible, serif"
+    fontSize: "1.6rem"
+    fontWeight: 400
+    letterSpacing: "0.08em"
+  numeral:
+    fontFamily: "Atkinson Hyperlegible, system-ui, sans-serif"
+    fontSize: "2rem"
+    fontWeight: 700
     lineHeight: 1
     fontFeature: "tnum"
-  index-label:
-    fontFamily: "Big Shoulders Display, Atkinson Hyperlegible, sans-serif"
-    fontSize: "0.72rem"
+  numeral-small:
+    fontFamily: "Atkinson Hyperlegible, system-ui, sans-serif"
+    fontSize: "1.25rem"
     fontWeight: 700
-    letterSpacing: "0.12em"
+    lineHeight: 1.15
+    fontFeature: "tnum"
   body:
     fontFamily: "Atkinson Hyperlegible, system-ui, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
-    lineHeight: 1.45
+    lineHeight: 1.5
   body-small:
     fontFamily: "Atkinson Hyperlegible, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
-    lineHeight: 1.45
+    lineHeight: 1.5
   label:
     fontFamily: "Atkinson Hyperlegible, system-ui, sans-serif"
     fontSize: "0.78rem"
     fontWeight: 700
-    letterSpacing: "0.04em"
+    letterSpacing: "0.08em"
 rounded:
-  tag: "5px"
-  sm: "8px"
-  control: "10px"
-  face: "12px"
-  card: "14px"
+  cell: "1px"
+  lead-frame: "2px"
+  r: "3px"
   pill: "999px"
 spacing:
   s1: "4px"
@@ -93,273 +105,231 @@ spacing:
   s5: "24px"
   s6: "32px"
   s7: "48px"
-  module: "168px"
-  page-max: "1320px"
+  seam-gap: "3px"
 components:
   button-primary:
-    backgroundColor: "{colors.court-red}"
-    textColor: "{colors.card-face}"
-    typography: "{typography.label}"
-    rounded: "{rounded.control}"
+    backgroundColor: "{colors.amber}"
+    textColor: "{colors.nave}"
+    typography: "{typography.body}"
+    rounded: "{rounded.r}"
     padding: "0 16px"
-    height: "44px"
+    height: "40px"
   button-primary-hover:
-    backgroundColor: "{colors.court-red-ink}"
-  button-big:
-    backgroundColor: "{colors.court-red}"
-    textColor: "{colors.card-face}"
-    typography: "{typography.title}"
-    rounded: "{rounded.control}"
-    padding: "0 24px"
-    height: "52px"
-  button-quiet:
-    backgroundColor: "{colors.stock-2}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.control}"
+    backgroundColor: "{colors.amber-text}"
+    textColor: "{colors.nave}"
+  button-secondary:
+    backgroundColor: "{colors.stone-2}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.r}"
     padding: "0 16px"
-    height: "44px"
-  button-quiet-hover:
-    backgroundColor: "{colors.stock-3}"
-  button-ghost:
-    backgroundColor: "transparent"
-    textColor: "{colors.on-baize}"
-    rounded: "{rounded.control}"
-    padding: "0 16px"
-    height: "44px"
+    height: "40px"
+  button-secondary-hover:
+    backgroundColor: "{colors.stone-3}"
   button-danger:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.card-face}"
-    rounded: "{rounded.control}"
-    height: "44px"
+    textColor: "{colors.gules-text}"
+    rounded: "{rounded.r}"
+    padding: "0 16px"
+    height: "40px"
+  button-danger-hover:
+    backgroundColor: "{colors.gules-glass}"
   chip:
-    backgroundColor: "{colors.card-face}"
-    textColor: "{colors.ink}"
+    textColor: "{colors.text-2}"
+    typography: "{typography.body-small}"
     rounded: "{rounded.pill}"
     padding: "0 12px"
     height: "32px"
   chip-on:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.card-face}"
-  chip-dark:
-    backgroundColor: "{colors.baize-900}"
-    textColor: "{colors.on-baize}"
-  tag-blue:
-    backgroundColor: "{colors.court-blue}"
-    textColor: "{colors.card-face}"
-    typography: "{typography.label}"
-    rounded: "{rounded.tag}"
-    padding: "1px 7px"
-  tag-yellow:
-    backgroundColor: "{colors.court-yellow}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.tag}"
-    padding: "1px 7px"
+    backgroundColor: "{colors.stone-3}"
+    textColor: "{colors.text}"
   input:
-    backgroundColor: "{colors.card-face}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.sm}"
-    padding: "0 12px"
-    height: "40px"
-  panel-stock:
-    backgroundColor: "{colors.stock}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.card}"
+    backgroundColor: "{colors.stone-2}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.r}"
+    padding: "6px 10px"
+  panel:
+    backgroundColor: "{colors.stone}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.r}"
     padding: "24px"
-  court-card:
-    backgroundColor: "{colors.stock}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.card}"
-    padding: "16px 24px 16px 16px"
   item-card:
-    backgroundColor: "{colors.card-face}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.face}"
+    backgroundColor: "{colors.stone-2}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.cell}"
     padding: "12px"
-    height: "168px"
-    width: "{spacing.module}"
-  item-card-owned:
-    backgroundColor: "{colors.owned-tint}"
-  phase-tab:
-    backgroundColor: "{colors.baize-800}"
-    textColor: "{colors.on-baize-2}"
-    typography: "{typography.title}"
-    padding: "0 24px"
-    height: "44px"
-  phase-tab-on:
-    backgroundColor: "{colors.stock}"
-    textColor: "{colors.ink}"
+  item-card-hover:
+    backgroundColor: "{colors.stone-3}"
+  answer:
+    backgroundColor: "{colors.stone-2}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.r}"
+    padding: "16px"
+  answer-hover:
+    backgroundColor: "{colors.stone-3}"
+  window:
+    backgroundColor: "{colors.stone}"
+    textColor: "{colors.text}"
+    padding: "16px 24px 24px"
   fan-card:
-    backgroundColor: "{colors.stock}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.face}"
+    backgroundColor: "{colors.pane-off}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.cell}"
     padding: "12px"
-    width: "132px"
-    height: "184px"
+  fan-card-equal:
+    backgroundColor: "{colors.fan-equal}"
+  fan-card-played:
+    backgroundColor: "{colors.fan-played}"
+  fan-card-weaker:
+    backgroundColor: "{colors.nave}"
 ---
 
 # Design System: The Boss Remembers
 
 ## Overview
 
-**Creative North Star: "The Court Deck"**
+**Creative North Star: "Cathedral Lead-Light"**
 
-Every screen is a card table. The ground is deep green baize; every working surface is a sheet of off-white card stock laid on it; every item, fighter and plan is a playing card with rounded corners and a thin printed inner frame. Colour is printed, not lit: four flat court inks (red, blue, yellow, black) that appear only on card faces and on state. The shell itself is baize, stock and ink, so when red or blue appears it carries meaning (the boss, the player, a loss, a win).
+A dark nave where colour exists only as lit glass, and glass lights only when something happens. The ground is night-nave black, every working surface is a slab of dark stone, and stone slabs and glass cells are separated by dark lead seams, never by shadows. Colour is not decoration: six jewel tinctures each mean exactly one thing, and they appear only where a pane is lit by game state (your health, the boss's health, the decision in front of you, a stun, a heal, a block).
 
-Density is that of a working card game, not a dashboard: a grid of equal-sized item cards, two large face-up court cards for the fighters, and a fan of cards for the boss's plans. Numbers are read like card indices, in a tall condensed face, large and tabular; everything that has to be read as language is set in Atkinson Hyperlegible. Depth is the physical depth of cards on felt: soft green-tinted shadows, a lift on hover, a tilt when a card is picked.
+The fight is two lancet windows facing each other across an aisle, the player's lit in azure and the boss's in gules, with the one decision you must answer between them as the single amber-ringed pane. Health and stun are rows of leaded panes rather than bars; gear is shown as segmented glass roundels lit in the owner's tincture; the boss's ranked plans are a fan of leaded cells. Every exchange plays out as light in the struck window, one short, purposeful animation per outcome, and each has a held, motionless equivalent under reduced motion.
 
-The world explicitly refuses the dark-parchment RPG panel and the grey analytics dashboard.
+Names and short word inscriptions are cut in Marcellus SC; everything read, and every numeral, is set in Atkinson Hyperlegible. The world refuses the gold-filigree RPG panel and the grey analytics dashboard.
 
 **Key Characteristics:**
-- Baize ground, card-stock panels, white card faces: three material layers, always in that order.
-- Four flat court inks; saturated colour only on card faces and state.
-- One card form (rounded corners plus a printed inner frame) used at three sizes: court card, item card, fan card.
-- Suit pips stand for stats everywhere: heart HP, spade STR, diamond DEF, club DEX, drawn as authored SVG.
-- Condensed uppercase index face for headings and numerals; hyperlegible sans for all reading text.
-- Blue is always the player, red is always the boss.
+- Nave ground, stone surfaces, lead seams: depth by tone and seam, never by shadow.
+- Six tinctures, one meaning each: azure you, gules boss, amber your decision now, violet stun, verdant healing, clear glass blocked or dodged.
+- Leaded pane meters for HP and stun; leaded cell grids for armory, stats, rewards and the boss's plans.
+- Gear as flat, eight-segment glass roundels lit in the owner's tincture.
+- Marcellus SC for word inscriptions only; Atkinson Hyperlegible for UI and all numerals.
+- One outcome animation per exchange (hit, block, dodge, counter, stun, heal, skip, strike, KO), each with a reduced-motion held state.
 
 ## Colors
 
-A felt-and-print palette: a five-step baize ramp, three steps of warm card stock, three inks, and four flat court colours.
+A near-black nave and three stone greys carry the whole shell; saturated colour is reserved for lit glass, and each tincture has three steps: the glass itself, a deeper glass for borders and roundel segments, and a lighter text tint that stays legible on stone.
 
 ### Primary
-- **Court Red** (`court-red`): the boss's colour and the one primary action colour (Begin round, Prepare next round, See what the boss learned). Also the loss result panel, the selected item card's ring, and negative stat modifiers (in its deeper **Red Ink** `court-red-ink`, also the primary button hover).
+- **Amber Lantern** (amber, with amber-text): the one decision that matters now. The incoming pane's 2px ring, the answer odds numerals, the primary button, the selected armory cell outline, the pick panel, focus rings, text selection, caret, checkbox accent, stat points left to spend, and counters (the fx-counter flash, the counter exchange pane). Nothing else.
 
 ### Secondary
-- **Court Blue** (`court-blue`): the player's colour. Player level, player damage, player HP meters, the win result panel, pierce tags, text links, positive deltas. **Blue Ink** (`court-blue-ink`) is its text-on-tint partner.
+- **Azure Window** (azure, azure-glass, azure-text): you. Your window's 4px top lead, your lit HP panes, your filled roundels, your hits on the boss (fx-hit from the player), owned-item top bar, XP bar, win result and win chips.
+- **Gules Window** (gules, gules-glass, gules-text): the boss. The boss window's top lead, its HP panes and roundels, its hits on you, the played fan card's outline, memory evidence severity, loss result, negative modifiers and the danger button.
 
 ### Tertiary
-- **Court Yellow** (`court-yellow`): attention and the "now". Focus rings, the current-nav underline, the played card's ring in the boss's fan, the VS mark, First Shot tags, XP meters, level-up rows, unspent-points chip, text selection. **Soft Yellow** (`court-yellow-soft`) backs the in-fight choice box.
+- **Violet Stun** (violet, violet-text): stun only. Stun pane row, the fx-stun flood and the "Turn lost" skip word, stun and skip exchange panes.
+- **Verdant Healing** (verdant, verdant-text): healing only. Stim vials, the fx-heal rise, heal answers, stim exchange panes, positive build deltas and OK states.
+- **Clear Glass** (clear): blocked or dodged. The fx-block ring and wash, the "Blocked" / "Dodged" words, block and dodge exchange panes.
 
 ### Neutral
-- **Baize 700** (`baize-700`): the page ground and the inside of the boss-hand figure.
-- **Baize 900 / 950** (`baize-900`, `baize-950`): the top bar and its rule; the phone action bar; dialog backdrop tint.
-- **Baize 800 / 600** (`baize-800`, `baize-600`): inactive phase tabs and their hover; scrollbars and dark-chip borders.
-- **On-Baize / On-Baize 2** (`on-baize`, `on-baize-2`): primary and secondary text directly on felt.
-- **On-Baize Player / Boss** (`on-baize-player`, `on-baize-boss`): lightened blue and red for the win-loss record when it sits on baize, where the court inks would be too dark to read.
-- **Stock / Stock 2 / Stock 3** (`stock`, `stock-2`, `stock-3`): panel stock, recessed wells and quiet buttons, internal rules and meter tracks.
-- **Card Face** (`card-face`): pure white for the faces that sit on stock (item cards, chips, inputs, filled slots, evidence rows, status tiles), so a card reads as lighter than the panel it lies on.
-- **Line** (`line`): card edges, chip borders, dashed empty slots.
-- **Ink / Ink 2 / Ink 3** (`ink`, `ink-2`, `ink-3`): text on stock, in three strengths; ink also fills the selected filter chip and the destructive button.
-- **Owned Tint / Owned Line** (`owned-tint`, `owned-line`): the pale blue face and edge of an item the player already holds, and of a filled hand slot.
-- **State pairs** (`warn-bg`/`warn-ink`, `err-bg`/`err-ink`, `ok-bg`/`ok-ink`): banners, inline notes, error and success states. Always used as a pair.
+- **Night Nave** (nave, nave-2): page ground, top bar, primary-button text, weaker fan cards; nave-2 for inset wells (pick panel, boss hand, roundel cores, phone action bar).
+- **Stone** (stone, stone-2, stone-3): panels and windows; cells, buttons and inputs; hover and selected cells.
+- **Lead** (lead, lead-2): seams between every surface and the ground colour behind leaded cell grids; lead-2 for button borders, dialogs and hover seams.
+- **Unlit Glass** (pane-off): unlit HP and stun panes, empty roundels, meter tracks, default fan cards.
+- **Bone Text** (text, text-2, text-3): primary text, secondary text, tertiary meta and empty slots.
+- **Fan Tones** (fan-equal, fan-played): the boss's equally strong plans glow faintly violet-grey; the played plan is a dark gules-tinted cell.
 
 ### Named Rules
-**The Printed Ink Rule.** Saturated red, blue and yellow appear only on card faces and on state. The shell (top bar, page ground, panel stock) is baize, stock and ink, never a court colour.
+**The One Meaning Rule.** Each tincture means one thing everywhere: azure you, gules boss, amber the decision now (and counters), violet stun, verdant healing, clear blocked or dodged. Never use a tincture as decoration or for a second meaning.
 
-**The Two Sides Rule.** Blue is the player and red is the boss, everywhere: level numerals, damage, HP meters, fight-log sides, the record, result panels. Never swap them and never use either as decoration.
+**The Lit Glass Rule.** Saturated colour appears only where game state lights a pane. The shell (top bar, ground, panel fills, nav) stays nave, stone and lead.
 
-**The Felt Legibility Rule.** On baize, the court inks are replaced by their on-baize tints (`on-baize-player`, `on-baize-boss`) or by yellow; dark red or blue text never sits directly on felt.
+**The Text Tint Rule.** Tincture text on stone uses the -text step (azure-text, gules-text, amber-text, violet-text, verdant-text); the base glass steps are for fills, rings and panes.
 
 ## Typography
 
-**Display Font:** Big Shoulders Display (700, 800; fallback Atkinson Hyperlegible, sans-serif)
-**Body Font:** Atkinson Hyperlegible (400, 700; fallback system-ui, sans-serif)
+**Display Font:** Marcellus SC (with Atkinson Hyperlegible, serif)
+**Body Font:** Atkinson Hyperlegible (with system-ui, sans-serif)
 
-**Character:** a tall condensed card-index face for everything that is counted or named, against a sans built for legibility for everything that is read. Both are self-hosted.
+**Character:** Inscriptional small caps cut into stone for names and words; a hyperlegible sans for everything a player has to read or compare.
 
 ### Hierarchy
-- **Display** (800, clamp(2.6rem, 6vw, 5rem), 0.92): the start screen title and the round result headline only.
-- **Headline** (800, 1.75rem, 1.05, uppercase): panel headings (Armory, Your Hand, The Boss Remembers), the run title, court card names.
-- **Title** (800, 1.25rem, 1.05, uppercase): sub-section headings (Stat Points, The Boss's Last Hand), phase tabs (1.15rem) and the big primary button (1.3rem).
-- **Index Numeral** (800, 1.5 to 3rem, line-height 0.85 to 1, tabular): HP, level, Net stats, damage per hit, item cost, gold, draw probability. Sizes step with the card size: 3rem level on the court card, 2.6rem HP, 1.9rem damage and fan index, 1.5rem item cost.
-- **Index Label** (700, 0.72 to 0.8rem, 0.12em, uppercase): the small printed labels on a card or row (LVL under the level, Hand 1 / Hand 2 / Body slot labels, Turn N in the fight log).
-- **Body** (400, 1rem, 1.45): all reading text; ledes capped at 72ch.
-- **Body Small** (400, 0.875rem): card meta, captions, the fight calculation, memory evidence.
-- **Label** (700, 0.78rem, 0.04em): stat pip labels (STR, DEF, DEX), tags, button kbd hints.
+- **Display** (Marcellus SC 400, 3.25rem; start hero clamp(2.4rem, 5vw, 4rem); result headline clamp(2.4rem, 5vw, 3.6rem); 1.1): the start title and Victory / Defeat.
+- **Headline** (Marcellus SC 400, 1.6rem, 1.1, 0.04em): fighter names, run title, rules drawer title.
+- **Title** (Marcellus SC 400, 1.25rem; h4 1rem at 0.06em): panel and section headings; the incoming pane question at 2.25rem; phase tabs at 1.05rem; item names at 1.1rem.
+- **Inscription Word** (Marcellus SC 400, 1.6rem, 0.08em): Block / Dodge answer names and the fx outcome words (Blocked, Dodged, Countered, Stunned, Healed, Turn lost, Fallen).
+- **Numeral** (Atkinson 700, 2rem/1, tabular): HP in the windows; answer odds at 1.5rem; build stats at 1.35rem; costs and point values at 1.05 to 1.2rem.
+- **Body** (Atkinson 400, 1rem, 1.5): all reading text; ledes capped at 56 to 70ch. The incoming pane switches to Atkinson 1.25rem while an exchange plays, because it is then a sentence.
+- **Label** (Atkinson 700, 0.78rem, 0.06 to 0.08em, uppercase): meter labels (Health, Stun, Stims), roundel slot names, delta labels, table headers.
 
 ### Named Rules
-**The Index Rule.** Every number a player compares (HP, stats, damage, cost, gold, probability) is set in the index face at a size larger than its label, with tabular figures. Sentences are never set in the index face.
+**The Legible Numeral Rule.** Every numeral is Atkinson Hyperlegible 700 with tabular figures, including numerals inside Marcellus headings (wrap them in the numeral style). Marcellus SC's 0 and 1 read as O and I.
 
-**The Uppercase Index Rule.** Headings in the index face are uppercase with slight tracking (0.02 to 0.06em); Atkinson text is never uppercased except table header cells and the small fight-summary side labels.
+**The Inscription Rule.** Marcellus SC carries names and short words only; sentences are never set in it.
 
 ## Layout
 
-A single centred column, max 1320px (`page-max`), 16px side gutter, 24px between blocks; the top bar spans full width with its content aligned to the same column.
+A single centred column (max 1360px) of stone panels on the nave with 24px page padding and 16px gaps, on a 4-point spacing scale. The fight stage is three tracks: your window (minmax(250px, 320px)), the incoming pane (minmax(0, 1fr)), the boss window (minmax(250px, 320px)), with 24px gutters. Prepare is the armory (minmax(0, 1fr)) beside a 360px sticky build column. Every flexible grid track is declared minmax(0, 1fr) so long content never blows out a column. The round history sits below the fold, one row per round.
 
-The duel screen stacks: run header (title, round, record, End run), the versus row (player court card, an 84px centre column with VS and the record, boss court card), the phase bar, then the phase body. The phase bar's tabs sit flush on the panel below (the active tab is stock-coloured and the panel's top-left corner is square), like a folder tab.
-
-Prepare is a two-column grid: the Armory (fluid) and the hand column (380px). The Armory is a card grid of `auto-fill, minmax(168px, 1fr)`; 168px is the card-width module. The picked card's preview opens as a full-width row directly under the picked card.
-
-Spacing is a 4-point scale (4, 8, 12, 16, 24, 32, 48). Card internals use 12px; panels use 24px (16px on phones); gaps between cards are 12px.
-
-Responsive: at 1080px and below, Prepare, the aftermath memory grid and the result panel go to one column and the phase-bar Begin button hides (it remains at the foot of the hand column). At 760px and below the top bar drops to 56px, the court cards shrink to a compact two-up (level index moves top right, gear, XP and gold hide), the VS column hides and the record moves into the run header, phase tabs share the width equally, the Armory goes to two columns, the fight log stacks each attack within its side, and Begin round becomes a fixed bottom action bar on dark baize.
+Breakpoints: at 1080px the stage becomes two windows side by side with the incoming pane spanning above them, and Prepare stacks. At 760px everything is one column with the incoming pane first, roundels sit three across with centred text, the armory is two columns, answers stay two across, page padding drops to 12px, and a sticky bottom action bar replaces the phase-bar primary action.
 
 ## Elevation & Depth
 
-Depth is cards on felt: shadows are soft and green-tinted (from `baize-950`), never black boxes and never hard offsets. Panels rest at a low lift; overlays (menus, dialogs, toasts, phone action bar) take the high lift. Hover raises a card by translation, not by a heavier shadow alone. The fan cards in the boss's hand carry their own neutral shadow because they are stacked over each other.
-
-### Shadow Vocabulary
-- **Lift 1** (`box-shadow: 0 1px 2px rgb(11 34 25 / 0.25), 0 2px 8px rgb(11 34 25 / 0.18)`): panels, court cards, the brand mark, hovered item cards, result panels.
-- **Lift 2** (`box-shadow: 0 4px 12px rgb(11 34 25 / 0.28), 0 12px 32px rgb(11 34 25 / 0.22)`): the Workshop menu, dialogs, toasts, the phone action bar.
-- **Primary glow** (`box-shadow: 0 1px 2px rgb(11 34 25 / 0.3), 0 6px 14px rgb(196 18 47 / 0.25)`): the red primary button only.
-- **Fan card** (`box-shadow: 0 2px 4px rgb(0 0 0 / 0.25), 0 8px 16px rgb(0 0 0 / 0.2)`); the played card adds a 3px yellow ring and a deeper drop (`0 0 0 3px #f0b323, 0 14px 28px rgb(0 0 0 / 0.38)`).
+Flat. There are no drop shadows anywhere: depth is tonal (nave below stone below stone-2 below stone-3) and every edge is a 1px lead seam. Grouped cells are leaded: a lead-coloured frame with 3px padding and 3px gaps, the cells inside at 1px corners, so the seam is the ground showing through. The only inset rings are state light inside an outcome animation (the 3px clear, violet or tincture ring of fx states), not elevation.
 
 ### Named Rules
-**The Felt Shadow Rule.** Shadows are tinted toward baize and always blurred. A card lifts by moving up (2 to 4px, plus a slight tilt when selected), not by gaining a hard edge.
+**The Lead Seam Rule.** Separate surfaces with a 1px lead seam or a 3px leaded gap, never a shadow. A thing is raised only by being lighter stone.
+
+**The Leaded Grid Rule.** Any set of peer cells (armory, build stats, rewards, status, the boss's plans, HP and stun panes) is a leaded grid: lead ground, 3px padding, 3px gaps, 1px cell corners.
 
 ## Shapes
 
-Everything is a card or a chip. Corners step with size: 14px for stock panels and court cards (`card`), 12px for card faces, slots and inset boxes (`face`), 10px for buttons, tiles and wells (`control`), 8px for inputs, menu rows and banners (`sm`), 5 to 6px for tags and inline notes, and full pills for chips, meters and toasts.
-
-The signature form is the printed inner frame: every card face (court card, item card, fan card) carries a 1.5px border inset 5px from its edge, at 45% opacity, inked in the card's owner colour (blue for the player, red for the boss, ink for neutral items, pale ink for unaffordable ones). Empty hand slots are dashed outlines (2px dashed `line`); filled slots become solid card faces.
+Nearly square. The base radius is 3px for panels, buttons, inputs, cards and menus; cells inside a leaded grid are 1px, and the lead frame around panes and fans is 2px. Pills (999px) are only chips. Windows and result panels are square-topped with a 4px tincture lead along the top and 3px corners only at the bottom. Roundels are the one circle: a 3px lead ring around eight 45-degree glass segments with a lead-ringed nave core. Stim vials are small rounded-bottom tubes (3px 3px 7px 7px).
 
 ## Components
 
 ### Buttons
-Tactile and printed: solid fills, bold labels, a 1px press on active.
-- **Shape:** gently rounded (10px), minimum 44px tall; small variant 36px; big variant 52px with the index face uppercase.
-- **Primary:** Court Red fill, white label, primary glow; hover deepens to Red Ink. One primary per view: the action that advances the loop.
-- **Quiet:** Stock 2 fill with a Line border on stock surfaces; hover Stock 3.
-- **Ghost:** transparent with a 25% white border, for actions on baize (End run).
-- **Danger:** Ink fill, white label (confirm dialogs). Red stays reserved for advancing the loop.
-- **On colour:** Stock fill on a red or blue result panel.
-- **Focus:** 3px Court Yellow outline, 2px offset. Disabled: 50% opacity.
-- **Link:** Court Blue, bold, underlined at a 3px offset; on baize the link is yellow.
+- **Shape:** gently squared (3px), 40px tall, 16px side padding; big 48px, small 32px.
+- **Primary:** amber fill, nave text, 700 weight; hover lightens to amber-text. One per view: the action that advances the loop.
+- **Secondary:** stone-2 fill with a lead-2 border; hover stone-3 and a text-3 border.
+- **Quiet / Ghost:** transparent with the lead-2 border.
+- **Danger:** transparent with a gules border and gules-text; hover fills gules-glass with white text.
+- **Focus:** every control gets the 2px amber outline at 2px offset.
 
-### Chips and Tags
-- **Filter chip:** white pill, Line border, bold 0.875rem; selected is Ink fill with white text; hover darkens the border to Ink 3.
-- **Status chips:** Dark (baize on baize, run status), Points (yellow), Pending (stock), and the ok / bad / warn state pairs with a court-ink border.
-- **Tags:** 5px-cornered blocks, bold 0.78rem: blue for pierce, yellow for First Shot, red and ink for memory evidence and decisions.
-- **Result chip:** pill in the index face, uppercase: blue Victory, red Defeat, yellow In progress.
+### Chips
+- **Style:** 32px pill, lead seam, text-2, 0.875rem 700.
+- **State:** on is stone-3 with text and a text-3 border; tincture variants (points amber, ok verdant, bad gules) recolour border and text only.
 
 ### Cards / Containers
-- **Stock panel:** Stock fill, 14px corners, Lift 1, 24px padding (16px on phones). Every section on baize is one of these.
-- **Court card (fighter):** a stock panel with the printed inner frame in the owner's colour, a 56px left index column (large level numeral, LVL label, a crown for the boss), name and gear, large HP with a heart, then a ruled row of three Net stats (spade STR, diamond DEF, club DEX) with base values below.
-- **Item card (Armory):** white face, 1.5px Line edge, 12px corners, at least 168px tall; name top left, cost as a large index numeral top right, family line, tags, then suit-pip modifiers at the foot. Hover lifts 3px; selected takes a 2px red ring and tilts -0.6deg; owned turns pale blue with "In hand" in place of the cost; unaffordable greys the name and cost and states "Need N more gold" in error ink.
-- **Recessed well:** Stock 2 at 10px corners for summaries, predictions and fight totals.
+- **Corner Style:** 3px panels; 1px cells inside leaded grids.
+- **Background:** stone panels; stone-2 cells; nave-2 inset wells.
+- **Shadow Strategy:** none (see Elevation & Depth).
+- **Border:** 1px lead seam.
+- **Internal Padding:** 24px panels (16px / 12px on phones); 12px cells.
 
 ### Inputs / Fields
-- **Style:** white field, 1px Line border, 8px corners, 40px tall; number inputs use tabular figures; checkboxes are accented red.
-- **Focus:** the global 3px yellow outline.
+- **Style:** stone-2 fill, lead seam, 3px, 6px 10px padding; hover seam lead-2.
+- **Focus:** the global 2px amber outline.
 
 ### Navigation
-- **Top bar:** sticky, 60px, Baize 900 with a Baize 950 rule; the brand is a small white card with a red crown beside the uppercase index-face wordmark. Nav links are bold Atkinson in On-Baize 2; the current link turns On-Baize with a 3px yellow underline; Workshop opens a stock menu at Lift 2.
-- **Phase tabs:** index-face uppercase tabs with rounded top corners, Baize 800 at rest, Stock when active so they merge into the panel below; disabled tabs at 40% opacity.
+- **Style:** sticky 56px nave top bar with a lead seam below; Marcellus SC brand with an amber mark; Atkinson 700 links in text-2, current link in text with a 2px text-colour underline. Phase tabs (Prepare / Fight / Aftermath) are Marcellus SC 1.05rem with the same 2px underline. On phones, link icons drop and padding tightens.
 
-### Fight Log
-The table's centre line: each attack is a two-sided row with a 1px Stock 3 rule down the middle; player attacks sit right-aligned on the left half, boss attacks left-aligned on the right half, each with a large damage numeral, the side name in its colour, and an HP meter for the defender (the player-side meter is mirrored). Rows deal in with a 6px drop and fade (320ms, `cubic-bezier(0.16, 1, 0.3, 1)`); a click reveals the dashed-rule calculation.
+### Fighter Window (signature)
+Stone panel with a 4px tincture top lead (azure you, gules boss). Name in Marcellus, HP as a 2rem Atkinson numeral over ten leaded HP panes (16px, lit in the owner's tincture), a row of 10px stun panes lit violet, verdant stim vials, then gear roundels (56px) for hands and body.
 
-### The Boss's Hand (signature)
-A baize inset holding the boss's equally strong plans as a fan of stock cards (132 x 184px; 82 x 106px compact in Prepare; 100 x 150px on phones), each rotated 5deg per step from a low pivot. Weaker plans are greyed and desaturated and marked "passed"; the played card stands upright, raised, and ringed in yellow with its draw probability as a red index numeral. A caption under the fan states what was played and why.
+### Incoming Pane (signature)
+The centre stone pane, the only element ringed in amber (2px, inset) while it waits for your answer. Question in Marcellus at 2.25rem; two answer cards (stone-2, lead-2 border, 16px padding) with the answer name in Marcellus and its odds as an amber-text Atkinson numeral; hover gives an amber border and a 1px lift.
 
-### Meters
-8px pill tracks in Stock 3 with a fill in the owner's colour (blue player, red boss, yellow XP or neutral), animating width over 320ms.
+### Gear Roundel
+48px circle (56px in windows, 32px compact): unlit pane-off with a text-3 icon when empty; when filled, flat conic glass alternating the owner's glass and base tinctures in eight segments, a lead-ringed nave core and a light icon.
+
+### Outcome Animations
+Each exchange plays once in the struck window (exponential ease-out, 620ms): hit cracks a diagonal band of the attacker's tincture across the window and shudders it; block washes clear glass with a 3px clear ring and braces; dodge slides the window aside; counter flashes amber; stun floods violet (1100ms); heal rises verdant (800ms); skip dims to nave and reads "Turn lost"; strike leans the attacker's window; KO desaturates the window and hatches its HP panes. A Marcellus word on a nave plate names the outcome. Under prefers-reduced-motion every animation is replaced by a held state: a 3px ring in the outcome's tincture, a faint tint wash and the word fixed at the bottom of the window.
+
+### Boss's Hand
+A leaded fan of plan cells (min 120px, 64px compact): the played plan is the dark gules cell with a 2px gules outline, equally strong plans the faint fan-equal cell, weaker plans sink to nave.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** put every working surface on card stock (`stock`, 14px corners, Lift 1) laid on baize; put individual items on white card faces laid on that stock.
-- **Do** keep blue for the player and red for the boss in every numeral, meter, log side and result.
-- **Do** give every card face the printed inner frame (1.5px, inset 5px, 45% opacity, in the owner's ink).
-- **Do** show stats with the authored SVG suit pips (heart HP, spade STR, diamond DEF, club DEX) with the text label alongside on first read.
-- **Do** set compared numbers in Big Shoulders Display 800 with tabular figures, larger than their labels.
-- **Do** size Armory-style grids from the 168px card module.
-- **Do** use the 3px focus ring: yellow on baize, court blue on card stock and white faces (yellow is only ≈1.7:1 there). Yellow also marks "the one that was chosen".
+- **Do** keep each tincture to its one meaning: azure you, gules boss, amber the decision now, the primary action, selection, focus and counters, violet stun, verdant healing, clear blocked or dodged.
+- **Do** separate surfaces with 1px lead seams and group peer cells in leaded grids (3px lead padding and gaps, 1px cell corners).
+- **Do** set every numeral in Atkinson Hyperlegible 700 with tabular figures, including inside Marcellus headings.
+- **Do** show meters as rows of leaded panes and gear as segmented glass roundels lit in the owner's tincture.
+- **Do** give every outcome animation a held reduced-motion state with a tincture ring and its word.
+- **Do** declare flexible grid tracks as minmax(0, 1fr) and collapse at 1080px and 760px.
 
 ### Don't:
-- **Don't** colour the shell: no red, blue or yellow top bars, page grounds or panel fills (result panels and the played card are state, not shell).
-- **Don't** put court-red or court-blue text directly on baize; use the on-baize tints or yellow.
-- **Don't** use Unicode suit or icon glyphs; suits and icons are the authored SVG set.
-- **Don't** use hard offset or black block shadows; depth is soft, baize-tinted lift.
-- **Don't** set sentences in the index face or uppercase Atkinson body text.
-- **Don't** drift toward the dark-parchment RPG panel or the grey dashboard.
+- **Don't** use drop shadows for depth; the only inset rings are outcome light.
+- **Don't** set numerals or sentences in Marcellus SC.
+- **Don't** light a tincture for decoration, or give amber to anything other than the decision now, primary action, selection, focus or counters.
+- **Don't** round surfaces past 3px or use pills for anything but chips.
+- **Don't** use Unicode glyphs for icons; icons are the authored 24-grid SVG set.
+- **Don't** drift toward the gold-filigree RPG panel or the grey dashboard.
