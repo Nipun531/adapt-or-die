@@ -56,7 +56,16 @@ V3 plan written: `docs/V3_IMPLEMENTATION_PLAN.md` (audit, requirements matrix, b
 - Minimal client support: Block/Dodge prompt with odds (B/D), stim prompt, supplies panel, counter/stun/defence tags, notes in the log. Browser-checked on the test DB.
 - Tests: 203 server + 5 client.
 
-**Next: Phase D** (boss evaluation with V3 economy; better opponents; hybrid dominance; the boss's fixed round-1 opener of +2 STR and a Sword).
+**Phase D evaluation DONE (2026-10-20):** `docs/V3_BALANCE.md` §11.
+- 5 V3 champion agents (`sim-3.1.0`); `npm run v3:eval` (acceptance criteria, χ²/JS adaptation test).
+- Results:
+  - fair vs searching players (mirror about 49%, round 1 49%);
+  - boss 86–99.5% vs every fixed-plan agent;
+  - hybrid 91% of late boss picks;
+  - exploits clean.
+- Root cause: gear DEX stacking (the bow as an agility accessory). Lab tests show single-item tweaks don't help; "ranged DEX for shots only" fixes hybrid but needs a ranged buff.
+- Harness switch `v3.dex.rangedModShotsOnly` (off).
+- **Waiting on the owner: D-20 (hybrid fix), D-13 (difficulty yardstick), D-17 (economy).**
 
 ## 0. Version 2 — Phase 8 final verification DONE (2026-10-17) — start here
 

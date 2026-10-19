@@ -266,3 +266,93 @@ Setup: V3, 40 runs × 10 rounds per agent, one DEX benefit switched off at a tim
   - API and persisted events;
   - shared `playRound` so live play and the harness run the identical round step.
 - **Phase D:** better opponents (searching/best-response agents), boss build diversity, and the hybrid dominance.
+
+## 11. Phase D — is the boss overpowered? (2026-10-20, engine 3.0.0, full V3 economy)
+
+**Commands:**
+- `npm run v3:baseline -- --rules v3 --seed v3-eval --runs 100 --mirror-r1 1000 --agents <16 agents>,mirror,mirror_sym` (684 s)
+- `npm run v3:eval -- <that json>`
+
+**Evidence:** `docs/v3-baseline/v3-baseline-v3-eval-100x10-v3-subset.json` and `…-eval.md` (the full tables).
+
+**What the runs include:**
+- **Economy:** 10 starting gold; stims bought by the boss and the agents (heuristic); the V3 shop.
+- **Opponents:**
+  - **T0** fixed builds: melee_bruiser, archer, shield_turtle, hybrid, piercer, duelist, random.
+  - **T1** V3 champions (new, `sim-3.1.0`):
+    - blocker (shields, always blocks);
+    - dodger (DEX, Spear → Lance → Pike, always dodges);
+    - stunner (Iron Club → Mace → Warhammer);
+    - healer (stim upgrades);
+    - counter_puncher (blocks for ×1.5 counters).
+  - **T2** reactive scripts: adaptive, opportunist, switcher, reactive.
+  - **T3** searching players: mirror and mirror_sym (the boss's own policy, same information).
+
+### 11.1 Acceptance criteria (plan §D.4; the bands are proposals, D-13)
+
+| Area | Result | Pass |
+|---|---|---|
+| Fairness (mirror) | mirror 49.3% [40.6–57.1], mirror_sym 48.8% [40.6–56.9]; round 1 over 1,000 seeds 48.9% [45.8–52.0] | ✓ |
+| Difficulty T0 (70–90%) | 95–99.4%; duelist 76.5% | ✗ (only the duelist is in band) |
+| Difficulty T1 (55–75%) | blocker 99.5, dodger 97.6, stunner 97.7, healer 88.8, counter_puncher 86.4 | ✗ |
+| Difficulty T2 (55–75%) | 94.4–96.4% | ✗ |
+| Difficulty T3 (35–60%) | 48.8–49.3% | ✓ |
+| Counterplay (each T1 champion wins ≥ 35% of rounds 3–10) | 0.4% / 1.1% / 0.7% / 7.1% / 11.3% | ✗ |
+| Diversity (top boss archetype ≤ 40%) | **hybrid 90.7%** of rounds 3–10 | ✗ |
+| Adaptation (the boss's mix differs by opponent) | χ² p < 0.0001 for all 5 champions, but small effects (JS 0.014–0.029). The boss swaps the melee half (Mace vs blockers and turtles; Sabre or Rapier otherwise), not its strategy | ✓ statistically, weak in substance |
+| No exploits | stun chains 0.3% of rounds; healing 2.9% of damage; turn-limit rounds 0.0% | ✓ |
+
+The boss's round-1 opener is no longer fixed:
+- +1 STR +1 DEX with a Sword 39%;
+- +2 STR with a Sword 36%;
+- +2 DEX with a Sword 26%.
+
+### 11.2 The six questions
+
+1. **Is the boss overpowered?**
+   - Against **any player that follows a fixed plan: yes**. That covers all 16 scripted agents, the V3 champions included (86–99.5%).
+   - Against a player that **plans each round with the same information and search the boss uses: no** (about 49%, both mirrors, round 1 included).
+2. **Against which opponents?** Every non-searching type.
+   - Hardest for the boss: counter_puncher (86%), healer (89%), duelist (77%).
+   - Easiest: blocker (99.5%), archer (99.4%).
+3. **Evidence:**
+   - The tables above.
+   - The boss dodges 22–45% of agent attacks: its Crossbow gives it the DEX lead. Agents dodge 10–12%.
+   - Its late-round HP margins are high.
+   - Comebacks against champions are 0.3–8.6% (mirror 10%).
+4. **Root cause: a combination, in this order.**
+   - **(a) Mechanics: the hybrid build is structurally best.** In the random-build lab (no boss involved) hybrid shapes win 67–69% against the population.
+     - The cause is gear modifiers summing over both hands. A bow's DEX bonus acts as an agility accessory (turn order, dodge, mitigation, bonus attacks) for a fighter who hits with a melee weapon.
+     - Upper-bound test, bows giving no DEX: hybrids drop to 57%.
+   - **(b) Agent quality.** Scripted agents build by wishlist and never counter the boss's last build. A searching player does, and reaches parity.
+   - **(c) The boss policy is not the problem.**
+     - It is fair under identical information (mirror).
+     - It never sees hidden information (redacted `ChooserView`; it prepares from the player's last round only).
+     - Making it "dumber" would only hide (a).
+5. **Which change would address the root cause?** Fix (a): the hybrid's DEX stacking. Measured options (lab, 1,500 builds × 20,000 fights per stage; win rate vs the population):
+
+   | Option (harness only) | Hybrid mid/late | Melee + shield | Ranged only | Faster fighter wins | Verdict |
+   |---|---|---|---|---|---|
+   | Current V3 | 67.4 / 69.1 | 59.4 / 56.7 | 33.2 / 38.4 | 61.6 / 61.8 | hybrid dominant |
+   | Crossbow DEX +4 → +3 | 66.8 / 68.0 | 60.7 / 58.3 | 30.5 / 35.6 | 60.1 / 60.5 | barely moves |
+   | Rapier DEX +3 → +2, STR +6 → +5 | 67.6 / 69.3 | 59.2 / 56.5 | 33.2 / 38.7 | 61.1 / 61.5 | no effect |
+   | DEX bonus thresholds 15/30 → 25/50 | 64.0 / 66.9 | 63.5 / 61.0 | 27.9 / 32.2 | 56.6 / 57.0 | small gain, weakens ranged |
+   | **A ranged weapon's DEX counts for its shots only** | **58.3 / 58.5** | 67.3 / 66.6 | 20.9 / 24.3 | about 51 (DEX lead no longer decisive) | breaks hybrid stacking, but pure archers fall and melee + shield becomes the top shape |
+
+   **Recommendation (needs your approval: a rule or catalogue change):**
+   - Adopt "ranged DEX for shots only" **together with** a compensating ranged buff, so archers stay viable.
+   - Candidate buff: ranged attacks use effective DEX including the bow, as now, and ranged weapon DEX mods +1 each. Plus a re-check of melee + shield.
+   - Tune it in a short D2 lab pass, then re-run this boss suite.
+   - Not recommended: weakening the boss policy (it is fair) or tweaking single items (no effect).
+6. **Did a change improve fairness without destroying the challenge?** Nothing has been changed yet. Each option above is measured against the current V3 on paired fights. After you choose, the same suite will report the before/after.
+
+### 11.3 Other findings
+
+- **The snowball is back, partly.** With the full economy (10 gold, stims), mirror comebacks are about 10% and the round-1 winner takes the run 86% of the time. In C1, without stims, it was about 20% and 77–82%.
+  - The winner's extra gold now also buys stims.
+  - Economy comeback options (for example loss gold 5 → 10) are V2_BALANCE #7 / D-17: your call.
+- **Stun is rare against the boss** (0.02 stuns per round, even for the stunner). The boss's dodge (35% vs the stunner) and its DEX lead keep blunt weapons from landing enough hits. Fixing (a) should help.
+- **The difficulty bands (D-13) may be the wrong yardstick for scripted agents.** A fixed-wishlist bot is not a "beginner human". Recommendation:
+  - measure mechanic viability in the random-build lab (no boss);
+  - measure boss difficulty against searching players (mirror) plus, later, human sessions;
+  - if beginners need an easier boss, add an explicit **difficulty setting**, for example a wider diversity band for the boss's plan choice (V2 data: band 0.10 → mirror about 52%), rather than changing the rules.

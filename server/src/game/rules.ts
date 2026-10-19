@@ -72,6 +72,8 @@ export interface V3Combat {
     healBase: number;
     healPerUpgrade: number;
   };
+  /** Harness experiment (off in the shipped rules): a ranged weapon's DEX modifier counts only for its own shots. */
+  dex?: { rangedModShotsOnly: boolean };
   round: {
     /**
      * Owner decision D-19 (2026-10-19): when turn `turnLimit` has been fully played and both fighters still stand,
@@ -124,8 +126,10 @@ export function rulesFor(id: RuleSetId | undefined): RuleSet {
 
 /** Harness-only variants (ablations / sweeps). Not used by live play. */
 export function withRules(base: RuleSet, patch: { dexBenefits?: Partial<DexBenefits>; v3?: Partial<{ [K in keyof V3Combat]: Partial<V3Combat[K]> }> }): RuleSet {
+  const p = (patch.v3 ?? {}) as Record<string, object>;
+  const keys = base.v3 ? [...new Set([...Object.keys(base.v3), ...Object.keys(p)])] : [];
   const v3 = base.v3
-    ? (Object.fromEntries(Object.entries(base.v3).map(([k, v]) => [k, { ...v, ...((patch.v3 as Record<string, object> | undefined)?.[k] ?? {}) }])) as unknown as V3Combat)
+    ? (Object.fromEntries(keys.map((k) => [k, { ...((base.v3 as unknown as Record<string, object>)[k] ?? {}), ...(p[k] ?? {}) }])) as unknown as V3Combat)
     : null;
   return { ...base, dexBenefits: { ...base.dexBenefits, ...patch.dexBenefits }, v3 };
 }

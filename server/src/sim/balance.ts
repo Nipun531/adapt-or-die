@@ -12,9 +12,9 @@
  * Nothing here is a game rule. Results feed docs/V2_BALANCE.md.
  */
 import { ITEMS, requireItem } from '../game/catalog.js';
-import { autoStim, runFullCombat, type Chooser, type CombatEvent } from '../game/combat.js';
+import { autoStim, runFullCombat, type Chooser, type CombatEvent, type CombatNote } from '../game/combat.js';
 import { RULES_V2, type RuleSet } from '../game/rules.js';
-import { AGENT_DEFENSE, defenseChooserFor } from './v3-policies.js';
+import { AGENT_DEFENSE, agentSupplyReserve, defenseChooserFor } from './v3-policies.js';
 import { autoSupplies, SIM_SAVINGS_RESERVE } from '../game/supply-plan.js';
 import { deriveStats, snapshotOf } from '../game/derive.js';
 import { allocateStat, equip, purchase } from '../game/equipment.js';
@@ -45,6 +45,8 @@ export interface RoundResult {
   /** P(ranged) the boss used for this round's preparation (null = no evidence). */
   pRanged: number | null;
   events: CombatEvent[];
+  /** V3: lost turns, stims, turn limit (empty under v2). */
+  notes: CombatNote[];
 }
 
 export interface RunResult {
@@ -130,7 +132,7 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
       for (const id of d.purchases) player = purchase(player, id);
       player = equip(player, d.loadout);
     }
-    if (rules.v3) player = autoSupplies(player, SIM_SAVINGS_RESERVE).state;
+    if (rules.v3) player = autoSupplies(player, isMirror(strategy) ? SIM_SAVINGS_RESERVE : agentSupplyReserve(strategy)).state;
 
     const observed = records.length ? records[records.length - 1].playerPost : initialCombatant('player');
     const pRanged = yield { records: [...records], observed };
@@ -144,7 +146,7 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
     const pSnap = snapshotOf(player);
     const bSnap = snapshotOf(boss);
     const chooser = isMirror(strategy) ? bossChooser : agent.chooser(new Rng(deriveSeed(runSeed, `agent-choice:${n}`)));
-    const { state, events } = runFullCombat(pSnap, bSnap, deriveSeed(runSeed, `round:${n}`), { player: chooser, boss: bossChooser }, rules.v3 ? {
+    const { state, events, notes } = runFullCombat(pSnap, bSnap, deriveSeed(runSeed, `round:${n}`), { player: chooser, boss: bossChooser }, rules.v3 ? {
       rules,
       defense: {
         player: defenseChooserFor(isMirror(strategy) ? 'smart' : AGENT_DEFENSE[strategy] ?? 'smart', new Rng(deriveSeed(runSeed, `agent-defense:${n}`)), rules),
@@ -170,7 +172,7 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
     const bossMargin = winner === 'boss' ? Math.max(0, state.hp.boss) / bSnap.derived.maxHp : -Math.max(0, state.hp.player) / pSnap.derived.maxHp;
     rounds.push({
       roundNumber: n, winner, playerLoadout: pSnap.loadout, bossLoadout: bSnap.loadout, bossAllocation: policy.selected.allocation,
-      bossArchetype: policy.selected.archetype, bossBandSize: policy.band?.length ?? 1, bossMargin, pRanged, events,
+      bossArchetype: policy.selected.archetype, bossBandSize: policy.band?.length ?? 1, bossMargin, pRanged, events, notes,
     });
   }
   return { strategy, seed: runSeed, rounds, player, boss };

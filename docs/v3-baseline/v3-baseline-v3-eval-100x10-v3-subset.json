@@ -1,0 +1,4400 @@
+{
+  "kind": "v3-baseline (rules v3)",
+  "rules": {
+    "id": "v3",
+    "dexBenefits": {
+      "mitigation": true,
+      "bonusAttacks": true,
+      "turnOrder": true,
+      "firstShot": true
+    },
+    "v3": {
+      "dodge": {
+        "perDexPoint": 0.02,
+        "cap": 0.7,
+        "base": 0.1,
+        "delta": "points"
+      },
+      "block": {
+        "defFactor": 0.005,
+        "defSource": "raw",
+        "cap": 0.7
+      },
+      "counter": {
+        "blockMultiplier": 1.5,
+        "dodgeMultiplier": 0.75,
+        "blockChanceCap": 0.7,
+        "dodgeChanceCap": 0.7,
+        "blockCounterStun": 20
+      },
+      "stun": {
+        "threshold": 100,
+        "base": 17.5,
+        "span": 17.5,
+        "sumCap": 1,
+        "boostScale": 1,
+        "heavyBlockFraction": 0.25,
+        "extraDamageFraction": 0.25,
+        "trigger": true
+      },
+      "stim": {
+        "healBase": 0.2,
+        "healPerUpgrade": 0.05
+      },
+      "round": {
+        "turnLimit": 30
+      }
+    }
+  },
+  "createdAt": "2026-10-19T19:32:10.474Z",
+  "git": "6711e26",
+  "engineVersion": "3.0.0",
+  "policyVersion": "v2-diverse",
+  "simulatorVersion": "sim-3.1.0",
+  "predictor": "baseline",
+  "config": {
+    "runs": 100,
+    "rounds": 10,
+    "seed": "v3-eval",
+    "seedPattern": "v3-eval:<strategy>:<i>",
+    "mirrorR1": 1000,
+    "mirrorR1Pattern": "v3-eval:mirror-r1:<i>",
+    "bootstrap": 2000
+  },
+  "resultsSha256": "53ec2d1be97fc6d7742a7ff8fe403cf102c53c2e7e6092c9c4dfca6496df164f",
+  "seconds": 683.613,
+  "reports": [
+    {
+      "strategy": "melee_bruiser",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.955,
+        "lo": 0.937,
+        "hi": 0.971,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.93,
+        "lo": 0.8625032899347025,
+        "hi": 0.965681175635936,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.6888888888888889,
+        "lo": 0.5714285714285714,
+        "hi": 0.8571428571428571,
+        "n": 45
+      },
+      "playerComeback": {
+        "value": 0.028070175438596492,
+        "lo": 0.018411967779056387,
+        "hi": 0.03891509433962264,
+        "n": 855
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.94,
+        "lo": 0.8752303146877748,
+        "hi": 0.9722142547333433,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.84,
+            "lo": 0.79,
+            "hi": 0.89,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.24257320595588683,
+            "lo": 0.2077603183471001,
+            "hi": 0.27780779404933964,
+            "n": 200
+          },
+          "attacksPerRound": 7.465,
+          "dexLeadBossMedian": -1,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.535
+          },
+          "bossBuildEntropy": 1.4369229694758103,
+          "bossArchetypes": {
+            "bruiser": 178,
+            "duelist": 22
+          },
+          "pierceDamageShare": 0,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 38222.499395519284,
+            "blockTry": {
+              "player": 0,
+              "boss": 114
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 17
+            },
+            "dodgeTry": {
+              "player": 760,
+              "boss": 612
+            },
+            "dodgeOk": {
+              "player": 110,
+              "boss": 61
+            },
+            "counters": {
+              "player": 0,
+              "boss": 7
+            },
+            "counterDamage": 351.25133720782543,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9633333333333334,
+            "lo": 0.9366666666666666,
+            "hi": 0.9833333333333333,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7784752249063853,
+            "lo": 0.735008239905874,
+            "hi": 0.819985582564443,
+            "n": 300
+          },
+          "attacksPerRound": 6.163333333333333,
+          "dexLeadBossMedian": 18.25,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.19
+          },
+          "bossBuildEntropy": 3.71721224045783,
+          "bossArchetypes": {
+            "duelist": 4,
+            "hybrid": 273,
+            "bruiser": 23
+          },
+          "pierceDamageShare": 0.022997725735610337,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 45209.237953931144,
+            "blockTry": {
+              "player": 0,
+              "boss": 30
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 7
+            },
+            "dodgeTry": {
+              "player": 1434,
+              "boss": 380
+            },
+            "dodgeOk": {
+              "player": 133,
+              "boss": 172
+            },
+            "counters": {
+              "player": 0,
+              "boss": 4
+            },
+            "counterDamage": 98.33058727209541,
+            "stunned": {
+              "player": 1,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 2,
+              "boss": 44
+            },
+            "heal": {
+              "player": 46,
+              "boss": 926
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.996,
+            "lo": 0.988,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9777137645412709,
+            "lo": 0.9598886130888225,
+            "hi": 0.9888520652516245,
+            "n": 500
+          },
+          "attacksPerRound": 3.788,
+          "dexLeadBossMedian": 34,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + LongSword",
+            "share": 0.194
+          },
+          "bossBuildEntropy": 3.543783626963109,
+          "bossArchetypes": {
+            "hybrid": 493,
+            "marksman": 3,
+            "duelist": 4
+          },
+          "pierceDamageShare": 0.018272900008636562,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 72452.79440385071,
+            "blockTry": {
+              "player": 0,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 1784,
+              "boss": 110
+            },
+            "dodgeOk": {
+              "player": 169,
+              "boss": 67
+            },
+            "counters": {
+              "player": 0,
+              "boss": 0
+            },
+            "counterDamage": 0,
+            "stunned": {
+              "player": 1,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 5,
+              "boss": 33
+            },
+            "heal": {
+              "player": 121,
+              "boss": 748.75
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+1 STR +1 DEX; Sword": 35,
+        "+2 STR; Sword": 43,
+        "+2 DEX; Sword": 22
+      }
+    },
+    {
+      "strategy": "archer",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.994,
+        "lo": 0.989,
+        "hi": 0.998,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 1,
+        "lo": 0.9630051925239981,
+        "hi": 0.9999999999999999,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 1,
+        "lo": 1,
+        "hi": 1,
+        "n": 6
+      },
+      "playerComeback": {
+        "value": 0.006711409395973154,
+        "lo": 0.0022271714922048997,
+        "hi": 0.013513513513513514,
+        "n": 894
+      },
+      "runWinnerFromRoundOne": {
+        "value": 1,
+        "lo": 0.9630051925239981,
+        "hi": 0.9999999999999999,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.97,
+            "lo": 0.945,
+            "hi": 0.99,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.5193953229745552,
+            "lo": 0.49814807805964617,
+            "hi": 0.5396080509661573,
+            "n": 200
+          },
+          "attacksPerRound": 8.745,
+          "dexLeadBossMedian": -2,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.4439483258828103,
+          "bossArchetypes": {
+            "bruiser": 172,
+            "duelist": 28
+          },
+          "pierceDamageShare": 0.07324764300038794,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 33428.82466622588,
+            "blockTry": {
+              "player": 0,
+              "boss": 155
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 25
+            },
+            "dodgeTry": {
+              "player": 845,
+              "boss": 749
+            },
+            "dodgeOk": {
+              "player": 158,
+              "boss": 70
+            },
+            "counters": {
+              "player": 0,
+              "boss": 0
+            },
+            "counterDamage": 0,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 1,
+            "lo": 1,
+            "hi": 1,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.8777810585681901,
+            "lo": 0.8640941067615633,
+            "hi": 0.891464007776506,
+            "n": 300
+          },
+          "attacksPerRound": 6.626666666666667,
+          "dexLeadBossMedian": 12,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.35333333333333333
+          },
+          "bossBuildEntropy": 3.164467723744608,
+          "bossArchetypes": {
+            "hybrid": 289,
+            "duelist": 3,
+            "bruiser": 5,
+            "bulwark": 1,
+            "marksman": 2
+          },
+          "pierceDamageShare": 0.06800712418114235,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 43938.2173198408,
+            "blockTry": {
+              "player": 0,
+              "boss": 32
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 2
+            },
+            "dodgeTry": {
+              "player": 1401,
+              "boss": 555
+            },
+            "dodgeOk": {
+              "player": 147,
+              "boss": 171
+            },
+            "counters": {
+              "player": 0,
+              "boss": 0
+            },
+            "counterDamage": 0,
+            "stunned": {
+              "player": 2,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 100,
+              "boss": 42
+            },
+            "heal": {
+              "player": 2300,
+              "boss": 882
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 1,
+            "lo": 1,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9669419132288667,
+            "lo": 0.9610524126585034,
+            "hi": 0.9726422358953107,
+            "n": 500
+          },
+          "attacksPerRound": 4.058,
+          "dexLeadBossMedian": 20.25,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Rapier",
+            "share": 0.248
+          },
+          "bossBuildEntropy": 3.224500881545959,
+          "bossArchetypes": {
+            "hybrid": 497,
+            "marksman": 3
+          },
+          "pierceDamageShare": 0.018331204282272858,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 77239.2408134623,
+            "blockTry": {
+              "player": 0,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 1753,
+              "boss": 276
+            },
+            "dodgeOk": {
+              "player": 193,
+              "boss": 104
+            },
+            "counters": {
+              "player": 0,
+              "boss": 0
+            },
+            "counterDamage": 0,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 89,
+              "boss": 24
+            },
+            "heal": {
+              "player": 2092,
+              "boss": 552
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+1 STR +1 DEX; Sword": 37,
+        "+2 STR; Sword": 36,
+        "+2 DEX; Sword": 27
+      }
+    },
+    {
+      "strategy": "shield_turtle",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.986,
+        "lo": 0.976,
+        "hi": 0.995,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.97,
+        "lo": 0.915479219195973,
+        "hi": 0.9897456617765851,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.8461538461538461,
+        "lo": 0.6923076923076923,
+        "hi": 1,
+        "n": 13
+      },
+      "playerComeback": {
+        "value": 0.010146561443066516,
+        "lo": 0.0033632286995515697,
+        "hi": 0.017123287671232876,
+        "n": 887
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.97,
+        "lo": 0.915479219195973,
+        "hi": 0.9897456617765851,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.95,
+            "lo": 0.915,
+            "hi": 0.98,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.41401460414366853,
+            "lo": 0.3799699807411112,
+            "hi": 0.4458027463769155,
+            "n": 200
+          },
+          "attacksPerRound": 8.98,
+          "dexLeadBossMedian": -2.5,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.515
+          },
+          "bossBuildEntropy": 1.467822491159343,
+          "bossArchetypes": {
+            "bruiser": 172,
+            "duelist": 28
+          },
+          "pierceDamageShare": 0,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 34778.59967353313,
+            "blockTry": {
+              "player": 870,
+              "boss": 195
+            },
+            "blockOk": {
+              "player": 100,
+              "boss": 24
+            },
+            "dodgeTry": {
+              "player": 0,
+              "boss": 680
+            },
+            "dodgeOk": {
+              "player": 0,
+              "boss": 69
+            },
+            "counters": {
+              "player": 39,
+              "boss": 12
+            },
+            "counterDamage": 1182.3853955014324,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.99,
+            "lo": 0.9766666666666667,
+            "hi": 1,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.845837090122366,
+            "lo": 0.8178740141007713,
+            "hi": 0.8715898979589135,
+            "n": 300
+          },
+          "attacksPerRound": 7.746666666666667,
+          "dexLeadBossMedian": 18,
+          "bossTopBuild": {
+            "build": "Leather Armor + LongSword + Wood Shield",
+            "share": 0.17333333333333334
+          },
+          "bossBuildEntropy": 3.6355493063178286,
+          "bossArchetypes": {
+            "hybrid": 233,
+            "bruiser": 67
+          },
+          "pierceDamageShare": 0.055089267954817486,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 42066.3596482549,
+            "blockTry": {
+              "player": 1637,
+              "boss": 161
+            },
+            "blockOk": {
+              "player": 301,
+              "boss": 25
+            },
+            "dodgeTry": {
+              "player": 0,
+              "boss": 453
+            },
+            "dodgeOk": {
+              "player": 0,
+              "boss": 227
+            },
+            "counters": {
+              "player": 40,
+              "boss": 16
+            },
+            "counterDamage": 2027.5988994044412,
+            "stunned": {
+              "player": 21,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 54
+            },
+            "heal": {
+              "player": 0,
+              "boss": 1134
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.998,
+            "lo": 0.994,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9119781800137312,
+            "lo": 0.8979889564327261,
+            "hi": 0.9256166349837927,
+            "n": 500
+          },
+          "attacksPerRound": 6.366,
+          "dexLeadBossMedian": 23.25,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Mace",
+            "share": 0.314
+          },
+          "bossBuildEntropy": 3.9191843284990275,
+          "bossArchetypes": {
+            "hybrid": 463,
+            "marksman": 33,
+            "bruiser": 2,
+            "duelist": 2
+          },
+          "pierceDamageShare": 0.068151839568644,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 74341.91396682819,
+            "blockTry": {
+              "player": 2452,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 713,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 0,
+              "boss": 400
+            },
+            "dodgeOk": {
+              "player": 0,
+              "boss": 251
+            },
+            "counters": {
+              "player": 161,
+              "boss": 7
+            },
+            "counterDamage": 4674.700925413816,
+            "stunned": {
+              "player": 279,
+              "boss": 0
+            },
+            "chainRounds": 18,
+            "stims": {
+              "player": 1,
+              "boss": 105
+            },
+            "heal": {
+              "player": 23,
+              "boss": 2423
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+1 STR +1 DEX; Sword": 37,
+        "+2 STR; Sword": 35,
+        "+2 DEX; Sword": 28
+      }
+    },
+    {
+      "strategy": "hybrid",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.967,
+        "lo": 0.934,
+        "hi": 0.994,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.95,
+        "lo": 0.8882480347279118,
+        "hi": 0.9784566385436864,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.23333333333333334,
+        "lo": 0.15151515151515152,
+        "hi": 0.4,
+        "n": 30
+      },
+      "playerComeback": {
+        "value": 0.005747126436781609,
+        "lo": 0.0011210762331838565,
+        "hi": 0.013033175355450236,
+        "n": 870
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.99,
+        "lo": 0.9455124752390653,
+        "hi": 0.9982326134344526,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.955,
+            "lo": 0.91,
+            "hi": 0.99,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.3746199618786379,
+            "lo": 0.34368279145381275,
+            "hi": 0.40440277664281105,
+            "n": 200
+          },
+          "attacksPerRound": 8.275,
+          "dexLeadBossMedian": -3,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.52
+          },
+          "bossBuildEntropy": 1.4767843604388833,
+          "bossArchetypes": {
+            "bruiser": 173,
+            "duelist": 27
+          },
+          "pierceDamageShare": 0.0005561963189314539,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 36077.98991060433,
+            "blockTry": {
+              "player": 0,
+              "boss": 137
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 22
+            },
+            "dodgeTry": {
+              "player": 812,
+              "boss": 693
+            },
+            "dodgeOk": {
+              "player": 145,
+              "boss": 77
+            },
+            "counters": {
+              "player": 0,
+              "boss": 13
+            },
+            "counterDamage": 572.1216203106918,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9733333333333334,
+            "lo": 0.9466666666666667,
+            "hi": 0.9933333333333333,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.821856598963354,
+            "lo": 0.7726832369654665,
+            "hi": 0.8627759391811676,
+            "n": 300
+          },
+          "attacksPerRound": 5.903333333333333,
+          "dexLeadBossMedian": 12.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.2633333333333333
+          },
+          "bossBuildEntropy": 2.7932211989865006,
+          "bossArchetypes": {
+            "hybrid": 292,
+            "bruiser": 7,
+            "duelist": 1
+          },
+          "pierceDamageShare": 0.01969998846158036,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 41811.554316590154,
+            "blockTry": {
+              "player": 0,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 1297,
+              "boss": 473
+            },
+            "dodgeOk": {
+              "player": 127,
+              "boss": 176
+            },
+            "counters": {
+              "player": 0,
+              "boss": 1
+            },
+            "counterDamage": 23.294878296146045,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 45
+            },
+            "heal": {
+              "player": 0,
+              "boss": 945
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.968,
+            "lo": 0.932,
+            "hi": 0.996,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9042891456031865,
+            "lo": 0.8434318519398228,
+            "hi": 0.9507416436648818,
+            "n": 500
+          },
+          "attacksPerRound": 4.294,
+          "dexLeadBossMedian": 19.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.208
+          },
+          "bossBuildEntropy": 3.642465507765144,
+          "bossArchetypes": {
+            "hybrid": 489,
+            "marksman": 3,
+            "duelist": 4,
+            "bruiser": 4
+          },
+          "pierceDamageShare": 0.01553726046351299,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 78768.77706125722,
+            "blockTry": {
+              "player": 0,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 1770,
+              "boss": 377
+            },
+            "dodgeOk": {
+              "player": 177,
+              "boss": 143
+            },
+            "counters": {
+              "player": 0,
+              "boss": 0
+            },
+            "counterDamage": 0,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 90,
+              "boss": 129
+            },
+            "heal": {
+              "player": 2149,
+              "boss": 2974.75
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+1 STR +1 DEX; Sword": 42,
+        "+2 STR; Sword": 32,
+        "+2 DEX; Sword": 26
+      }
+    },
+    {
+      "strategy": "adaptive",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.954,
+        "lo": 0.935,
+        "hi": 0.97,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.95,
+        "lo": 0.8882480347279118,
+        "hi": 0.9784566385436864,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.6521739130434783,
+        "lo": 0.5535714285714286,
+        "hi": 0.7837837837837838,
+        "n": 46
+      },
+      "playerComeback": {
+        "value": 0.02927400468384075,
+        "lo": 0.018497109826589597,
+        "hi": 0.03961584633853541,
+        "n": 854
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.95,
+        "lo": 0.8882480347279118,
+        "hi": 0.9784566385436864,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.85,
+            "lo": 0.8,
+            "hi": 0.9,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.25321995142444,
+            "lo": 0.21779078331532437,
+            "hi": 0.2896742360180196,
+            "n": 200
+          },
+          "attacksPerRound": 7.635,
+          "dexLeadBossMedian": -1,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.525
+          },
+          "bossBuildEntropy": 1.4451337220307723,
+          "bossArchetypes": {
+            "bruiser": 175,
+            "duelist": 25
+          },
+          "pierceDamageShare": 0,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 38217.064084480946,
+            "blockTry": {
+              "player": 0,
+              "boss": 118
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 22
+            },
+            "dodgeTry": {
+              "player": 778,
+              "boss": 621
+            },
+            "dodgeOk": {
+              "player": 112,
+              "boss": 77
+            },
+            "counters": {
+              "player": 0,
+              "boss": 10
+            },
+            "counterDamage": 479.50222796219896,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.95,
+            "lo": 0.92,
+            "hi": 0.9733333333333334,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7715222821410117,
+            "lo": 0.7241149015173196,
+            "hi": 0.8143873838255412,
+            "n": 300
+          },
+          "attacksPerRound": 6.02,
+          "dexLeadBossMedian": 17.75,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.23333333333333334
+          },
+          "bossBuildEntropy": 3.6177981491854645,
+          "bossArchetypes": {
+            "hybrid": 273,
+            "bruiser": 19,
+            "duelist": 8
+          },
+          "pierceDamageShare": 0.019108684188874098,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 44702.63090420082,
+            "blockTry": {
+              "player": 0,
+              "boss": 43
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 5
+            },
+            "dodgeTry": {
+              "player": 1384,
+              "boss": 374
+            },
+            "dodgeOk": {
+              "player": 150,
+              "boss": 159
+            },
+            "counters": {
+              "player": 3,
+              "boss": 2
+            },
+            "counterDamage": 143.10273270478186,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 42
+            },
+            "heal": {
+              "player": 0,
+              "boss": 887
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.998,
+            "lo": 0.994,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.979981905932979,
+            "lo": 0.9675299299821593,
+            "hi": 0.988768882526119,
+            "n": 500
+          },
+          "attacksPerRound": 3.772,
+          "dexLeadBossMedian": 26.25,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.198
+          },
+          "bossBuildEntropy": 3.7044608821467784,
+          "bossArchetypes": {
+            "hybrid": 485,
+            "marksman": 5,
+            "bruiser": 4,
+            "duelist": 5,
+            "bulwark": 1
+          },
+          "pierceDamageShare": 0.01883601699453389,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 71921.41446364459,
+            "blockTry": {
+              "player": 0,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 1727,
+              "boss": 156
+            },
+            "dodgeOk": {
+              "player": 163,
+              "boss": 75
+            },
+            "counters": {
+              "player": 3,
+              "boss": 0
+            },
+            "counterDamage": 53.889755095439796,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 15,
+              "boss": 30
+            },
+            "heal": {
+              "player": 360,
+              "boss": 662
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+2 STR; Sword": 32,
+        "+1 STR +1 DEX; Sword": 43,
+        "+2 DEX; Sword": 25
+      }
+    },
+    {
+      "strategy": "piercer",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.95,
+        "lo": 0.931,
+        "hi": 0.967,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 1,
+        "lo": 0.9630051925239981,
+        "hi": 0.9999999999999999,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.673469387755102,
+        "lo": 0.5961538461538461,
+        "hi": 0.775,
+        "n": 49
+      },
+      "playerComeback": {
+        "value": 0.0399529964747356,
+        "lo": 0.026497695852534562,
+        "hi": 0.055222088835534214,
+        "n": 851
+      },
+      "runWinnerFromRoundOne": {
+        "value": 1,
+        "lo": 0.9630051925239981,
+        "hi": 0.9999999999999999,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.875,
+            "lo": 0.835,
+            "hi": 0.915,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.4194418255569539,
+            "lo": 0.3838765797318213,
+            "hi": 0.4521901810800596,
+            "n": 200
+          },
+          "attacksPerRound": 6.72,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.496498633135472,
+          "bossArchetypes": {
+            "duelist": 27,
+            "bruiser": 173
+          },
+          "pierceDamageShare": 0.012992885682497375,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 34320.457900472546,
+            "blockTry": {
+              "player": 0,
+              "boss": 96
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 17
+            },
+            "dodgeTry": {
+              "player": 705,
+              "boss": 533
+            },
+            "dodgeOk": {
+              "player": 81,
+              "boss": 71
+            },
+            "counters": {
+              "player": 6,
+              "boss": 4
+            },
+            "counterDamage": 318.03557449821886,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9466666666666667,
+            "lo": 0.92,
+            "hi": 0.97,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7498554012622355,
+            "lo": 0.7050208871813348,
+            "hi": 0.7945601719080326,
+            "n": 300
+          },
+          "attacksPerRound": 6.3966666666666665,
+          "dexLeadBossMedian": 17.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.22
+          },
+          "bossBuildEntropy": 3.670351476841995,
+          "bossArchetypes": {
+            "hybrid": 220,
+            "duelist": 21,
+            "bulwark": 11,
+            "bruiser": 48
+          },
+          "pierceDamageShare": 0.02705738165228863,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 45761.52968565529,
+            "blockTry": {
+              "player": 697,
+              "boss": 115
+            },
+            "blockOk": {
+              "player": 112,
+              "boss": 16
+            },
+            "dodgeTry": {
+              "player": 658,
+              "boss": 417
+            },
+            "dodgeOk": {
+              "player": 68,
+              "boss": 164
+            },
+            "counters": {
+              "player": 19,
+              "boss": 12
+            },
+            "counterDamage": 1285.0120598755525,
+            "stunned": {
+              "player": 3,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 12,
+              "boss": 81
+            },
+            "heal": {
+              "player": 264,
+              "boss": 1709
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.982,
+            "lo": 0.97,
+            "hi": 0.992,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9111051616590645,
+            "lo": 0.8871186655047446,
+            "hi": 0.9332173618660377,
+            "n": 500
+          },
+          "attacksPerRound": 4.366,
+          "dexLeadBossMedian": 22.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Mace",
+            "share": 0.218
+          },
+          "bossBuildEntropy": 3.8718711290591803,
+          "bossArchetypes": {
+            "hybrid": 473,
+            "marksman": 18,
+            "bruiser": 8,
+            "duelist": 1
+          },
+          "pierceDamageShare": 0.03322940539044952,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 75947.99604254373,
+            "blockTry": {
+              "player": 1894,
+              "boss": 5
+            },
+            "blockOk": {
+              "player": 295,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 0,
+              "boss": 221
+            },
+            "dodgeOk": {
+              "player": 0,
+              "boss": 119
+            },
+            "counters": {
+              "player": 55,
+              "boss": 0
+            },
+            "counterDamage": 2762.9544966718663,
+            "stunned": {
+              "player": 39,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 79,
+              "boss": 71
+            },
+            "heal": {
+              "player": 1771,
+              "boss": 1618
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+2 DEX; Sword": 24,
+        "+2 STR; Sword": 38,
+        "+1 STR +1 DEX; Sword": 38
+      }
+    },
+    {
+      "strategy": "duelist",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.765,
+        "lo": 0.715,
+        "hi": 0.814,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.73,
+        "lo": 0.6356769977376873,
+        "hi": 0.8073053908233518,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.42290748898678415,
+        "lo": 0.3484848484848485,
+        "hi": 0.517948717948718,
+        "n": 227
+      },
+      "playerComeback": {
+        "value": 0.11441307578008915,
+        "lo": 0.09180790960451977,
+        "hi": 0.13957055214723926,
+        "n": 673
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.82,
+        "lo": 0.7333246397578691,
+        "hi": 0.8829986834574896,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.58,
+            "lo": 0.515,
+            "hi": 0.645,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.05939403452854014,
+            "lo": 0.009547923223122064,
+            "hi": 0.11052986924642731,
+            "n": 200
+          },
+          "attacksPerRound": 8.705,
+          "dexLeadBossMedian": -6,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.63
+          },
+          "bossBuildEntropy": 1.342687637576074,
+          "bossArchetypes": {
+            "bruiser": 177,
+            "duelist": 23
+          },
+          "pierceDamageShare": 0,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 37508.00808302049,
+            "blockTry": {
+              "player": 0,
+              "boss": 133
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 24
+            },
+            "dodgeTry": {
+              "player": 821,
+              "boss": 776
+            },
+            "dodgeOk": {
+              "player": 196,
+              "boss": 86
+            },
+            "counters": {
+              "player": 0,
+              "boss": 11
+            },
+            "counterDamage": 501.6939277338963,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.6833333333333333,
+            "lo": 0.6133333333333333,
+            "hi": 0.7466666666666667,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.25740122479035443,
+            "lo": 0.1716063259140473,
+            "hi": 0.3402363750661496,
+            "n": 300
+          },
+          "attacksPerRound": 7.136666666666667,
+          "dexLeadBossMedian": -4.5,
+          "bossTopBuild": {
+            "build": "Leather Armor + LongSword + Wood Shield",
+            "share": 0.21
+          },
+          "bossBuildEntropy": 3.8857519081378435,
+          "bossArchetypes": {
+            "duelist": 29,
+            "hybrid": 127,
+            "bruiser": 137,
+            "bulwark": 7
+          },
+          "pierceDamageShare": 0.01983385913823583,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 52610.593095172146,
+            "blockTry": {
+              "player": 0,
+              "boss": 308
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 48
+            },
+            "dodgeTry": {
+              "player": 1158,
+              "boss": 651
+            },
+            "dodgeOk": {
+              "player": 220,
+              "boss": 130
+            },
+            "counters": {
+              "player": 0,
+              "boss": 24
+            },
+            "counterDamage": 1431.1073539395447,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 60,
+              "boss": 88
+            },
+            "heal": {
+              "player": 1260,
+              "boss": 1850
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.888,
+            "lo": 0.838,
+            "hi": 0.932,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.6672230532094752,
+            "lo": 0.5901093256458665,
+            "hi": 0.740554163086422,
+            "n": 500
+          },
+          "attacksPerRound": 4.896,
+          "dexLeadBossMedian": 11.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.296
+          },
+          "bossBuildEntropy": 3.5075655071049354,
+          "bossArchetypes": {
+            "hybrid": 493,
+            "bruiser": 7
+          },
+          "pierceDamageShare": 0.02352205555003719,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 84926.10446469019,
+            "blockTry": {
+              "player": 0,
+              "boss": 21
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 5
+            },
+            "dodgeTry": {
+              "player": 1782,
+              "boss": 643
+            },
+            "dodgeOk": {
+              "player": 190,
+              "boss": 168
+            },
+            "counters": {
+              "player": 0,
+              "boss": 2
+            },
+            "counterDamage": 133.52143156149702,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 84,
+              "boss": 208
+            },
+            "heal": {
+              "player": 1818,
+              "boss": 4617.25
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+1 STR +1 DEX; Sword": 43,
+        "+2 STR; Sword": 35,
+        "+2 DEX; Sword": 22
+      }
+    },
+    {
+      "strategy": "opportunist",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.944,
+        "lo": 0.919,
+        "hi": 0.965,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.91,
+        "lo": 0.8377362530335634,
+        "hi": 0.9519280048361151,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.5,
+        "lo": 0.4,
+        "hi": 0.6363636363636364,
+        "n": 56
+      },
+      "playerComeback": {
+        "value": 0.022511848341232227,
+        "lo": 0.013095238095238096,
+        "hi": 0.03229665071770335,
+        "n": 844
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.92,
+        "lo": 0.8500173312059693,
+        "hi": 0.9589070305141891,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.835,
+            "lo": 0.775,
+            "hi": 0.89,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.22645510971562022,
+            "lo": 0.19117264840710668,
+            "hi": 0.262776036923026,
+            "n": 200
+          },
+          "attacksPerRound": 7.425,
+          "dexLeadBossMedian": -1,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.525
+          },
+          "bossBuildEntropy": 1.5613087947745181,
+          "bossArchetypes": {
+            "bruiser": 172,
+            "duelist": 28
+          },
+          "pierceDamageShare": 0,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 38101.81220864546,
+            "blockTry": {
+              "player": 0,
+              "boss": 123
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 14
+            },
+            "dodgeTry": {
+              "player": 756,
+              "boss": 599
+            },
+            "dodgeOk": {
+              "player": 106,
+              "boss": 50
+            },
+            "counters": {
+              "player": 0,
+              "boss": 7
+            },
+            "counterDamage": 356.7695571728142,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9266666666666666,
+            "lo": 0.8866666666666667,
+            "hi": 0.96,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7633461887381798,
+            "lo": 0.710155680553996,
+            "hi": 0.8118941013454396,
+            "n": 300
+          },
+          "attacksPerRound": 6.473333333333334,
+          "dexLeadBossMedian": 16,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.21333333333333335
+          },
+          "bossBuildEntropy": 3.6653275045058105,
+          "bossArchetypes": {
+            "bruiser": 23,
+            "hybrid": 269,
+            "duelist": 8
+          },
+          "pierceDamageShare": 0.037809667619921945,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 44440.76351875678,
+            "blockTry": {
+              "player": 0,
+              "boss": 49
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 7
+            },
+            "dodgeTry": {
+              "player": 1402,
+              "boss": 488
+            },
+            "dodgeOk": {
+              "player": 165,
+              "boss": 172
+            },
+            "counters": {
+              "player": 0,
+              "boss": 3
+            },
+            "counterDamage": 115.73320496894448,
+            "stunned": {
+              "player": 2,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 40
+            },
+            "heal": {
+              "player": 0,
+              "boss": 842
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.998,
+            "lo": 0.994,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9714682503176931,
+            "lo": 0.9613794890664589,
+            "hi": 0.9783717021729966,
+            "n": 500
+          },
+          "attacksPerRound": 3.98,
+          "dexLeadBossMedian": 20.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.248
+          },
+          "bossBuildEntropy": 3.3528827491314788,
+          "bossArchetypes": {
+            "hybrid": 498,
+            "marksman": 2
+          },
+          "pierceDamageShare": 0.021961621280574193,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 74225.19987139932,
+            "blockTry": {
+              "player": 0,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 1744,
+              "boss": 246
+            },
+            "dodgeOk": {
+              "player": 152,
+              "boss": 96
+            },
+            "counters": {
+              "player": 0,
+              "boss": 0
+            },
+            "counterDamage": 0,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 59,
+              "boss": 15
+            },
+            "heal": {
+              "player": 1408,
+              "boss": 333
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+1 STR +1 DEX; Sword": 35,
+        "+2 STR; Sword": 41,
+        "+2 DEX; Sword": 24
+      }
+    },
+    {
+      "strategy": "switcher",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.958,
+        "lo": 0.942,
+        "hi": 0.972,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.96,
+        "lo": 0.9016278276739262,
+        "hi": 0.984336949448152,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.6666666666666666,
+        "lo": 0.5510204081632653,
+        "hi": 0.7894736842105263,
+        "n": 42
+      },
+      "playerComeback": {
+        "value": 0.027972027972027972,
+        "lo": 0.018306636155606407,
+        "hi": 0.038461538461538464,
+        "n": 858
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.96,
+        "lo": 0.9016278276739262,
+        "hi": 0.984336949448152,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.875,
+            "lo": 0.83,
+            "hi": 0.92,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.29906405857499835,
+            "lo": 0.2652836758293678,
+            "hi": 0.3322086217932108,
+            "n": 200
+          },
+          "attacksPerRound": 7.315,
+          "dexLeadBossMedian": -1,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.51
+          },
+          "bossBuildEntropy": 1.5378921786541722,
+          "bossArchetypes": {
+            "duelist": 27,
+            "bruiser": 173
+          },
+          "pierceDamageShare": 0.00045614620273346006,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 37528.63653264825,
+            "blockTry": {
+              "player": 393,
+              "boss": 126
+            },
+            "blockOk": {
+              "player": 20,
+              "boss": 19
+            },
+            "dodgeTry": {
+              "player": 352,
+              "boss": 577
+            },
+            "dodgeOk": {
+              "player": 54,
+              "boss": 87
+            },
+            "counters": {
+              "player": 4,
+              "boss": 11
+            },
+            "counterDamage": 686.9171068485971,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9433333333333334,
+            "lo": 0.9166666666666666,
+            "hi": 0.9666666666666667,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.8064311090186761,
+            "lo": 0.7674022471470205,
+            "hi": 0.8440758049829584,
+            "n": 300
+          },
+          "attacksPerRound": 5.97,
+          "dexLeadBossMedian": 18.25,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.23
+          },
+          "bossBuildEntropy": 3.5408909107866253,
+          "bossArchetypes": {
+            "hybrid": 274,
+            "bruiser": 21,
+            "duelist": 5
+          },
+          "pierceDamageShare": 0.028157542448776638,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 43154.85766124821,
+            "blockTry": {
+              "player": 679,
+              "boss": 40
+            },
+            "blockOk": {
+              "player": 43,
+              "boss": 2
+            },
+            "dodgeTry": {
+              "player": 686,
+              "boss": 380
+            },
+            "dodgeOk": {
+              "player": 63,
+              "boss": 172
+            },
+            "counters": {
+              "player": 5,
+              "boss": 1
+            },
+            "counterDamage": 306.04968260427063,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 35
+            },
+            "heal": {
+              "player": 0,
+              "boss": 738
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 1,
+            "lo": 1,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9763879923657898,
+            "lo": 0.9678878656508793,
+            "hi": 0.9838442405657998,
+            "n": 500
+          },
+          "attacksPerRound": 3.77,
+          "dexLeadBossMedian": 27,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.198
+          },
+          "bossBuildEntropy": 3.507191817651495,
+          "bossArchetypes": {
+            "hybrid": 493,
+            "duelist": 4,
+            "bruiser": 3
+          },
+          "pierceDamageShare": 0.01923343398488664,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 71802.769957005,
+            "blockTry": {
+              "player": 833,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 49,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 896,
+              "boss": 151
+            },
+            "dodgeOk": {
+              "player": 82,
+              "boss": 83
+            },
+            "counters": {
+              "player": 4,
+              "boss": 1
+            },
+            "counterDamage": 283.3605892973188,
+            "stunned": {
+              "player": 2,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 10,
+              "boss": 21
+            },
+            "heal": {
+              "player": 230,
+              "boss": 473.75
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+2 DEX; Sword": 25,
+        "+2 STR; Sword": 30,
+        "+1 STR +1 DEX; Sword": 45
+      }
+    },
+    {
+      "strategy": "reactive",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.964,
+        "lo": 0.943,
+        "hi": 0.981,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.9,
+        "lo": 0.8256326956323347,
+        "hi": 0.9447714583868639,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.5555555555555556,
+        "lo": 0.44,
+        "hi": 0.76,
+        "n": 36
+      },
+      "playerComeback": {
+        "value": 0.011574074074074073,
+        "lo": 0.005668934240362812,
+        "hi": 0.01990632318501171,
+        "n": 864
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.92,
+        "lo": 0.8500173312059693,
+        "hi": 0.9589070305141891,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.895,
+            "lo": 0.845,
+            "hi": 0.94,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.3776259167442541,
+            "lo": 0.3355649995155961,
+            "hi": 0.41927367254051157,
+            "n": 200
+          },
+          "attacksPerRound": 7.515,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.535
+          },
+          "bossBuildEntropy": 1.525898465354643,
+          "bossArchetypes": {
+            "bruiser": 175,
+            "duelist": 25
+          },
+          "pierceDamageShare": 0.009783655798346778,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 36161.94870003686,
+            "blockTry": {
+              "player": 0,
+              "boss": 136
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 20
+            },
+            "dodgeTry": {
+              "player": 771,
+              "boss": 589
+            },
+            "dodgeOk": {
+              "player": 96,
+              "boss": 73
+            },
+            "counters": {
+              "player": 1,
+              "boss": 6
+            },
+            "counterDamage": 292.06989424608946,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9633333333333334,
+            "lo": 0.9366666666666666,
+            "hi": 0.9866666666666667,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7897144786968973,
+            "lo": 0.7353030974277731,
+            "hi": 0.8361360601571055,
+            "n": 300
+          },
+          "attacksPerRound": 6.34,
+          "dexLeadBossMedian": 17.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.22
+          },
+          "bossBuildEntropy": 3.916863593781372,
+          "bossArchetypes": {
+            "duelist": 8,
+            "hybrid": 263,
+            "bruiser": 23,
+            "bulwark": 4,
+            "marksman": 2
+          },
+          "pierceDamageShare": 0.03184628663329476,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 44157.995401651446,
+            "blockTry": {
+              "player": 23,
+              "boss": 70
+            },
+            "blockOk": {
+              "player": 1,
+              "boss": 10
+            },
+            "dodgeTry": {
+              "player": 1370,
+              "boss": 428
+            },
+            "dodgeOk": {
+              "player": 139,
+              "boss": 158
+            },
+            "counters": {
+              "player": 1,
+              "boss": 8
+            },
+            "counterDamage": 488.98129136924865,
+            "stunned": {
+              "player": 1,
+              "boss": 1
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 19,
+              "boss": 40
+            },
+            "heal": {
+              "player": 438,
+              "boss": 841
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.992,
+            "lo": 0.98,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9609769025352206,
+            "lo": 0.9377406723615966,
+            "hi": 0.9782389142987846,
+            "n": 500
+          },
+          "attacksPerRound": 3.91,
+          "dexLeadBossMedian": 24.75,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.188
+          },
+          "bossBuildEntropy": 3.6975821894605474,
+          "bossArchetypes": {
+            "hybrid": 491,
+            "bruiser": 5,
+            "marksman": 2,
+            "duelist": 2
+          },
+          "pierceDamageShare": 0.02107908021747076,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 72703.1917681883,
+            "blockTry": {
+              "player": 0,
+              "boss": 4
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 1
+            },
+            "dodgeTry": {
+              "player": 1743,
+              "boss": 203
+            },
+            "dodgeOk": {
+              "player": 186,
+              "boss": 89
+            },
+            "counters": {
+              "player": 5,
+              "boss": 0
+            },
+            "counterDamage": 107.92433445794595,
+            "stunned": {
+              "player": 3,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 24,
+              "boss": 24
+            },
+            "heal": {
+              "player": 549,
+              "boss": 537.75
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+1 STR +1 DEX; Sword": 33,
+        "+2 DEX; Sword": 22,
+        "+2 STR; Sword": 45
+      }
+    },
+    {
+      "strategy": "random",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.977,
+        "lo": 0.959,
+        "hi": 0.99,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.91,
+        "lo": 0.8377362530335634,
+        "hi": 0.9519280048361151,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.6086956521739131,
+        "lo": 0.4444444444444444,
+        "hi": 0.9285714285714286,
+        "n": 23
+      },
+      "playerComeback": {
+        "value": 0.005701254275940707,
+        "lo": 0.0011273957158962795,
+        "hi": 0.011481056257175661,
+        "n": 877
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.92,
+        "lo": 0.8500173312059693,
+        "hi": 0.9589070305141891,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.925,
+            "lo": 0.88,
+            "hi": 0.965,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.5129993855366495,
+            "lo": 0.4638051531683741,
+            "hi": 0.5600742420483958,
+            "n": 200
+          },
+          "attacksPerRound": 7.235,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.545
+          },
+          "bossBuildEntropy": 1.44910953620401,
+          "bossArchetypes": {
+            "bruiser": 180,
+            "duelist": 20
+          },
+          "pierceDamageShare": 0.0005615219809238526,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 32705.31832947741,
+            "blockTry": {
+              "player": 383,
+              "boss": 176
+            },
+            "blockOk": {
+              "player": 26,
+              "boss": 21
+            },
+            "dodgeTry": {
+              "player": 366,
+              "boss": 505
+            },
+            "dodgeOk": {
+              "player": 65,
+              "boss": 56
+            },
+            "counters": {
+              "player": 6,
+              "boss": 11
+            },
+            "counterDamage": 627.7943606669601,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.98,
+            "lo": 0.9566666666666667,
+            "hi": 0.9966666666666667,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.8593634466042466,
+            "lo": 0.8206931241437169,
+            "hi": 0.8920272182010638,
+            "n": 300
+          },
+          "attacksPerRound": 5.833333333333333,
+          "dexLeadBossMedian": 17,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.20666666666666667
+          },
+          "bossBuildEntropy": 3.774672209689556,
+          "bossArchetypes": {
+            "hybrid": 279,
+            "bulwark": 2,
+            "bruiser": 14,
+            "duelist": 5
+          },
+          "pierceDamageShare": 0.024826995270083033,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 42045.30395801,
+            "blockTry": {
+              "player": 612,
+              "boss": 35
+            },
+            "blockOk": {
+              "player": 54,
+              "boss": 2
+            },
+            "dodgeTry": {
+              "player": 706,
+              "boss": 390
+            },
+            "dodgeOk": {
+              "player": 87,
+              "boss": 157
+            },
+            "counters": {
+              "player": 5,
+              "boss": 1
+            },
+            "counterDamage": 136.5298383515886,
+            "stunned": {
+              "player": 7,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 54,
+              "boss": 29
+            },
+            "heal": {
+              "player": 1179,
+              "boss": 612
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.996,
+            "lo": 0.988,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9651087493146313,
+            "lo": 0.9452233812936945,
+            "hi": 0.9773245677386088,
+            "n": 500
+          },
+          "attacksPerRound": 3.988,
+          "dexLeadBossMedian": 26.125,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.178
+          },
+          "bossBuildEntropy": 4.013038191972735,
+          "bossArchetypes": {
+            "hybrid": 476,
+            "marksman": 14,
+            "duelist": 8,
+            "bruiser": 2
+          },
+          "pierceDamageShare": 0.017786618421933135,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 74027.01837272193,
+            "blockTry": {
+              "player": 895,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 90,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 877,
+              "boss": 203
+            },
+            "dodgeOk": {
+              "player": 87,
+              "boss": 99
+            },
+            "counters": {
+              "player": 17,
+              "boss": 0
+            },
+            "counterDamage": 494.42426201520954,
+            "stunned": {
+              "player": 7,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 50,
+              "boss": 29
+            },
+            "heal": {
+              "player": 1138.5,
+              "boss": 683.75
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+1 STR +1 DEX; Sword": 40,
+        "+2 DEX; Sword": 20,
+        "+2 STR; Sword": 40
+      }
+    },
+    {
+      "strategy": "blocker",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.995,
+        "lo": 0.991,
+        "hi": 0.999,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.98,
+        "lo": 0.9299868370580063,
+        "hi": 0.9944981477650318,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 1,
+        "lo": 1,
+        "hi": 1,
+        "n": 4
+      },
+      "playerComeback": {
+        "value": 0.0033482142857142855,
+        "lo": 0,
+        "hi": 0.007829977628635347,
+        "n": 896
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.98,
+        "lo": 0.9299868370580063,
+        "hi": 0.9944981477650318,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.99,
+            "lo": 0.975,
+            "hi": 1,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.6582437991559809,
+            "lo": 0.6297108109438035,
+            "hi": 0.6830338967344994,
+            "n": 200
+          },
+          "attacksPerRound": 9.43,
+          "dexLeadBossMedian": 2.5,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.51
+          },
+          "bossBuildEntropy": 1.3932260200000117,
+          "bossArchetypes": {
+            "bruiser": 177,
+            "duelist": 23
+          },
+          "pierceDamageShare": 0,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 30760.768444087294,
+            "blockTry": {
+              "player": 976,
+              "boss": 275
+            },
+            "blockOk": {
+              "player": 166,
+              "boss": 47
+            },
+            "dodgeTry": {
+              "player": 0,
+              "boss": 532
+            },
+            "dodgeOk": {
+              "player": 0,
+              "boss": 105
+            },
+            "counters": {
+              "player": 73,
+              "boss": 30
+            },
+            "counterDamage": 2280.5886856895504,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9933333333333333,
+            "lo": 0.9833333333333333,
+            "hi": 1,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.8719137942056419,
+            "lo": 0.8508294932097682,
+            "hi": 0.8925913077665671,
+            "n": 300
+          },
+          "attacksPerRound": 8.74,
+          "dexLeadBossMedian": 30,
+          "bossTopBuild": {
+            "build": "Crossbow + Knuckle",
+            "share": 0.19333333333333333
+          },
+          "bossBuildEntropy": 3.2135326151301,
+          "bossArchetypes": {
+            "hybrid": 250,
+            "marksman": 7,
+            "bruiser": 43
+          },
+          "pierceDamageShare": 0.04705745306165032,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 39912.250734206726,
+            "blockTry": {
+              "player": 2012,
+              "boss": 41
+            },
+            "blockOk": {
+              "player": 391,
+              "boss": 7
+            },
+            "dodgeTry": {
+              "player": 0,
+              "boss": 488
+            },
+            "dodgeOk": {
+              "player": 0,
+              "boss": 275
+            },
+            "counters": {
+              "player": 63,
+              "boss": 6
+            },
+            "counterDamage": 1727.310518639462,
+            "stunned": {
+              "player": 19,
+              "boss": 0
+            },
+            "chainRounds": 7,
+            "stims": {
+              "player": 0,
+              "boss": 33
+            },
+            "heal": {
+              "player": 0,
+              "boss": 693
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.998,
+            "lo": 0.994,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9086402880952412,
+            "lo": 0.89269135650581,
+            "hi": 0.9233113600679783,
+            "n": 500
+          },
+          "attacksPerRound": 6.236,
+          "dexLeadBossMedian": 26.75,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Mace",
+            "share": 0.368
+          },
+          "bossBuildEntropy": 3.5562207452545778,
+          "bossArchetypes": {
+            "hybrid": 468,
+            "marksman": 32
+          },
+          "pierceDamageShare": 0.058333783643142005,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 73904.50517768544,
+            "blockTry": {
+              "player": 2418,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 714,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 0,
+              "boss": 359
+            },
+            "dodgeOk": {
+              "player": 0,
+              "boss": 236
+            },
+            "counters": {
+              "player": 160,
+              "boss": 8
+            },
+            "counterDamage": 5263.841332816987,
+            "stunned": {
+              "player": 309,
+              "boss": 0
+            },
+            "chainRounds": 26,
+            "stims": {
+              "player": 0,
+              "boss": 106
+            },
+            "heal": {
+              "player": 0,
+              "boss": 2452.5
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+1 STR +1 DEX; Sword": 44,
+        "+2 DEX; Sword": 23,
+        "+2 STR; Sword": 33
+      }
+    },
+    {
+      "strategy": "dodger",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.976,
+        "lo": 0.964,
+        "hi": 0.987,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 1,
+        "lo": 0.9630051925239981,
+        "hi": 0.9999999999999999,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.6666666666666666,
+        "lo": 0.5714285714285714,
+        "hi": 0.8,
+        "n": 24
+      },
+      "playerComeback": {
+        "value": 0.0182648401826484,
+        "lo": 0.010158013544018058,
+        "hi": 0.02668213457076566,
+        "n": 876
+      },
+      "runWinnerFromRoundOne": {
+        "value": 1,
+        "lo": 0.9630051925239981,
+        "hi": 0.9999999999999999,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.925,
+            "lo": 0.89,
+            "hi": 0.96,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.45568209397986265,
+            "lo": 0.4285681921130711,
+            "hi": 0.4819949432069803,
+            "n": 200
+          },
+          "attacksPerRound": 7.49,
+          "dexLeadBossMedian": -2,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.4804462871472768,
+          "bossArchetypes": {
+            "bruiser": 166,
+            "duelist": 34
+          },
+          "pierceDamageShare": 0.013374185637599071,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 34209.28480457527,
+            "blockTry": {
+              "player": 0,
+              "boss": 95
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 15
+            },
+            "dodgeTry": {
+              "player": 758,
+              "boss": 630
+            },
+            "dodgeOk": {
+              "player": 105,
+              "boss": 75
+            },
+            "counters": {
+              "player": 5,
+              "boss": 10
+            },
+            "counterDamage": 547.6407808520457,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.97,
+            "lo": 0.95,
+            "hi": 0.9866666666666667,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7968832841370342,
+            "lo": 0.7629357482975103,
+            "hi": 0.8302444865716652,
+            "n": 300
+          },
+          "attacksPerRound": 6.273333333333333,
+          "dexLeadBossMedian": 15.625,
+          "bossTopBuild": {
+            "build": "Leather Armor + LongSword + Wood Shield",
+            "share": 0.19666666666666666
+          },
+          "bossBuildEntropy": 3.663343512384051,
+          "bossArchetypes": {
+            "bulwark": 14,
+            "bruiser": 59,
+            "hybrid": 205,
+            "duelist": 17,
+            "marksman": 5
+          },
+          "pierceDamageShare": 0.04034644508382407,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 46830.82934746151,
+            "blockTry": {
+              "player": 0,
+              "boss": 183
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 33
+            },
+            "dodgeTry": {
+              "player": 1295,
+              "boss": 372
+            },
+            "dodgeOk": {
+              "player": 149,
+              "boss": 128
+            },
+            "counters": {
+              "player": 12,
+              "boss": 20
+            },
+            "counterDamage": 1668.6910549055788,
+            "stunned": {
+              "player": 1,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 91,
+              "boss": 79
+            },
+            "heal": {
+              "player": 2093,
+              "boss": 1666
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 1,
+            "lo": 1,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9735067790228753,
+            "lo": 0.9660935688646829,
+            "hi": 0.9800846417313265,
+            "n": 500
+          },
+          "attacksPerRound": 3.854,
+          "dexLeadBossMedian": 28.75,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.182
+          },
+          "bossBuildEntropy": 3.693486418479035,
+          "bossArchetypes": {
+            "hybrid": 497,
+            "marksman": 3
+          },
+          "pierceDamageShare": 0.020082070237376067,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 75623.79172292286,
+            "blockTry": {
+              "player": 0,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 1746,
+              "boss": 163
+            },
+            "dodgeOk": {
+              "player": 179,
+              "boss": 79
+            },
+            "counters": {
+              "player": 18,
+              "boss": 0
+            },
+            "counterDamage": 391.31687986852637,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 71,
+              "boss": 41
+            },
+            "heal": {
+              "player": 1657,
+              "boss": 950.75
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+2 STR; Sword": 28,
+        "+1 STR +1 DEX; Sword": 41,
+        "+2 DEX; Sword": 31
+      }
+    },
+    {
+      "strategy": "stunner",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.977,
+        "lo": 0.966,
+        "hi": 0.987,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 1,
+        "lo": 0.9630051925239981,
+        "hi": 0.9999999999999999,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.782608695652174,
+        "lo": 0.6666666666666666,
+        "hi": 0.9,
+        "n": 23
+      },
+      "playerComeback": {
+        "value": 0.020524515393386546,
+        "lo": 0.011286681715575621,
+        "hi": 0.029953917050691243,
+        "n": 877
+      },
+      "runWinnerFromRoundOne": {
+        "value": 1,
+        "lo": 0.9630051925239981,
+        "hi": 0.9999999999999999,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.915,
+            "lo": 0.875,
+            "hi": 0.95,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.44345621616909736,
+            "lo": 0.41195665236175566,
+            "hi": 0.4743731862325679,
+            "n": 200
+          },
+          "attacksPerRound": 6.755,
+          "dexLeadBossMedian": 2.5,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.3181056686862893,
+          "bossArchetypes": {
+            "bruiser": 174,
+            "duelist": 26
+          },
+          "pierceDamageShare": 0,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 34566.000641121434,
+            "blockTry": {
+              "player": 0,
+              "boss": 36
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 2
+            },
+            "dodgeTry": {
+              "player": 749,
+              "boss": 557
+            },
+            "dodgeOk": {
+              "player": 83,
+              "boss": 102
+            },
+            "counters": {
+              "player": 0,
+              "boss": 1
+            },
+            "counterDamage": 56.333333333333336,
+            "stunned": {
+              "player": 0,
+              "boss": 17
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.98,
+            "lo": 0.9633333333333334,
+            "hi": 0.9933333333333333,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.8125672125310867,
+            "lo": 0.7835784052799221,
+            "hi": 0.8409183656511519,
+            "n": 300
+          },
+          "attacksPerRound": 6.196666666666666,
+          "dexLeadBossMedian": 22.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.28
+          },
+          "bossBuildEntropy": 3.151528420755817,
+          "bossArchetypes": {
+            "hybrid": 283,
+            "bruiser": 17
+          },
+          "pierceDamageShare": 0.02459953645636397,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 43022.22507886114,
+            "blockTry": {
+              "player": 0,
+              "boss": 3
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 1455,
+              "boss": 381
+            },
+            "dodgeOk": {
+              "player": 119,
+              "boss": 204
+            },
+            "counters": {
+              "player": 0,
+              "boss": 18
+            },
+            "counterDamage": 366.66852594285916,
+            "stunned": {
+              "player": 2,
+              "boss": 6
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 22
+            },
+            "heal": {
+              "player": 0,
+              "boss": 462
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 1,
+            "lo": 1,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.985014607652901,
+            "lo": 0.9793968720842229,
+            "hi": 0.9904017987581308,
+            "n": 500
+          },
+          "attacksPerRound": 3.696,
+          "dexLeadBossMedian": 33,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.256
+          },
+          "bossBuildEntropy": 3.4612173108306425,
+          "bossArchetypes": {
+            "hybrid": 477,
+            "duelist": 8,
+            "bruiser": 10,
+            "bulwark": 3,
+            "marksman": 2
+          },
+          "pierceDamageShare": 0.01791458502310991,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 69468.69968536554,
+            "blockTry": {
+              "player": 0,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 1756,
+              "boss": 90
+            },
+            "dodgeOk": {
+              "player": 189,
+              "boss": 59
+            },
+            "counters": {
+              "player": 0,
+              "boss": 2
+            },
+            "counterDamage": 44.269411202379274,
+            "stunned": {
+              "player": 2,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 30,
+              "boss": 29
+            },
+            "heal": {
+              "player": 690,
+              "boss": 655
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+1 STR +1 DEX; Sword": 37,
+        "+2 STR; Sword": 38,
+        "+2 DEX; Sword": 25
+      }
+    },
+    {
+      "strategy": "healer",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.888,
+        "lo": 0.851,
+        "hi": 0.922,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.73,
+        "lo": 0.6356769977376873,
+        "hi": 0.8073053908233518,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.42857142857142855,
+        "lo": 0.373015873015873,
+        "hi": 0.5154639175257731,
+        "n": 112
+      },
+      "playerComeback": {
+        "value": 0.0266497461928934,
+        "lo": 0.016069221260815822,
+        "hi": 0.03861003861003861,
+        "n": 788
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.79,
+        "lo": 0.7001985069803768,
+        "hi": 0.8583445046835422,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.725,
+            "lo": 0.65,
+            "hi": 0.8,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.1428948321591579,
+            "lo": 0.09584892563249509,
+            "hi": 0.19050831477804495,
+            "n": 200
+          },
+          "attacksPerRound": 7,
+          "dexLeadBossMedian": 2,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.6
+          },
+          "bossBuildEntropy": 1.5071290372366257,
+          "bossArchetypes": {
+            "duelist": 34,
+            "bruiser": 166
+          },
+          "pierceDamageShare": 0,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 38768.022226128254,
+            "blockTry": {
+              "player": 0,
+              "boss": 118
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 24
+            },
+            "dodgeTry": {
+              "player": 747,
+              "boss": 527
+            },
+            "dodgeOk": {
+              "player": 64,
+              "boss": 79
+            },
+            "counters": {
+              "player": 0,
+              "boss": 8
+            },
+            "counterDamage": 364.3183341536436,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.85,
+            "lo": 0.7966666666666666,
+            "hi": 0.9,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.550950552983805,
+            "lo": 0.45756180994652984,
+            "hi": 0.6393505251967796,
+            "n": 300
+          },
+          "attacksPerRound": 6.716666666666667,
+          "dexLeadBossMedian": 18.25,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.14666666666666667
+          },
+          "bossBuildEntropy": 3.890998902255403,
+          "bossArchetypes": {
+            "hybrid": 253,
+            "bruiser": 29,
+            "duelist": 18
+          },
+          "pierceDamageShare": 0.026682117133929394,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 46702.2972214075,
+            "blockTry": {
+              "player": 0,
+              "boss": 55
+            },
+            "blockOk": {
+              "player": 0,
+              "boss": 10
+            },
+            "dodgeTry": {
+              "player": 1513,
+              "boss": 440
+            },
+            "dodgeOk": {
+              "player": 183,
+              "boss": 187
+            },
+            "counters": {
+              "player": 0,
+              "boss": 7
+            },
+            "counterDamage": 168.3873959692832,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 137,
+              "boss": 26
+            },
+            "heal": {
+              "player": 2877,
+              "boss": 546
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.976,
+            "lo": 0.956,
+            "hi": 0.992,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9253910655075751,
+            "lo": 0.8917832050703604,
+            "hi": 0.9547890410072271,
+            "n": 500
+          },
+          "attacksPerRound": 4.316,
+          "dexLeadBossMedian": 29,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.156
+          },
+          "bossBuildEntropy": 4.011898782134891,
+          "bossArchetypes": {
+            "hybrid": 489,
+            "bruiser": 2,
+            "marksman": 2,
+            "duelist": 7
+          },
+          "pierceDamageShare": 0.02934126459961263,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 72390.13031131463,
+            "blockTry": {
+              "player": 29,
+              "boss": 0
+            },
+            "blockOk": {
+              "player": 2,
+              "boss": 0
+            },
+            "dodgeTry": {
+              "player": 1894,
+              "boss": 231
+            },
+            "dodgeOk": {
+              "player": 183,
+              "boss": 127
+            },
+            "counters": {
+              "player": 0,
+              "boss": 3
+            },
+            "counterDamage": 111.06308690116187,
+            "stunned": {
+              "player": 2,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 131,
+              "boss": 63
+            },
+            "heal": {
+              "player": 3025.5,
+              "boss": 1391.75
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+2 DEX; Sword": 27,
+        "+1 STR +1 DEX; Sword": 39,
+        "+2 STR; Sword": 34
+      }
+    },
+    {
+      "strategy": "counter_puncher",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.864,
+        "lo": 0.828,
+        "hi": 0.897,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.77,
+        "lo": 0.6784543514317231,
+        "hi": 0.841568452531236,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.6466165413533834,
+        "lo": 0.5370370370370371,
+        "hi": 0.7723577235772358,
+        "n": 133
+      },
+      "playerComeback": {
+        "value": 0.08604954367666232,
+        "lo": 0.06666666666666667,
+        "hi": 0.10789473684210527,
+        "n": 767
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.82,
+        "lo": 0.7333246397578691,
+        "hi": 0.8829986834574896,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.77,
+            "lo": 0.705,
+            "hi": 0.83,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.13295898795687688,
+            "lo": 0.09042121222437109,
+            "hi": 0.17789456459390604,
+            "n": 200
+          },
+          "attacksPerRound": 6.77,
+          "dexLeadBossMedian": 2,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.595
+          },
+          "bossBuildEntropy": 1.47330512898767,
+          "bossArchetypes": {
+            "bruiser": 158,
+            "duelist": 42
+          },
+          "pierceDamageShare": 0,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 38339.839620414656,
+            "blockTry": {
+              "player": 729,
+              "boss": 116
+            },
+            "blockOk": {
+              "player": 50,
+              "boss": 18
+            },
+            "dodgeTry": {
+              "player": 0,
+              "boss": 487
+            },
+            "dodgeOk": {
+              "player": 0,
+              "boss": 70
+            },
+            "counters": {
+              "player": 17,
+              "boss": 5
+            },
+            "counterDamage": 999.0210033032116,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.8333333333333334,
+            "lo": 0.78,
+            "hi": 0.88,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.5853272704436598,
+            "lo": 0.5049052236202656,
+            "hi": 0.6594515133675509,
+            "n": 300
+          },
+          "attacksPerRound": 6.636666666666667,
+          "dexLeadBossMedian": 22.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sword",
+            "share": 0.15666666666666668
+          },
+          "bossBuildEntropy": 3.8411574238375508,
+          "bossArchetypes": {
+            "hybrid": 261,
+            "bruiser": 28,
+            "duelist": 10,
+            "bulwark": 1
+          },
+          "pierceDamageShare": 0.043727471477448245,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 42592.05264163028,
+            "blockTry": {
+              "player": 1504,
+              "boss": 47
+            },
+            "blockOk": {
+              "player": 286,
+              "boss": 10
+            },
+            "dodgeTry": {
+              "player": 0,
+              "boss": 377
+            },
+            "dodgeOk": {
+              "player": 0,
+              "boss": 204
+            },
+            "counters": {
+              "player": 59,
+              "boss": 4
+            },
+            "counterDamage": 3830.9053917772444,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 30
+            },
+            "heal": {
+              "player": 0,
+              "boss": 630
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.92,
+            "lo": 0.892,
+            "hi": 0.948,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.7294889494133913,
+            "lo": 0.6793374008700105,
+            "hi": 0.7773759354512054,
+            "n": 500
+          },
+          "attacksPerRound": 7.136,
+          "dexLeadBossMedian": 30,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Mace",
+            "share": 0.274
+          },
+          "bossBuildEntropy": 4.086236258095427,
+          "bossArchetypes": {
+            "hybrid": 406,
+            "marksman": 84,
+            "bruiser": 10
+          },
+          "pierceDamageShare": 0.08901602305043223,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 80737.6782640832,
+            "blockTry": {
+              "player": 2833,
+              "boss": 8
+            },
+            "blockOk": {
+              "player": 752,
+              "boss": 1
+            },
+            "dodgeTry": {
+              "player": 0,
+              "boss": 539
+            },
+            "dodgeOk": {
+              "player": 0,
+              "boss": 332
+            },
+            "counters": {
+              "player": 108,
+              "boss": 4
+            },
+            "counterDamage": 7431.895856621382,
+            "stunned": {
+              "player": 167,
+              "boss": 0
+            },
+            "chainRounds": 3,
+            "stims": {
+              "player": 163,
+              "boss": 154
+            },
+            "heal": {
+              "player": 3634.5,
+              "boss": 3554.25
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+2 STR; Sword": 27,
+        "+1 STR +1 DEX; Sword": 35,
+        "+2 DEX; Sword": 38
+      }
+    },
+    {
+      "strategy": "mirror",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.493,
+        "lo": 0.406,
+        "hi": 0.571,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.44,
+        "lo": 0.34671865400968327,
+        "hi": 0.537720722887437,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.10352422907488987,
+        "lo": 0.07024793388429752,
+        "hi": 0.14507772020725387,
+        "n": 454
+      },
+      "playerComeback": {
+        "value": 0.09865470852017937,
+        "lo": 0.06418219461697723,
+        "hi": 0.1411192214111922,
+        "n": 446
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.86,
+        "lo": 0.7786263961619276,
+        "hi": 0.914737342455351,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.465,
+            "lo": 0.375,
+            "hi": 0.55,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": -0.019923553413786613,
+            "lo": -0.08062891431828181,
+            "hi": 0.0454726641261164,
+            "n": 200
+          },
+          "attacksPerRound": 6.815,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.625
+          },
+          "bossBuildEntropy": 1.5412656276507493,
+          "bossArchetypes": {
+            "duelist": 56,
+            "bruiser": 144
+          },
+          "pierceDamageShare": 0,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 36193.65380912138,
+            "blockTry": {
+              "player": 109,
+              "boss": 81
+            },
+            "blockOk": {
+              "player": 21,
+              "boss": 13
+            },
+            "dodgeTry": {
+              "player": 568,
+              "boss": 590
+            },
+            "dodgeOk": {
+              "player": 80,
+              "boss": 87
+            },
+            "counters": {
+              "player": 9,
+              "boss": 6
+            },
+            "counterDamage": 723.4291681283787,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.49666666666666665,
+            "lo": 0.41,
+            "hi": 0.5866666666666667,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": -0.016895335370301245,
+            "lo": -0.1550315262203168,
+            "hi": 0.11865616975009281,
+            "n": 300
+          },
+          "attacksPerRound": 6.46,
+          "dexLeadBossMedian": -0.25,
+          "bossTopBuild": {
+            "build": "Sword + Wood Shield",
+            "share": 0.10333333333333333
+          },
+          "bossBuildEntropy": 4.195662503570007,
+          "bossArchetypes": {
+            "bruiser": 73,
+            "hybrid": 191,
+            "duelist": 36
+          },
+          "pierceDamageShare": 0.03696039487212822,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 46319.618540443094,
+            "blockTry": {
+              "player": 192,
+              "boss": 196
+            },
+            "blockOk": {
+              "player": 29,
+              "boss": 26
+            },
+            "dodgeTry": {
+              "player": 764,
+              "boss": 776
+            },
+            "dodgeOk": {
+              "player": 147,
+              "boss": 129
+            },
+            "counters": {
+              "player": 2,
+              "boss": 7
+            },
+            "counterDamage": 416.4403301432783,
+            "stunned": {
+              "player": 9,
+              "boss": 4
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 32
+            },
+            "heal": {
+              "player": 0,
+              "boss": 672
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.502,
+            "lo": 0.412,
+            "hi": 0.598,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.018807116662930695,
+            "lo": -0.13513402296524255,
+            "hi": 0.17774599243818456,
+            "n": 500
+          },
+          "attacksPerRound": 4.566,
+          "dexLeadBossMedian": 0.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.174
+          },
+          "bossBuildEntropy": 4.055368035769607,
+          "bossArchetypes": {
+            "hybrid": 487,
+            "bruiser": 10,
+            "duelist": 2,
+            "marksman": 1
+          },
+          "pierceDamageShare": 0.016153389514678346,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 81754.49766681535,
+            "blockTry": {
+              "player": 41,
+              "boss": 29
+            },
+            "blockOk": {
+              "player": 7,
+              "boss": 3
+            },
+            "dodgeTry": {
+              "player": 1103,
+              "boss": 1109
+            },
+            "dodgeOk": {
+              "player": 147,
+              "boss": 166
+            },
+            "counters": {
+              "player": 1,
+              "boss": 0
+            },
+            "counterDamage": 27.398662282191218,
+            "stunned": {
+              "player": 3,
+              "boss": 1
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 49,
+              "boss": 188
+            },
+            "heal": {
+              "player": 1122.75,
+              "boss": 4201
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+2 DEX; Sword": 25,
+        "+1 STR +1 DEX; Sword": 39,
+        "+2 STR; Sword": 36
+      }
+    },
+    {
+      "strategy": "mirror_sym",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.488,
+        "lo": 0.406,
+        "hi": 0.569,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.45,
+        "lo": 0.3561437510640346,
+        "hi": 0.5475557296835656,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.14967462039045554,
+        "lo": 0.10973084886128365,
+        "hi": 0.20048899755501223,
+        "n": 461
+      },
+      "playerComeback": {
+        "value": 0.1480637813211845,
+        "lo": 0.10240963855421686,
+        "hi": 0.19948186528497408,
+        "n": 439
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.83,
+        "lo": 0.7445181876635703,
+        "hi": 0.8910652394022684,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.45,
+            "lo": 0.37,
+            "hi": 0.535,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": -0.033472559659638586,
+            "lo": -0.09094062730181125,
+            "hi": 0.024218114914300547,
+            "n": 200
+          },
+          "attacksPerRound": 6.865,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "Sword",
+            "share": 0.65
+          },
+          "bossBuildEntropy": 1.4874462581060799,
+          "bossArchetypes": {
+            "bruiser": 148,
+            "duelist": 52
+          },
+          "pierceDamageShare": 0,
+          "mechanics": {
+            "rounds": 200,
+            "damage": 36274.46731061568,
+            "blockTry": {
+              "player": 131,
+              "boss": 86
+            },
+            "blockOk": {
+              "player": 27,
+              "boss": 13
+            },
+            "dodgeTry": {
+              "player": 549,
+              "boss": 595
+            },
+            "dodgeOk": {
+              "player": 84,
+              "boss": 92
+            },
+            "counters": {
+              "player": 10,
+              "boss": 2
+            },
+            "counterDamage": 593.1746843581597,
+            "stunned": {
+              "player": 0,
+              "boss": 0
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 0
+            },
+            "heal": {
+              "player": 0,
+              "boss": 0
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.49666666666666665,
+            "lo": 0.4166666666666667,
+            "hi": 0.5766666666666667,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": -0.0006543122719329138,
+            "lo": -0.1306040805411615,
+            "hi": 0.129962454837369,
+            "n": 300
+          },
+          "attacksPerRound": 6.513333333333334,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "Sword + Wood Shield",
+            "share": 0.11
+          },
+          "bossBuildEntropy": 4.34247467040651,
+          "bossArchetypes": {
+            "bruiser": 76,
+            "duelist": 38,
+            "hybrid": 183,
+            "bulwark": 3
+          },
+          "pierceDamageShare": 0.03615809486875931,
+          "mechanics": {
+            "rounds": 300,
+            "damage": 46056.29290418855,
+            "blockTry": {
+              "player": 189,
+              "boss": 241
+            },
+            "blockOk": {
+              "player": 28,
+              "boss": 51
+            },
+            "dodgeTry": {
+              "player": 773,
+              "boss": 737
+            },
+            "dodgeOk": {
+              "player": 124,
+              "boss": 150
+            },
+            "counters": {
+              "player": 5,
+              "boss": 9
+            },
+            "counterDamage": 666.2731083421249,
+            "stunned": {
+              "player": 3,
+              "boss": 2
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 0,
+              "boss": 38
+            },
+            "heal": {
+              "player": 0,
+              "boss": 798
+            },
+            "turnLimitRounds": 0
+          }
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.498,
+            "lo": 0.41,
+            "hi": 0.59,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.019034030106039716,
+            "lo": -0.14429709603528415,
+            "hi": 0.17675119418746696,
+            "n": 500
+          },
+          "attacksPerRound": 4.632,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.19
+          },
+          "bossBuildEntropy": 4.142779042343063,
+          "bossArchetypes": {
+            "hybrid": 471,
+            "bruiser": 24,
+            "duelist": 3,
+            "bulwark": 2
+          },
+          "pierceDamageShare": 0.023789765303801225,
+          "mechanics": {
+            "rounds": 500,
+            "damage": 81449.80254013443,
+            "blockTry": {
+              "player": 40,
+              "boss": 91
+            },
+            "blockOk": {
+              "player": 5,
+              "boss": 12
+            },
+            "dodgeTry": {
+              "player": 1101,
+              "boss": 1081
+            },
+            "dodgeOk": {
+              "player": 146,
+              "boss": 181
+            },
+            "counters": {
+              "player": 1,
+              "boss": 1
+            },
+            "counterDamage": 103.4197456202271,
+            "stunned": {
+              "player": 1,
+              "boss": 4
+            },
+            "chainRounds": 0,
+            "stims": {
+              "player": 33,
+              "boss": 182
+            },
+            "heal": {
+              "player": 745,
+              "boss": 4068.5
+            },
+            "turnLimitRounds": 0
+          }
+        }
+      },
+      "roundOneBossPlans": {
+        "+2 STR; Sword": 42,
+        "+2 DEX; Sword": 27,
+        "+1 STR +1 DEX; Sword": 31
+      }
+    }
+  ],
+  "mirrorR1": {
+    "n": 1000,
+    "bossWin": {
+      "value": 0.489,
+      "lo": 0.4581185876110968,
+      "hi": 0.5199656041578039,
+      "n": 1000
+    },
+    "dexTieRounds": 315,
+    "tieFirstMoverIsBoss": {
+      "value": 0.4507936507936508,
+      "lo": 0.39676662721310435,
+      "hi": 0.5060064111859,
+      "n": 315
+    },
+    "tieFirstMoverWins": {
+      "value": 0.7936507936507936,
+      "lo": 0.7455513975528224,
+      "hi": 0.8346740184531191,
+      "n": 315
+    },
+    "fasterSide": {
+      "boss": 349,
+      "player": 336
+    },
+    "fasterSideWins": {
+      "value": 0.6423357664233577,
+      "lo": 0.605738764523462,
+      "hi": 0.6773451839488718,
+      "n": 685
+    }
+  }
+}

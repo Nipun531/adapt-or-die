@@ -41,8 +41,10 @@ import { STAT_KEYS } from '../game/types.js';
  *  sim-2.2.0 — adds the randomised, conditional `reactive` agent; agents also observe the boss's last gear and their HP left.
  *  sim-3.0.0 — engine 3.0.0: agents defend with their V3 persona (sim/v3-policies.ts AGENT_DEFENSE), heal with the
  *              automatic stim rule and spend leftover gold on stims (game/supply-plan.ts). Build logic unchanged.
+ *  sim-3.1.0 — V3 Phase D: adds one champion per V3 mechanic — `blocker`, `dodger`, `stunner`, `healer`,
+ *              `counter_puncher` (existing agents unchanged).
  */
-export const SIMULATOR_VERSION = 'sim-3.0.0';
+export const SIMULATOR_VERSION = 'sim-3.1.0';
 
 /** What the player saw of a finished round (all visible in the round view: result, the boss's gear, own HP left). */
 export interface RoundOutcome {
@@ -79,13 +81,15 @@ export interface Agent {
 const EMPTY: Loadout = { hand1: null, hand2: null, armour: null };
 
 /** Item "power" used to pick the best owned item of a category — a simple, documented heuristic. */
-type Weights = { str: number; def: number; dex: number; pierce?: number };
+type Weights = { str: number; def: number; dex: number; pierce?: number; dodgeCounter?: number; block?: number };
 
 function itemScore(id: string, weights: Weights): number {
   const it = requireItem(id);
   const m = it.mods;
   const pierceEv = it.pierce ? it.pierce.chance * it.pierce.defIgnore : 0;
-  return m.str * weights.str + m.def * weights.def + m.dex * weights.dex + pierceEv * (weights.pierce ?? 0);
+  const c = it.combat ?? {};
+  return m.str * weights.str + m.def * weights.def + m.dex * weights.dex + pierceEv * (weights.pierce ?? 0)
+    + (c.dodgeCounter ?? 0) * (weights.dodgeCounter ?? 0) + (c.blockBonus ?? 0) * (weights.block ?? 0);
 }
 
 function bestOwned(inv: string[], cat: ItemCategory, w: Weights = { str: 1, def: 1, dex: 1 }): string | null {
@@ -285,6 +289,85 @@ export const duelist: Agent = {
   chooser: () => preferChooser('melee'),
 };
 
+// --- V3 mechanic champions (sim-3.1.0) ------------------------------------------------------------------------------
+// One agent per V3 mechanic, so every mechanic has a dedicated player in the benchmark: if its champion has no path to
+// winning rounds, the mechanic is decoration. Their defence persona is in sim/v3-policies.ts AGENT_DEFENSE.
+
+export const blocker: Agent = {
+  name: 'blocker',
+  description: 'V3: allocates DEF/HP/DEF; buys Wood Shield → Leather Armor → Sword → Small Shield → Light Armor → LongSword; always blocks.',
+  decide({ state }) {
+    const purchases = buyInOrder(state, ['wood_shield', 'leather_armour', 'sword', 'small_shield', 'light_armour', 'longsword']);
+    return {
+      allocations: allocateByPattern(state, ['def', 'hp', 'def']),
+      purchases,
+      loadout: loadoutFrom(after(state, purchases), ['melee', 'shield'], true, { str: 1, def: 1, dex: 0.3, block: 40 }),
+      note: 'V3 block wall',
+    };
+  },
+  chooser: () => preferChooser('melee'),
+};
+
+export const dodger: Agent = {
+  name: 'dodger',
+  description: 'V3: allocates DEX/DEX/HP; buys Spear → Leather Armor → Lance → Pike; no shield (DEX penalties); always dodges, counters with long weapons.',
+  decide({ state }) {
+    const purchases = buyInOrder(state, ['spear', 'leather_armour', 'lance', 'pike']);
+    return {
+      allocations: allocateByPattern(state, ['dex', 'dex', 'hp']),
+      purchases,
+      loadout: loadoutFrom(after(state, purchases), ['melee'], true, { str: 0.5, def: 0.2, dex: 1, dodgeCounter: 30 }),
+      note: 'V3 dodge + dodge counter',
+    };
+  },
+  chooser: () => preferChooser('melee'),
+};
+
+export const stunner: Agent = {
+  name: 'stunner',
+  description: 'V3: allocates STR/HP/STR; buys Iron Club → Leather Armor → Mace → Warhammer; can-stun blunt weapons.',
+  decide({ state }) {
+    const purchases = buyInOrder(state, ['iron_club', 'leather_armour', 'mace', 'warhammer']);
+    return {
+      allocations: allocateByPattern(state, ['str', 'hp', 'str']),
+      purchases,
+      loadout: loadoutFrom(after(state, purchases), ['melee'], true, { str: 1, def: 0.3, dex: 0.1 }),
+      note: 'V3 stun pressure',
+    };
+  },
+  chooser: () => preferChooser('melee'),
+};
+
+export const healer: Agent = {
+  name: 'healer',
+  description: 'V3: allocates HP/DEF/STR; buys Sword → Leather Armor → LongSword only; spends the rest on stims and stim upgrades (no savings reserve).',
+  decide({ state }) {
+    const purchases = buyInOrder(state, ['sword', 'leather_armour', 'longsword']);
+    return {
+      allocations: allocateByPattern(state, ['hp', 'def', 'str']),
+      purchases,
+      loadout: loadoutFrom(after(state, purchases), ['melee'], true),
+      note: 'V3 sustain',
+    };
+  },
+  chooser: () => preferChooser('melee'),
+};
+
+export const counterPuncher: Agent = {
+  name: 'counter_puncher',
+  description: 'V3: allocates STR/DEF/STR; buys Sword → Small Shield → LongSword → Leather Armor; blocks every attack to land ×1.5 block counters.',
+  decide({ state }) {
+    const purchases = buyInOrder(state, ['sword', 'small_shield', 'longsword', 'leather_armour']);
+    return {
+      allocations: allocateByPattern(state, ['str', 'def', 'str']),
+      purchases,
+      loadout: loadoutFrom(after(state, purchases), ['melee', 'shield'], true, { str: 1, def: 0.5, dex: 0.2, block: 20 }),
+      note: 'V3 counter-puncher',
+    };
+  },
+  chooser: () => preferChooser('melee'),
+};
+
 // --- Style-switching agents (sim-2.1.0) ---------------------------------------------------------------------------
 // Fixed-style agents only teach a model "which agent is this" (V2 model s3 failed leave-one-strategy-out). These two
 // change style for reasons visible in the features (losses, gold, what they own) or at random, so the data contains
@@ -434,7 +517,8 @@ export const randomAgent: Agent = {
 };
 
 export const AGENTS: Record<string, Agent> = Object.fromEntries(
-  [meleeBruiser, archer, shieldTurtle, hybrid, adaptive, piercer, duelist, opportunist, switcher, reactive, randomAgent].map((a) => [a.name, a]),
+  [meleeBruiser, archer, shieldTurtle, hybrid, adaptive, piercer, duelist, opportunist, switcher, reactive, randomAgent,
+    blocker, dodger, stunner, healer, counterPuncher].map((a) => [a.name, a]),
 );
 
 export const STRATEGY_NAMES = Object.keys(AGENTS);

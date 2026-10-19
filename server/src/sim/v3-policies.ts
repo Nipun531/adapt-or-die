@@ -8,6 +8,7 @@ import { autoDefense, autoStim, type Chooser, type DefenseChooser, type StimChoo
 import { bestMode, smartDefense } from '../game/expected.js';
 import type { Rng } from '../game/rng.js';
 import type { RuleSet } from '../game/rules.js';
+import { SIM_SAVINGS_RESERVE } from '../game/supply-plan.js';
 
 export type DefenseStyle = 'smart' | 'block' | 'dodge' | 'random' | 'greedy';
 export type StimStyle = 'auto' | 'low' | 'never';
@@ -56,4 +57,14 @@ export const AGENT_DEFENSE: Record<string, DefenseStyle> = {
   switcher: 'random',
   reactive: 'smart',
   random: 'random',
+  blocker: 'block',
+  dodger: 'dodge',
+  stunner: 'smart',
+  healer: 'smart',
+  counter_puncher: 'block',
 };
+
+/** Gold a simulated player never spends on stims (its savings for gear). The healer spends everything on supplies. */
+export function agentSupplyReserve(strategy: string): number {
+  return strategy === 'healer' ? 0 : SIM_SAVINGS_RESERVE;
+}

@@ -98,6 +98,11 @@ export interface DerivedStats {
   netDexRaw: number;
   /** Net DEX floored at EFFECTIVE_DEX_FLOOR. Used for ranged attack value, mitigation, bonus attacks, priority. */
   effDex: number;
+  /**
+   * Effective DEX WITHOUT the ranged weapon's DEX modifier (harness experiment `v3.dex.rangedModShotsOnly`: a bow's
+   * DEX bonus aims its shots but does not make the holder more agile). Equals effDex without a ranged weapon.
+   */
+  effDexAgility?: number;
   attackModes: AttackMode[];
   rangedWeaponId: string | null;
   meleeWeaponId: string | null;

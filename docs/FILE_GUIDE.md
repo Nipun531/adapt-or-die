@@ -104,6 +104,7 @@ Purpose of every project file, and where to make common changes. Keep this in sy
 | `src/game/rules.ts` | RuleSets: `v2` (engine 2.0.0 control) and `v3` (block/dodge/counter/stun/stims). All V3 numbers in `V3_COMBAT`; `withRules` for harness ablations/sweeps. |
 | `src/game/catalogs/v3.ts` | V3 catalogue: V2 items + Warhammer 45 + block/stun/dodge-counter properties (not live until Phase C2). |
 | `src/sim/v3-policies.ts` | V3 in-fight play styles (defence/stim/mode) for simulated fighters; `AGENT_DEFENSE` = each run agent's defence persona. |
+| `src/sim/v3-eval-cli.ts` | `npm run v3:eval -- <baseline.json>`: Phase D boss acceptance criteria (fairness, difficulty tiers, counterplay, diversity, χ²/JS adaptation, exploit checks). |
 | `src/sim/v3-lab.ts` | V3 mechanics lab: random legal builds per stage × random play styles (defence/stim/mode), paired fights, mechanic metrics (stun, dodge, block, counters, stims, who wins). |
 | `src/sim/v3-lab-cli.ts` | `npm run v3:lab -- sweep|confirm` — stun/dodge sweeps against the sweet-spot targets; paired stun-on/off effect → `artifacts/balance/v3-lab-*`. |
 | `src/sim/v3-baseline.ts` | V3 Phase A: V2 control-baseline metrics (per agent/stage, run-level bootstrap and Wilson CIs, comeback, snowball, build entropy, mirror round-1 check). |

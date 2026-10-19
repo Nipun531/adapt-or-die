@@ -352,13 +352,21 @@ export const autoStim: StimChooser = ({ view, side, heal }) => {
  *  - both eligible              → only the fighter with strictly higher effective DEX shoots
  *  - both eligible, equal DEX   → nobody shoots (no one has the advantage)
  */
-export function openingShooters(player: FighterSnapshot, boss: FighterSnapshot): { openingOrder: Side[]; openingEligible: Side[]; openingRule: OpeningRule } {
+/**
+ * The DEX that makes a fighter quick (turn order, First Shot, bonus attacks, mitigation, dodge). Normally effective DEX;
+ * under the harness experiment `v3.dex.rangedModShotsOnly` the ranged weapon's DEX modifier is left out.
+ */
+export function agilityDex(f: FighterSnapshot, rules: RuleSet = RULES_V2): number {
+  return rules.v3?.dex?.rangedModShotsOnly ? f.derived.effDexAgility ?? f.derived.effDex : f.derived.effDex;
+}
+
+export function openingShooters(player: FighterSnapshot, boss: FighterSnapshot, rules: RuleSet = RULES_V2): { openingOrder: Side[]; openingEligible: Side[]; openingRule: OpeningRule } {
   const fighters = { player, boss };
   const openingEligible = (['player', 'boss'] as Side[]).filter((s) => fighters[s].derived.rangedWeaponId !== null);
   if (openingEligible.length === 0) return { openingOrder: [], openingEligible, openingRule: 'none' };
   if (openingEligible.length === 1) return { openingOrder: openingEligible, openingEligible, openingRule: 'single' };
-  const pDex = player.derived.effDex;
-  const bDex = boss.derived.effDex;
+  const pDex = agilityDex(player, rules);
+  const bDex = agilityDex(boss, rules);
   if (pDex === bDex) return { openingOrder: [], openingEligible, openingRule: 'tie_none' };
   return { openingOrder: [pDex > bDex ? 'player' : 'boss'], openingEligible, openingRule: 'dex_advantage' };
 }
@@ -367,14 +375,14 @@ export function startCombat(player: FighterSnapshot, boss: FighterSnapshot, seed
   const rng = new Rng(seed);
   const tieBreakRoll = rng.next();
   const tieWinner: Side = tieBreakRoll < 0.5 ? 'player' : 'boss';
-  const pDex = player.derived.effDex;
-  const bDex = boss.derived.effDex;
+  const pDex = agilityDex(player, rules);
+  const bDex = agilityDex(boss, rules);
   const dexTie = pDex === bDex;
   const dx = rules.dexBenefits;
   const faster: Side = dexTie || !dx.turnOrder ? tieWinner : pDex > bDex ? 'player' : 'boss';
   const turnOrder: [Side, Side] = [faster, otherSide(faster)];
   const fighters = { player, boss };
-  const opening = openingShooters(player, boss);
+  const opening = openingShooters(player, boss, rules);
   const { openingOrder, openingEligible, openingRule } = dx.firstShot ? opening : { ...opening, openingOrder: [] as Side[], openingRule: 'off' as const };
   const state: CombatState = {
     seed,
@@ -504,8 +512,8 @@ function computeAttack(
   const net = netDamage(attackValue, defUsed);
   if (pierce && pierce.success) pierce.extraDamage = net - netDamage(attackValue, defenderNetDef);
 
-  const attackerDex = att.derived.effDex;
-  const defenderDex = def.derived.effDex;
+  const attackerDex = agilityDex(att, rules);
+  const defenderDex = agilityDex(def, rules);
   const ratio = dexRatio(defenderDex, attackerDex);
   const mitigationUniform = drawMitigation();
   const mitigationRoll = mitigationRollFromUniform(mitigationUniform);
@@ -566,9 +574,10 @@ export function blockChanceFor(def: FighterSnapshot, rules: RuleSet): number {
 /** Dodge delta under the rule set's delta definition (DEX points by default). */
 export function dodgeDeltaFor(def: FighterSnapshot, att: FighterSnapshot, rules: RuleSet): number {
   const mode = rules.v3!.dodge.delta;
-  if (mode === 'percent') return dodgeDeltaPercent(def.derived.effDex, att.derived.effDex);
-  if (mode === 'signed') return def.derived.effDex - att.derived.effDex;
-  return dodgeDelta(def.derived.effDex, att.derived.effDex);
+  const d = agilityDex(def, rules), a = agilityDex(att, rules);
+  if (mode === 'percent') return dodgeDeltaPercent(d, a);
+  if (mode === 'signed') return d - a;
+  return dodgeDelta(d, a);
 }
 
 export function dodgeChanceFor(def: FighterSnapshot, att: FighterSnapshot, rules: RuleSet): number {

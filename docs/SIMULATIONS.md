@@ -72,6 +72,17 @@ To add a strategy: implement the `Agent` interface in `agents.ts`, add it to `AG
 
 Results and conclusions: `docs/V2_BALANCE.md`. `tuneOne()` in `balance.ts` is the buff-only pierce grid search used for the V2 values.
 
+### V3 champions (sim-3.1.0)
+
+One agent per V3 mechanic:
+- `blocker`;
+- `dodger`;
+- `stunner`;
+- `healer` (no savings reserve; buys stim upgrades);
+- `counter_puncher`.
+
+Evaluate a baseline JSON with `npm run v3:eval -- <file>`.
+
 ### Engine 3.0.0 agents (sim-3.0.0)
 
 Every agent now:

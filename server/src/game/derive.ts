@@ -40,6 +40,7 @@ export function deriveStats(stats: Stats, loadout: Loadout, lookup: ItemLookup =
   const dexModSum = items.reduce((s, i) => s + i.mods.dex, 0);
   const netDexRaw = netDex(stats.dex, dexModSum);
   const ranged = items.find((i) => i.category === 'ranged');
+  const agility = ranged ? effectiveDex(netDex(stats.dex, dexModSum - ranged.mods.dex)) : undefined;
   const melee = items.find((i) => i.category === 'melee');
   return {
     maxHp: stats.hp,
@@ -50,6 +51,7 @@ export function deriveStats(stats: Stats, loadout: Loadout, lookup: ItemLookup =
     netDef: netDef(stats.def, defModSum),
     netDexRaw,
     effDex: effectiveDex(netDexRaw),
+    ...(agility !== undefined ? { effDexAgility: agility } : {}),
     attackModes: attackModesFor(loadout, lookup),
     rangedWeaponId: ranged?.id ?? null,
     meleeWeaponId: melee?.id ?? null,

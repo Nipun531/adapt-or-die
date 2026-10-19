@@ -28,7 +28,8 @@
     "test": "npm run test -w server && npm run test -w client",
     "test:unit": "npm run test:unit -w server",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
-    "v3:lab": "npm run v3:lab -w server --"
+    "v3:lab": "npm run v3:lab -w server --",
+    "v3:eval": "npm run v3:eval -w server --"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

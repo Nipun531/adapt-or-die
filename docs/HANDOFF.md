@@ -10,7 +10,7 @@ Plan: `docs/V3_IMPLEMENTATION_PLAN.md`. Decisions: `docs/V3_DEMANDS.md`.
 - **Phase B done:** engine behind RuleSet v3 (V3_DEMANDS §11).
 - **C1 done:** stun/dodge sweet spot, turn limit (D-19), boss under V3, mirror, DEX ablation (`docs/V3_BALANCE.md`).
 - **C2 done:** engine 3.0.0 live; migration 003 applied to dev (backup `artifacts/backups/pre-v3-migration-2026-10-20.sql`).
-- **Next: Phase D.** Evidence scripts: `docs/v3-plan-evidence/`.
+- **Phase D evaluation done** (V3_BALANCE §11). Waiting on the owner's decisions D-20 / D-13 / D-17 (V3_DEMANDS §14). Evidence scripts: `docs/v3-plan-evidence/`.
 
 ## Where things stand
 

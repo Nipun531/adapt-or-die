@@ -1,6 +1,6 @@
 /** V3 mechanics lab (sim/v3-lab.ts) and the tuning knobs it sweeps. */
 import { describe, expect, it } from 'vitest';
-import { dodgeChanceFor } from '../../src/game/combat.js';
+import { agilityDex, dodgeChanceFor } from '../../src/game/combat.js';
 import { snapshotOf } from '../../src/game/derive.js';
 import { loadoutProblem } from '../../src/game/equipment.js';
 import { dodgeChance, stunGain } from '../../src/game/formulas.js';
@@ -29,6 +29,20 @@ describe('tuning knobs', () => {
   it('stun gain scale, boost scale and sum cap', () => {
     expect(stunGain(0.3, 0.35, 0.12, 20, 20)).toBeCloseTo(35.4);
     expect(stunGain(0.6, 0.5, 0.36, 10, 10, 1.5)).toBeCloseTo(24.6);
+  });
+});
+
+describe('bow-DEX experiment switch (harness only, off in the shipped rules)', () => {
+  it('withRules can add a new V3 group; a bow then aims shots but does not make the holder quicker', () => {
+    const b = initialCombatant('player');
+    const archer = snapshotOf({ ...b, stats: { ...b.stats, dex: 20 }, inventory: ['crossbow'], loadout: { hand1: 'crossbow', hand2: null, armour: null } });
+    expect(archer.derived.effDex).toBe(40); // 20 × (1 + 0.25 × 4)
+    expect(archer.derived.effDexAgility).toBe(20);
+    const exp = withRules(RULES_V3, { v3: { dex: { rangedModShotsOnly: true } } as never });
+    expect(exp.v3!.dex!.rangedModShotsOnly).toBe(true);
+    expect(agilityDex(archer, RULES_V3)).toBe(40);
+    expect(agilityDex(archer, exp)).toBe(20);
+    expect(RULES_V3.v3!.dex).toBeUndefined();
   });
 });
 

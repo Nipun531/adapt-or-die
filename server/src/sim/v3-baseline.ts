@@ -75,6 +75,36 @@ export interface StageMetrics {
   bossBuildEntropy: number;
   bossArchetypes: Record<string, number>;
   pierceDamageShare: number;
+  /** V3 mechanic counts in this stage (all zero under v2). */
+  mechanics: Mechanics;
+}
+
+export interface Mechanics {
+  rounds: number;
+  damage: number;
+  /** Defences by the defender's side. */
+  blockTry: Record<'player' | 'boss', number>;
+  blockOk: Record<'player' | 'boss', number>;
+  dodgeTry: Record<'player' | 'boss', number>;
+  dodgeOk: Record<'player' | 'boss', number>;
+  /** By the counterer's side. */
+  counters: Record<'player' | 'boss', number>;
+  counterDamage: number;
+  /** By the stunned side. */
+  stunned: Record<'player' | 'boss', number>;
+  /** Rounds in which one fighter was stunned 2+ times. */
+  chainRounds: number;
+  stims: Record<'player' | 'boss', number>;
+  heal: Record<'player' | 'boss', number>;
+  turnLimitRounds: number;
+}
+
+const zeroSides = () => ({ player: 0, boss: 0 });
+function emptyMechanics(): Mechanics {
+  return {
+    rounds: 0, damage: 0, blockTry: zeroSides(), blockOk: zeroSides(), dodgeTry: zeroSides(), dodgeOk: zeroSides(),
+    counters: zeroSides(), counterDamage: 0, stunned: zeroSides(), chainRounds: 0, stims: zeroSides(), heal: zeroSides(), turnLimitRounds: 0,
+  };
 }
 
 export interface AgentReport {
@@ -88,6 +118,8 @@ export interface AgentReport {
   playerComeback: Interval;
   runWinnerFromRoundOne: Interval;
   stages: Record<string, StageMetrics>;
+  /** The boss's round-1 plan (allocation + loadout) and how often it was chosen. */
+  roundOneBossPlans: Record<string, number>;
 }
 
 const median = (xs: number[]) => {
@@ -119,12 +151,29 @@ export function reportFor(strategy: string, results: RunResult[], seed: string):
     const arch: Record<string, number> = {};
     let pierce = 0, dmg = 0;
     const leads: number[] = [];
+    const mech = emptyMechanics();
     for (const rd of flat) {
+      mech.rounds++;
+      const stunnedHere = zeroSides();
+      for (const e of rd.events) {
+        mech.damage += e.damage;
+        if (e.kind === 'counter') { mech.counters[e.attacker]++; mech.counterDamage += e.damage; }
+        const d = e.defense;
+        if (d && d.action === 'block') { mech.blockTry[e.defender]++; if (d.success) mech.blockOk[e.defender]++; }
+        if (d && d.action === 'dodge') { mech.dodgeTry[e.defender]++; if (d.success) mech.dodgeOk[e.defender]++; }
+        if (e.stun?.triggered) { mech.stunned[e.stun.triggered.target]++; stunnedHere[e.stun.triggered.target]++; }
+      }
+      if (stunnedHere.player >= 2 || stunnedHere.boss >= 2) mech.chainRounds++;
+      for (const n of rd.notes ?? []) {
+        if (n.kind === 'stim') { mech.stims[n.side]++; mech.heal[n.side] += n.detail.heal ?? 0; }
+        if (n.kind === 'turn_limit') mech.turnLimitRounds++;
+      }
       builds[loadoutKey(rd.bossLoadout)] = (builds[loadoutKey(rd.bossLoadout)] ?? 0) + 1;
       arch[rd.bossArchetype] = (arch[rd.bossArchetype] ?? 0) + 1;
       for (const e of rd.events) {
         dmg += e.damage;
-        if (e.calc.pierce?.success) pierce += (e.calc.pierce.extraDamage ?? 0) * (1 - e.calc.mitigation);
+        const landed = !e.defense || !e.defense.success; // V3: a blocked/dodged attack's pierce did nothing
+        if (landed && e.calc.pierce?.success) pierce += (e.calc.pierce.extraDamage ?? 0) * (1 - e.calc.mitigation);
       }
       const e0 = rd.events.find((e) => e.attacker === 'boss') ?? rd.events[0];
       if (e0) leads.push(e0.attacker === 'boss' ? e0.calc.attackerDex - e0.calc.defenderDex : e0.calc.defenderDex - e0.calc.attackerDex);
@@ -139,6 +188,7 @@ export function reportFor(strategy: string, results: RunResult[], seed: string):
       bossBuildEntropy: entropy(builds),
       bossArchetypes: arch,
       pierceDamageShare: dmg ? pierce / dmg : 0,
+      mechanics: mech,
     };
   }
   return {
@@ -150,6 +200,14 @@ export function reportFor(strategy: string, results: RunResult[], seed: string):
     playerComeback: clusterBootstrap(comeback('player'), tag('cb-player')),
     runWinnerFromRoundOne: wilson(snow.filter(Boolean).length, snow.length),
     stages,
+    roundOneBossPlans: results.reduce((acc, r) => {
+      const r1 = r.rounds[0];
+      if (!r1) return acc;
+      const alloc = Object.entries(r1.bossAllocation).filter(([, v]) => v).map(([k, v]) => `+${v} ${k.toUpperCase()}`).join(' ');
+      const k = `${alloc || 'no points'}; ${loadoutKey(r1.bossLoadout)}`;
+      acc[k] = (acc[k] ?? 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
   };
 }
 

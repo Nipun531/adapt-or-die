@@ -204,6 +204,12 @@ Details fixed while building. Each is consistent with the decisions above; they 
   - **Stun triggered 0.00 times per round** in all three matchups.
   - Phase C1 measures all of this properly.
 
+## 14. Open after Phase D (2026-10-20)
+
+- **[OPEN D-20] Hybrid dominance.** Recommended: a ranged weapon's DEX counts for its shots only, plus a compensating ranged buff, tuned in a D2 lab pass. Options and numbers: V3_BALANCE §11.2.
+- **[OPEN D-13] Difficulty yardstick.** Recommended: judge mechanics in the random-build lab and difficulty against searching players; optionally add a difficulty setting.
+- **[OPEN D-17] Economy comeback.** For example, loss gold 5 → 10.
+
 ## 13. Phase C2 (2026-10-20) — implementation notes
 
 **What went live with engine 3.0.0:**

@@ -22,8 +22,8 @@ import { FEATURE_SCHEMA_VERSION } from '../ml/features.js';
 import { startRound } from '../services/rounds.js';
 import { autoStim } from '../game/combat.js';
 import { LIVE_RULES } from '../game/rules.js';
-import { autoSupplies, SIM_SAVINGS_RESERVE } from '../game/supply-plan.js';
-import { AGENT_DEFENSE, defenseChooserFor } from './v3-policies.js';
+import { autoSupplies } from '../game/supply-plan.js';
+import { AGENT_DEFENSE, agentSupplyReserve, defenseChooserFor } from './v3-policies.js';
 import { allocate, buy, buySupplies, createRun, loadCombatant, setLoadout } from '../services/runs.js';
 import { requireAgent, SIMULATOR_VERSION, STRATEGY_NAMES, type RoundOutcome } from './agents.js';
 
@@ -91,7 +91,7 @@ export async function playSimulatedRun(opts: {
         await setLoadout(runId, decision.loadout, 'agent', c);
         // V3: leftover gold → healing stims (same heuristic as the boss), through the player's supply service.
         if (LIVE_RULES.v3) {
-          for (const a of autoSupplies(await loadCombatant(c, runId, 'player'), SIM_SAVINGS_RESERVE).actions) await buySupplies(runId, a.action, 'agent', c);
+          for (const a of autoSupplies(await loadCombatant(c, runId, 'player'), agentSupplyReserve(agent.name)).actions) await buySupplies(runId, a.action, 'agent', c);
         }
         const chooser = agent.chooser(new Rng(deriveSeed(opts.runSeed, `agent-choice:${roundNumber}`)));
         const roundId = await startRound(runId, {
