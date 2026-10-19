@@ -48,6 +48,8 @@ import {
   dodgeCounterChance,
   dodgeDelta,
   dodgeDeltaPercent,
+  effectiveDex,
+  netDex,
   finalDamage,
   isHeavyHit,
   mitigationRollFromUniform,
@@ -357,7 +359,11 @@ export const autoStim: StimChooser = ({ view, side, heal }) => {
  * under the harness experiment `v3.dex.rangedModShotsOnly` the ranged weapon's DEX modifier is left out.
  */
 export function agilityDex(f: FighterSnapshot, rules: RuleSet = RULES_V2): number {
-  return rules.v3?.dex?.rangedModShotsOnly ? f.derived.effDexAgility ?? f.derived.effDex : f.derived.effDex;
+  const x = rules.v3?.dex;
+  const share = x?.rangedModShotsOnly ? 0 : x?.rangedModAgilityShare ?? 1;
+  if (share >= 1 || !f.derived.rangedWeaponId) return f.derived.effDex;
+  const rangedMod = itemLookup(rules)(f.derived.rangedWeaponId).mods.dex;
+  return effectiveDex(netDex(f.stats.dex, f.derived.dexModSum - (1 - share) * rangedMod));
 }
 
 export function openingShooters(player: FighterSnapshot, boss: FighterSnapshot, rules: RuleSet = RULES_V2): { openingOrder: Side[]; openingEligible: Side[]; openingRule: OpeningRule } {

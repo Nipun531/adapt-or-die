@@ -356,3 +356,21 @@ The boss's round-1 opener is no longer fixed:
   - measure mechanic viability in the random-build lab (no boss);
   - measure boss difficulty against searching players (mirror) plus, later, human sessions;
   - if beginners need an easier boss, add an explicit **difficulty setting**, for example a wider diversity band for the boss's plan choice (V2 data: band 0.10 → mirror about 52%), rather than changing the rules.
+
+### 11.4 Owner question: does 50% of the bow's DEX (instead of 0%) fix the hybrid? (2026-10-20)
+
+Harness switch `v3.dex.rangedModAgilityShare`: the share of a ranged weapon's DEX modifier that counts toward agility (turn order, First Shot, bonus attacks, mitigation, dodge). Its own shots always use the full modifier. Lab: 1,500 builds × 20,000 fights per stage. Win rate vs the population, mid / late:
+
+| Bow DEX toward agility | Hybrid | Melee + shield | Melee | Ranged only | Ranged + shield |
+|---|---|---|---|---|---|
+| 100% (current) | 67.4 / 69.1 | 59.4 / 56.7 | 56.1 / 52.5 | 33.2 / 38.4 | 23.5 / 21.5 |
+| 75% | 65.4 / 67.1 | 61.5 / 59.1 | 58.7 / 55.4 | 30.1 / 34.4 | 20.7 / 18.5 |
+| **50%** | **63.0 / 64.3** | **63.5 / 61.5** | 61.0 / 58.4 | 27.0 / 30.7 | 19.6 / 16.7 |
+| 25% | 60.7 / 61.4 | 65.5 / 63.8 | 63.3 / 61.4 | 23.6 / 27.9 | 18.1 / 14.8 |
+| 0% (shots only) | 58.3 / 58.5 | 67.3 / 66.6 | 65.2 / 64.0 | 20.9 / 24.3 | 17.4 / 12.7 |
+
+**Reading:**
+- **50% removes the hybrid's lead.** It ties with melee + shield (63 vs 63.5 mid; 64 vs 61.5 late), instead of leading by 8–12 points.
+- Below 50%, melee + shield becomes the new top shape.
+- Pure archers lose about 6–8 points at 50% (vs 12–14 at 0%), so a smaller ranged buff is still needed.
+- These are lab numbers. The boss suite has to confirm them before anything is adopted.

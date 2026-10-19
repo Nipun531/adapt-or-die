@@ -72,8 +72,12 @@ export interface V3Combat {
     healBase: number;
     healPerUpgrade: number;
   };
-  /** Harness experiment (off in the shipped rules): a ranged weapon's DEX modifier counts only for its own shots. */
-  dex?: { rangedModShotsOnly: boolean };
+  /**
+   * Harness experiment (absent = off in the shipped rules): how much of a ranged weapon's DEX modifier counts toward
+   * the holder's agility (turn order, First Shot, bonus attacks, mitigation, dodge). Its own shots always use all of it.
+   * rangedModAgilityShare 1 = current rules, 0.5 = half, 0 = shots only (`rangedModShotsOnly: true` is the same as 0).
+   */
+  dex?: { rangedModShotsOnly?: boolean; rangedModAgilityShare?: number };
   round: {
     /**
      * Owner decision D-19 (2026-10-19): when turn `turnLimit` has been fully played and both fighters still stand,
