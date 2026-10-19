@@ -72,6 +72,15 @@ To add a strategy: implement the `Agent` interface in `agents.ts`, add it to `AG
 
 Results and conclusions: `docs/V2_BALANCE.md`. `tuneOne()` in `balance.ts` is the buff-only pierce grid search used for the V2 values.
 
+### V3 control baseline
+
+`npm run v3:baseline` is the paired control for V3:
+- 100 runs × 10 rounds per agent plus mirror, and a 2,000-seed round-1 mirror check;
+- confidence intervals per stage;
+- no DB.
+
+Results and findings: `docs/V3_BASELINE.md`.
+
 ## Seeds and reproducibility
 
 ```

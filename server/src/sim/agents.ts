@@ -137,8 +137,8 @@ const preferChooser = (pref: AttackMode): Chooser => (ctx) => ({
 });
 
 const expectedDamageChooser: Chooser = (ctx) => {
-  const att = ctx.state.fighters[ctx.side];
-  const def = ctx.state.fighters[ctx.side === 'player' ? 'boss' : 'player'];
+  const att = ctx.view.fighters[ctx.side];
+  const def = ctx.view.fighters[ctx.side === 'player' ? 'boss' : 'player'];
   const { mode, expected } = bestMode(att, def, ctx.options);
   return { mode, source: 'agent', reason: `Higher expected damage (${Object.entries(expected).map(([m, v]) => `${m} ${v.toFixed(2)}`).join(' vs ')})` };
 };

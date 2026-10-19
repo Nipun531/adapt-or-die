@@ -20,7 +20,8 @@
     "ml:status": "tsx src/ml/cli.ts status",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "v3:baseline": "tsx src/sim/v3-baseline-cli.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

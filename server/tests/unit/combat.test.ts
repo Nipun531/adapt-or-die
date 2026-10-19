@@ -184,3 +184,29 @@ describe('reproducibility and pause/resume', () => {
     expect(() => advanceCombat(first.state, waiting, { provided: { side: 'player', mode: 'unarmed' } })).toThrow();
   });
 });
+
+describe('chooser information symmetry (V3 Phase A)', () => {
+  it('choosers see only public combat state — no RNG state, seed or opponent repeat setting', () => {
+    const seen: object[] = [];
+    const spy: Chooser = (c) => { seen.push(c.view); return { mode: 'melee', source: 'agent' }; };
+    const p = fighter('player', { hand1: 'bow', hand2: 'sword' });
+    const b = fighter('boss', { hand1: 'bow', hand2: 'sword' });
+    const state = startCombat(p, b, 11);
+    state.autoMode.player = 'ranged'; // a human's hidden "repeat" setting must not leak to the boss
+    advanceCombat(state, { player: spy, boss: spy });
+    expect(seen.length).toBeGreaterThan(0);
+    for (const v of seen) {
+      expect(Object.keys(v).sort()).toEqual(['fighters', 'hp', 'initiative', 'seq']);
+      const json = JSON.stringify(v);
+      expect(json).not.toContain('rngState');
+      expect(json).not.toContain('autoMode');
+    }
+  });
+  it('combat stays deterministic with the redacted view (same seed → same events)', () => {
+    const p = fighter('player', { hand1: 'bow', hand2: 'sword' });
+    const b = fighter('boss', { hand1: 'spear' });
+    const a = runFullCombat(p, b, 99, choosers).events.map((e) => [e.attacker, e.mode, e.damage]);
+    const c = runFullCombat(p, b, 99, choosers).events.map((e) => [e.attacker, e.mode, e.damage]);
+    expect(a).toEqual(c);
+  });
+});

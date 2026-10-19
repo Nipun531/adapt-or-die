@@ -99,6 +99,8 @@ Purpose of every project file, and where to make common changes. Keep this in sy
 | `src/dev-testdb.ts` | `npm run dev:testdb` (launch config `api-testdb`): the API on the **test** DB, for click-testing without touching dev data. |
 | `src/sim/balance.ts` | Balance harness: in-memory runs vs the real boss, weapon matrix, pierce tuning, item-override experiments. |
 | `src/sim/balance-cli.ts` | `npm run balance` — full balance study → `artifacts/balance/report.{md,json}`. |
+| `src/sim/v3-baseline.ts` | V3 Phase A: V2 control-baseline metrics (per agent/stage, run-level bootstrap and Wilson CIs, comeback, snowball, build entropy, mirror round-1 check). |
+| `src/sim/v3-baseline-cli.ts` | `npm run v3:baseline` → `artifacts/balance/v3-baseline-*.json` (no DB). |
 | `src/ml/features.ts` | Feature schema v1, label definition, transparent baseline. |
 | `src/ml/examples.ts` | Append / rebuild derived training rows. |
 | `src/ml/dataset.ts` | Dataset statistics and CSV/JSON snapshot export. |

@@ -132,8 +132,25 @@ export interface CombatState {
   pending: PendingChoice | null;
 }
 
+/**
+ * What a chooser may see: public combat information only (V3 Phase A, plan §F.1 / §D-E).
+ * Deliberately excludes the RNG state (future rolls), the seed and the opponent's "repeat" setting (autoMode),
+ * so no chooser — boss, agent or human proxy — can act on information a real player would not have.
+ */
+export interface ChooserView {
+  fighters: Readonly<Record<Side, FighterSnapshot>>;
+  hp: Readonly<Record<Side, number>>;
+  initiative: Readonly<Initiative>;
+  /** Attacks resolved so far this round. */
+  seq: number;
+}
+
+export function chooserView(state: CombatState): ChooserView {
+  return { fighters: state.fighters, hp: { ...state.hp }, initiative: state.initiative, seq: state.seq };
+}
+
 export interface ChoiceContext {
-  state: CombatState;
+  view: ChooserView;
   side: Side;
   options: AttackMode[];
   phase: AttackPhase;
@@ -351,7 +368,7 @@ export function advanceCombat(
       choice = { mode: state.autoMode[slot.attacker]!, source: 'player_auto' };
     } else {
       const res = choosers[slot.attacker]({
-        state,
+        view: chooserView(state),
         side: slot.attacker,
         options: att.derived.attackModes,
         phase: slot.phase,

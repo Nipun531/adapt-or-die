@@ -259,8 +259,8 @@ export function analyticScore(boss: FighterSnapshot, sc: Scenario): number {
 }
 
 export const bossChooser: Chooser = (ctx) => {
-  const att = ctx.state.fighters[ctx.side];
-  const def = ctx.state.fighters[ctx.side === 'boss' ? 'player' : 'boss'];
+  const att = ctx.view.fighters[ctx.side];
+  const def = ctx.view.fighters[ctx.side === 'boss' ? 'player' : 'boss'];
   const { mode, expected } = bestMode(att, def, ctx.options);
   const txt = Object.entries(expected).map(([m, v]) => `${m} ${v.toFixed(2)}`).join(' vs ');
   return { mode, source: 'boss_policy', reason: `Higher expected damage (${txt})` };

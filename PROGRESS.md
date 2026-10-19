@@ -5,6 +5,22 @@
 > Requirements/acceptance: `context/antigravity_build_prompt_the_boss_remembers.md`. Architecture/ML guidance: `context/the_boss_remembers_project_walkthrough.md`.
 > Last updated: 2026-10-17 (Version 2 complete: Phase 8 final verification). Older sections below are history.
 
+## V3 — planning (2026-10-19)
+
+V3 plan written: `docs/V3_IMPLEMENTATION_PLAN.md` (audit, requirements matrix, boss fairness, UI audit, roadmap A–F). The owner's answers are recorded in `docs/V3_DEMANDS.md`.
+
+**Phase A DONE (2026-10-19):** `docs/V3_BASELINE.md`.
+- DB backup `artifacts/backups/pre-v3-2026-10-19.sql`, verified by restore.
+- Chooser redaction (`ChooserView`), proven behaviour-identical.
+- `npm run v3:baseline`.
+- Findings:
+  - round 1 is a coin flip (equal-DEX fights are deterministic, first mover wins 100%);
+  - the round-1 winner wins the run 100% in the mirror;
+  - the boss plays hybrid in 94–100% of late rounds.
+- Tests: 167 server + 5 client.
+
+**Next: Phase B** (combat foundation: RuleSet v2/v3, block/dodge/counter/stun/stims in the pure engine).
+
 ## 0. Version 2 — Phase 8 final verification DONE (2026-10-17) — start here
 
 Handoff: `docs/HANDOFF.md`. Detailed V2 log: §1a below.
