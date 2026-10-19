@@ -111,9 +111,14 @@ export function dodgeDelta(defenderDex: number, attackerDex: number): number {
   return Math.max(0, defenderDex - attackerDex);
 }
 
-/** Dodge chance = min(cap, perDexPoint × dodge delta). Owner: 2% per DEX point, cap 70%. */
-export function dodgeChance(delta: number, perDexPoint: number, cap: number): number {
-  return Math.min(cap, perDexPoint * Math.max(0, delta));
+/** Dodge chance = min(cap, base + perDexPoint × dodge delta). Owner: 2% per DEX point, cap 70%, base 0. */
+export function dodgeChance(delta: number, perDexPoint: number, cap: number, base = 0, signed = false): number {
+  return Math.min(cap, Math.max(0, base + perDexPoint * (signed ? delta : Math.max(0, delta))));
+}
+
+/** Percentage DEX lead = 100 × (defender / attacker − 1), floored at 0 (harness experiment, see rules.ts). */
+export function dodgeDeltaPercent(defenderDex: number, attackerDex: number): number {
+  return Math.max(0, 100 * (defenderDex / attackerDex - 1));
 }
 
 /** Block chance = min(cap, defFactor × DEF + Σ gear block bonus), never below 0. Owner: 0.5 × DEF (as %), cap 70%. */
@@ -140,9 +145,9 @@ export function dodgeCounterChance(delta: number, weaponMod: number, cap: number
   return Math.min(cap, Math.max(0, delta / 100 + weaponMod));
 }
 
-/** Stun gain of one hit = base + span × min(1, shaved + mitigation roll + weapon stun boost) — 10..20 (owner Q-2). */
-export function stunGain(shaved: number, mitigationRoll: number, stunBoost: number, base: number, span: number): number {
-  return base + span * Math.min(1, Math.max(0, shaved + mitigationRoll + stunBoost));
+/** Stun gain of one hit = base + span × min(sumCap, shaved + mitigation roll + weapon stun boost) — 10..20 (owner Q-2). */
+export function stunGain(shaved: number, mitigationRoll: number, stunBoost: number, base: number, span: number, sumCap = 1): number {
+  return base + span * Math.min(sumCap, Math.max(0, shaved + mitigationRoll + stunBoost));
 }
 
 /** A blocked hit is "very heavy" when its would-be damage reaches `fraction` of the blocker's max HP. */

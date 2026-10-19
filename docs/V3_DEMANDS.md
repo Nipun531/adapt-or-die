@@ -203,3 +203,18 @@ Details fixed while building. Each is consistent with the decisions above; they 
   - DEX dodger (Pike) vs hybrid: still 100%, because gear DEX mods multiply and the hybrid reaches about 60 DEX.
   - **Stun triggered 0.00 times per round** in all three matchups.
   - Phase C1 measures all of this properly.
+
+## 12. Tuning (Phase C1, 2026-10-19) — owner asked: "stun needs revision and dodging needs buff… find a sweet spot"
+
+The evidence is in `docs/V3_BALANCE.md`: a varied random-build population with random play styles, paired fights, and a paired stun-on/off test.
+
+| Setting | Was | Now |
+|---|---|---|
+| Dodge chance (§3) | `min(70%, 2% × lead)` | **`min(70%, 10% + 2% × lead)`** (lead = defender effDex − attacker effDex, floored at 0) |
+| Stun gain per landed hit (§5) | `10 + 10 × min(1, sum)` | **`17.5 + 17.5 × min(1, sum)`**, i.e. 17.5–35 per hit |
+
+Everything else in §2–§6 is unchanged.
+
+**[OPEN D-19] Round stall.** Two hopeless ranged builds (effective DEX 1) can block each other forever; it happened 1–3 times per 30,000 late fights.
+- Proposal: after turn 30, the fighter with the higher HP share wins.
+- Until decided, the engine's safety guard ends such a round with an error.

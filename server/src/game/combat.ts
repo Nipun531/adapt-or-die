@@ -47,6 +47,7 @@ import {
   dodgeChance,
   dodgeCounterChance,
   dodgeDelta,
+  dodgeDeltaPercent,
   finalDamage,
   isHeavyHit,
   mitigationRollFromUniform,
@@ -557,9 +558,17 @@ export function blockChanceFor(def: FighterSnapshot, rules: RuleSet): number {
   return blockChance(d, gear, cfg.defFactor, cfg.cap);
 }
 
+/** Dodge delta under the rule set's delta definition (DEX points by default). */
+export function dodgeDeltaFor(def: FighterSnapshot, att: FighterSnapshot, rules: RuleSet): number {
+  const mode = rules.v3!.dodge.delta;
+  if (mode === 'percent') return dodgeDeltaPercent(def.derived.effDex, att.derived.effDex);
+  if (mode === 'signed') return def.derived.effDex - att.derived.effDex;
+  return dodgeDelta(def.derived.effDex, att.derived.effDex);
+}
+
 export function dodgeChanceFor(def: FighterSnapshot, att: FighterSnapshot, rules: RuleSet): number {
   const cfg = rules.v3!.dodge;
-  return dodgeChance(dodgeDelta(def.derived.effDex, att.derived.effDex), cfg.perDexPoint, cfg.cap);
+  return dodgeChance(dodgeDeltaFor(def, att, rules), cfg.perDexPoint, cfg.cap, cfg.base, cfg.delta === 'signed');
 }
 
 /** Dodge-counter modifier of the defender's melee weapon (0 = no dodge counter). */
@@ -576,7 +585,7 @@ export function defenseOdds(att: FighterSnapshot, def: FighterSnapshot, mode: At
   const melee = mode !== 'ranged';
   const cMode = counterMode(def);
   const mod = dodgeCounterMod(def, rules);
-  const delta = dodgeDelta(def.derived.effDex, att.derived.effDex);
+  const delta = dodgeDeltaFor(def, att, rules);
   return {
     block: { chance: blockChanceFor(def, rules), counterPossible: melee && cMode !== null, heavy: isHeavyHit(est.finalDamage, def.derived.maxHp, cfg.stun.heavyBlockFraction) },
     dodge: {
@@ -846,7 +855,7 @@ function resolveExchange(state: CombatState, slot: Slot, incoming: Incoming, def
   const shaved = attackShavedOff(calc.attackValue, would);
   const attWeapon = incoming.weaponId;
   const boost = attWeapon ? item(attWeapon).combat?.stunBoost ?? 0 : 0;
-  const gain = stunGain(shaved, calc.mitigationRoll, boost, cfg.stun.base, cfg.stun.span);
+  const gain = stunGain(shaved, calc.mitigationRoll, cfg.stun.boostScale * boost, cfg.stun.base, cfg.stun.span, cfg.stun.sumCap);
 
   let result: DefenseResult;
   if (!defense) {
@@ -863,7 +872,7 @@ function resolveExchange(state: CombatState, slot: Slot, incoming: Incoming, def
     change.gains.push({ side: target, amount, cause });
     v3.stun[target] = Math.min(cfg.stun.threshold, v3.stun[target] + amount);
     let extra = 0;
-    if (v3.stun[target] >= cfg.stun.threshold && weaponId && item(weaponId).combat?.canStun) {
+    if (cfg.stun.trigger && v3.stun[target] >= cfg.stun.threshold && weaponId && item(weaponId).combat?.canStun) {
       extra = cfg.stun.extraDamageFraction * damageBase;
       change.triggered = { target, extraDamage: extra, weaponId };
       v3.stun[target] = 0;
@@ -903,7 +912,7 @@ function resolveExchange(state: CombatState, slot: Slot, incoming: Incoming, def
       const mod = dodgeCounterMod(def, rules);
       if (mod <= 0) result.noCounterReason = 'weapon has no dodge counter';
       else {
-        const ch = dodgeCounterChance(dodgeDelta(def.derived.effDex, att.derived.effDex), mod, cfg.counter.dodgeChanceCap);
+        const ch = dodgeCounterChance(dodgeDeltaFor(def, att, rules), mod, cfg.counter.dodgeChanceCap);
         result.counter = { type: 'dodge', chance: ch, roll: uCounter, success: uCounter < ch };
         if (result.counter.success) counterKind = 'dodge';
       }

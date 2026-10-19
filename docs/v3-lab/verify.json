@@ -1,0 +1,3 @@
+[
+  { "name": "Owner original (dodge base 0, stun 10-20)", "patch": { "dodge": { "base": 0 }, "stun": { "base": 10, "span": 10 } } }
+]

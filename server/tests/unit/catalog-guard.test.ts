@@ -1,6 +1,6 @@
 /**
  * AC-CAT-2: item ids and costs live in the catalogue, not scattered through the code.
- * Allowed exceptions: the catalogues themselves, tests, the scripted simulation agents and balance harness
+ * Allowed exceptions: the catalogues themselves, tests, the scripted simulation agents, the balance harness and the V3 mechanics lab
  * (their wishlists ARE item choices), and the frozen policy-v1 rollback path in boss/policy.ts (buildScenarios).
  */
 import fs from 'node:fs';
@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { ITEMS, ITEMS_V1 } from '../../src/game/catalog.js';
 
 const ROOTS = [path.resolve(__dirname, '../../src'), path.resolve(__dirname, '../../../client/src')];
-const ALLOWED = [/[\\/]catalogs[\\/]/, /\.test\.tsx?$/, /[\\/]sim[\\/]agents\.ts$/, /[\\/]sim[\\/]balance(-cli)?\.ts$/];
+const ALLOWED = [/[\\/]catalogs[\\/]/, /\.test\.tsx?$/, /[\\/]sim[\\/]agents\.ts$/, /[\\/]sim[\\/]balance(-cli)?\.ts$/, /[\\/]sim[\\/]v3-lab(-cli)?\.ts$/];
 const V1_ROLLBACK = /[\\/]boss[\\/]policy\.ts$/;
 const FAMILY_WORDS = new Set(['bow', 'shield', 'armour']); // also family names, allowed as such
 

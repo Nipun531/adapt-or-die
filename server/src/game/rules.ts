@@ -26,8 +26,13 @@ export interface DexBenefits {
 }
 
 export interface V3Combat {
-  /** Dodge chance = min(cap, perDexPoint × max(0, defender effDex − attacker effDex)). Owner: 2% per point, cap 70%. */
-  dodge: { perDexPoint: number; cap: number };
+  /**
+   * Dodge chance = min(cap, base + perDexPoint × delta). Owner: 2% per point, cap 70% (base 0).
+   * delta: 'points' = defender effDex − attacker effDex, floored at 0 (owner rule); 'signed' = the same difference
+   * without the floor (a slower defender dodges below the base); 'percent' = 100 × (defender/attacker − 1), floored
+   * (harness experiment). The chance is always clamped to 0..cap.
+   */
+  dodge: { perDexPoint: number; cap: number; base: number; delta: 'points' | 'signed' | 'percent' };
   /**
    * Block chance = min(cap, defFactor × D + Σ equipped blockBonus). D = the DEF stat ('raw') or Net DEF ('net').
    * Owner: 0.5 × DEF (as %), cap 70%, simulate both D readings (default 'raw').
@@ -46,13 +51,20 @@ export interface V3Combat {
   };
   stun: {
     threshold: number;
-    /** Gain per landed hit = base + span × min(1, shaved + mitigation roll + weapon stun boost) (owner Q-2). */
+    /**
+     * Gain per landed hit = base + span × min(sumCap, shaved + mitigation roll + boostScale × weapon stun boost)
+     * (owner Q-2: base 10, span 10, sumCap 1, boostScale 1).
+     */
     base: number;
     span: number;
+    sumCap: number;
+    boostScale: number;
     /** A blocked hit adds stun to the blocker when its would-be damage ≥ this share of the blocker's max HP. DEFAULT, provisional. */
     heavyBlockFraction: number;
     /** Extra damage on a successful stun = this share of the stunning hit's damage. DEFAULT, provisional. */
     extraDamageFraction: number;
+    /** Harness switch: false = meters fill but never trigger (paired "what does stun change?" measurement). */
+    trigger: boolean;
   };
   stim: {
     /** Heal = (base + perUpgrade × effectiveness upgrades) × max HP, never above max HP. Owner: 20%. */
@@ -73,11 +85,17 @@ const ALL_DEX: DexBenefits = { mitigation: true, bonusAttacks: true, turnOrder: 
 
 export const RULES_V2: RuleSet = Object.freeze({ id: 'v2', dexBenefits: ALL_DEX, v3: null });
 
+/**
+ * Tuned 2026-10-19 (owner asked for a stun revision and a dodge buff; docs/V3_BALANCE.md "sweet spot"):
+ *  - dodge base 0 → 0.10 (everyone has a dodge option; the DEX lead still adds 2% per point),
+ *  - stun gain base/span 10/10 → 17.5/17.5 (per landed hit 17.5–35 instead of 10–20).
+ * Owner's original values: dodge base 0; stun base 10, span 10.
+ */
 export const V3_COMBAT: V3Combat = Object.freeze({
-  dodge: { perDexPoint: 0.02, cap: 0.7 },
+  dodge: { perDexPoint: 0.02, cap: 0.7, base: 0.1, delta: 'points' },
   block: { defFactor: 0.005, defSource: 'raw', cap: 0.7 },
   counter: { blockMultiplier: 1.5, dodgeMultiplier: 0.75, blockChanceCap: 0.7, dodgeChanceCap: 0.7, blockCounterStun: 20 },
-  stun: { threshold: 100, base: 10, span: 10, heavyBlockFraction: 0.25, extraDamageFraction: 0.25 },
+  stun: { threshold: 100, base: 17.5, span: 17.5, sumCap: 1, boostScale: 1, heavyBlockFraction: 0.25, extraDamageFraction: 0.25, trigger: true },
   stim: { healBase: 0.2, healPerUpgrade: 0.05 },
 }) as V3Combat;
 

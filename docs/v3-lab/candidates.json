@@ -1,0 +1,7 @@
+[
+  { "name": "A dodge base10+2%/pt (stun default)", "patch": { "dodge": { "base": 0.1, "perDexPoint": 0.02, "delta": "points" } } },
+  { "name": "B dodge A + stun x1.5 boost x3", "patch": { "dodge": { "base": 0.1, "perDexPoint": 0.02, "delta": "points" }, "stun": { "base": 15, "span": 15, "boostScale": 3, "sumCap": 1.5, "extraDamageFraction": 0.25 } } },
+  { "name": "C dodge A + stun x1.75", "patch": { "dodge": { "base": 0.1, "perDexPoint": 0.02, "delta": "points" }, "stun": { "base": 17.5, "span": 17.5, "boostScale": 1, "sumCap": 1, "extraDamageFraction": 0.25 } } },
+  { "name": "D dodge A + stun x2 extra 0.5", "patch": { "dodge": { "base": 0.1, "perDexPoint": 0.02, "delta": "points" }, "stun": { "base": 20, "span": 20, "boostScale": 1, "sumCap": 1, "extraDamageFraction": 0.5 } } },
+  { "name": "E dodge signed base20+1%/pt + stun x1.5 boost x3", "patch": { "dodge": { "base": 0.2, "perDexPoint": 0.01, "delta": "signed" }, "stun": { "base": 15, "span": 15, "boostScale": 3, "sumCap": 1.5, "extraDamageFraction": 0.25 } } }
+]

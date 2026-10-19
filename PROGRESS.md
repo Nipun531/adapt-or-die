@@ -25,7 +25,14 @@ V3 plan written: `docs/V3_IMPLEMENTATION_PLAN.md` (audit, requirements matrix, b
 - Not live: no DB/API yet.
 - First look: shields work; the DEX dodger fails; stun almost never triggers.
 
-**Next: Phase C1** (harness v3: shared `playRound`, V3 agent policies, paired V2/V3 runs, DEX ablation, mechanic shares).
+**Phase C1 part 1 DONE (2026-10-19):** stun and dodge tuned (`docs/V3_BALANCE.md`), using `npm run v3:lab` on random builds × random play styles, with paired fights and 3 populations.
+- Dodge = 10% base + 2% per DEX point of lead.
+- Stun gain = 17.5–35 per hit.
+- Stun now changes the holder's win rate by +3–4 pp, with chains under 5%.
+- Open: D-19 (round stall rule).
+- Tests: 164 unit pass.
+
+**Next:** the rest of C1 (shared `playRound`, V3 policies for the run agents and the boss, paired V2/V3 runs vs the boss, DEX ablation).
 
 ## 0. Version 2 — Phase 8 final verification DONE (2026-10-17) — start here
 
