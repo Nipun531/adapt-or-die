@@ -6,7 +6,8 @@
 import { itemForHistory, requireItem } from '../game/catalog.js';
 import { ENGINE_VERSION, INITIAL_STAT_POINTS } from '../game/constants.js';
 import { deriveStats } from '../game/derive.js';
-import { allocateStat, equip, loadoutProblem, purchase, RuleError } from '../game/equipment.js';
+import { allocateStat, buySupply, equip, loadoutProblem, purchase, RuleError, supplyCost, supplyProblem, type SupplyAction } from '../game/equipment.js';
+import { LIVE_RULES } from '../game/rules.js';
 import { xpToNextLevel } from '../game/formulas.js';
 import { initialCombatant } from '../game/progression.js';
 import { freshSeed } from '../game/rng.js';
@@ -53,9 +54,9 @@ export async function createRun(db: Db, opts: CreateRunOptions = {}): Promise<nu
 
 async function insertCombatant(db: Db, runId: number, s: CombatantState) {
   await db.query(
-    `INSERT INTO combatants (run_id, side, level, xp, gold, stat_points, stats, inventory, loadout)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-    [runId, s.side, s.level, s.xp, s.gold, s.statPoints, s.stats, JSON.stringify(s.inventory), s.loadout],
+    `INSERT INTO combatants (run_id, side, level, xp, gold, stat_points, stats, inventory, loadout, supplies)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    [runId, s.side, s.level, s.xp, s.gold, s.statPoints, s.stats, JSON.stringify(s.inventory), s.loadout, s.supplies ? JSON.stringify(s.supplies) : null],
   );
 }
 
@@ -67,9 +68,9 @@ export async function loadCombatant(db: Db, runId: number, side: Side, forUpdate
 
 export async function saveCombatant(db: Db, runId: number, s: CombatantState) {
   await db.query(
-    `UPDATE combatants SET level=$3, xp=$4, gold=$5, stat_points=$6, stats=$7, inventory=$8, loadout=$9, updated_at=now()
+    `UPDATE combatants SET level=$3, xp=$4, gold=$5, stat_points=$6, stats=$7, inventory=$8, loadout=$9, supplies=$10, updated_at=now()
      WHERE run_id=$1 AND side=$2`,
-    [runId, s.side, s.level, s.xp, s.gold, s.statPoints, s.stats, JSON.stringify(s.inventory), s.loadout],
+    [runId, s.side, s.level, s.xp, s.gold, s.statPoints, s.stats, JSON.stringify(s.inventory), s.loadout, s.supplies ? JSON.stringify(s.supplies) : null],
   );
 }
 
@@ -168,6 +169,27 @@ export async function previewBuild(db: Db, runId: number, req: { allocation?: Pa
   };
 }
 
+/** Progression-ledger kind of each supply action. */
+export const SUPPLY_LEDGER_KIND: Record<SupplyAction, string> = {
+  buy_stim: 'stim_purchase',
+  upgrade_slots: 'stim_slot_upgrade',
+  upgrade_effectiveness: 'stim_effectiveness_upgrade',
+};
+
+/** Buy a healing stim or a stim upgrade (V3; docs/V3_DEMANDS.md §6). Between rounds only, like every purchase. */
+export async function buySupplies(runId: number, action: SupplyAction, actor: Actor = 'player', db?: Db) {
+  const fn = async (c: Db) => {
+    await lockRunForPrep(c, runId);
+    const before = await loadCombatant(c, runId, 'player', true);
+    const cost = supplyCost(before, action);
+    const s = buySupply(before, action);
+    await saveCombatant(c, runId, s);
+    await logProgression(c, { runId, side: 'player', kind: SUPPLY_LEDGER_KIND[action], actor, payload: { action, cost }, stateAfter: s });
+    return s;
+  };
+  return db ? fn(db) : withTransaction(fn);
+}
+
 export async function setLoadout(runId: number, loadout: Loadout, actor: Actor = 'player', db?: Db) {
   const fn = async (c: Db) => {
     await lockRunForPrep(c, runId);
@@ -189,7 +211,14 @@ export async function endRun(runId: number) {
 /** Combatant state plus derived combat numbers and XP progress, for the UI. */
 export function presentCombatant(s: CombatantState, engineVersion: string = ENGINE_VERSION) {
   const lookup = (id: string) => itemForHistory(id, engineVersion); // older runs resolve their own catalogue
-  return { ...s, derived: deriveStats(s.stats, s.loadout, lookup), xpToNext: xpToNextLevel(s.level) };
+  // V3: stim prices, why an action is not possible right now, and the current heal size — all from the rules.
+  const supplyInfo = s.supplies && LIVE_RULES.v3
+    ? {
+      healFraction: LIVE_RULES.v3.stim.healBase + LIVE_RULES.v3.stim.healPerUpgrade * s.supplies.effectiveness,
+      actions: Object.fromEntries((['buy_stim', 'upgrade_slots', 'upgrade_effectiveness'] as SupplyAction[]).map((a) => [a, { cost: supplyCost(s, a), problem: supplyProblem(s, a) }])),
+    }
+    : null;
+  return { ...s, derived: deriveStats(s.stats, s.loadout, lookup), xpToNext: xpToNextLevel(s.level), supplyInfo };
 }
 
 export async function getRunView(db: Db, runId: number) {

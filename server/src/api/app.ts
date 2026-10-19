@@ -22,7 +22,8 @@ import { exportDataset } from '../ml/dataset.js';
 import { buildMissingExamples } from '../ml/examples.js';
 import { activateModel, deactivateModels, listModels, MlError, mlStatus, trainModel } from '../ml/training.js';
 import { getRoundDetail, startRound, submitChoice } from '../services/rounds.js';
-import { allocate, buy, buyAndEquip, createRun, endRun, getRunView, listRuns, NotFoundError, previewBuild, setLoadout } from '../services/runs.js';
+import { LIVE_RULES } from '../game/rules.js';
+import { allocate, buy, buyAndEquip, buySupplies, createRun, endRun, getRunView, listRuns, NotFoundError, previewBuild, setLoadout } from '../services/runs.js';
 import { AGENTS, SIMULATOR_VERSION } from '../sim/agents.js';
 import { BATCH_LIMITS, createBatch, executeBatch, getBatch, listBatches, normalizeConfig } from '../sim/runner.js';
 
@@ -51,7 +52,14 @@ const schemas = {
   createRun: z.object({ maxRounds: z.number().int().min(1).max(100).optional(), seed: z.string().min(1).max(100).optional() }).strict(),
   allocate: z.object({ stat: z.enum(STAT_KEYS as [string, ...string[]]), points: z.number().int().positive() }).strict(),
   loadout: z.object({ hand1: slot, hand2: slot, armour: slot }).strict(),
-  choice: z.object({ mode: z.enum(['melee', 'ranged', 'unarmed']), repeat: z.boolean().optional() }).strict(),
+  // Exactly one of mode / defense / stim (it must match the pending decision; the engine re-checks).
+  choice: z.object({
+    mode: z.enum(['melee', 'ranged', 'unarmed']).optional(),
+    repeat: z.boolean().optional(),
+    defense: z.enum(['block', 'dodge']).optional(),
+    stim: z.boolean().optional(),
+  }).strict().refine((b) => [b.mode, b.defense, b.stim].filter((x) => x !== undefined).length === 1, 'Send exactly one of mode, defense or stim'),
+  supplies: z.object({ action: z.enum(['buy_stim', 'upgrade_slots', 'upgrade_effectiveness']) }).strict(),
   simulation: z.object({
     runs: z.number().int().min(1).max(BATCH_LIMITS.maxRuns),
     maxRounds: z.number().int().min(1).max(BATCH_LIMITS.maxRounds),
@@ -92,6 +100,9 @@ export function createApp() {
       xpCurve: Array.from({ length: 10 }, (_, i) => ({ level: i + 1, xpToNext: xpToNextLevel(i + 1) })),
       dexBonusThresholds: C.DEX_BONUS_THRESHOLDS, mitigationRoll: [C.MITIGATION_ROLL_MIN, C.MITIGATION_ROLL_MAX],
       defaultMaxRounds: env.defaultMaxRounds,
+      startingGold: C.STARTING_GOLD,
+      /** V3 combat numbers (block/dodge/counter/stun/stims/turn limit) for help text; null under a pre-V3 engine. */
+      combat: LIVE_RULES.v3,
     },
   })));
 
@@ -122,6 +133,10 @@ export function createApp() {
     else await buy(idParam(req), b.itemId);
     return getRunView(getPool(), idParam(req));
   }));
+  app.post('/api/runs/:id/supplies', h(async (req) => {
+    await buySupplies(idParam(req), schemas.supplies.parse(req.body).action);
+    return getRunView(getPool(), idParam(req));
+  }));
   app.post('/api/runs/:id/loadout', h(async (req) => {
     await setLoadout(idParam(req), schemas.loadout.parse(req.body));
     return getRunView(getPool(), idParam(req));
@@ -138,7 +153,7 @@ export function createApp() {
   app.get('/api/rounds/:id', h(async (req) => getRoundDetail(getPool(), idParam(req))));
   app.post('/api/rounds/:id/choice', h(async (req) => {
     const b = schemas.choice.parse(req.body);
-    await submitChoice(idParam(req), b.mode, b.repeat ?? false);
+    await submitChoice(idParam(req), b);
     return getRoundDetail(getPool(), idParam(req));
   }));
 

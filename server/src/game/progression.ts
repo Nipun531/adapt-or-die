@@ -11,6 +11,7 @@ import {
   GOLD_WIN,
   LEVEL_UP_INCREASE,
   STARTING_GOLD,
+  STIM_BASE_SLOTS,
   STAT_POINTS_PER_LEVEL,
   XP_LOSS,
   XP_WIN,
@@ -28,6 +29,7 @@ export function initialCombatant(side: Side): CombatantState {
     stats: { ...BASE_STATS },
     inventory: [],
     loadout: { hand1: null, hand2: null, armour: null },
+    supplies: { stims: 0, slots: STIM_BASE_SLOTS, effectiveness: 0 },
   };
 }
 

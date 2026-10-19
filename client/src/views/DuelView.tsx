@@ -4,7 +4,7 @@
  * primary action per phase in the action bar.
  */
 import { useEffect, useState } from 'react';
-import { api, type AttackMode, type RoundDetail, type RunView } from '../api';
+import { api, type RoundDetail, type RunView, type PlayerAnswer } from '../api';
 import { Aftermath } from '../duel/Aftermath';
 import { Armory } from '../duel/Armory';
 import { Fight } from '../duel/Fight';
@@ -33,7 +33,7 @@ function StartScreen({ go }: { go: (hash: string) => void }) {
     <div className="start">
       <section className="start-hero">
         <h1>The Boss Remembers</h1>
-        <p>A duel over many rounds. You and the boss start from the same cards: level 1, no gold, no gear, two stat points each. Win or lose, both of you earn XP and gold, level up and re-arm. The boss studies every fight and adapts under exactly the same rules.</p>
+        <p>A duel over many rounds. You and the boss start from the same cards: level 1, 10 gold, no gear, two stat points each. Win or lose, both of you earn XP and gold, level up and re-arm. The boss studies every fight and adapts under exactly the same rules.</p>
         <div className="start-form">
           <label>Rounds in this run
             <input type="number" min={1} max={100} value={maxRounds} onChange={(e) => setMaxRounds(Number(e.target.value))} />
@@ -107,9 +107,9 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
-  const choose = async (mode: AttackMode, repeat: boolean) => {
+  const choose = async (a: PlayerAnswer) => {
     if (!round) return;
-    const d = await act.run(() => api.choose(round.round.id, mode, repeat));
+    const d = await act.run(() => api.answer(round.round.id, a));
     if (d) {
       setRound(d);
       if (d.round.status === 'completed') await run.reload();

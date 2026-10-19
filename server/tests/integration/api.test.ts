@@ -19,6 +19,19 @@ afterAll(async () => {
   await closePool();
 });
 
+/** Answer every pending decision of a round over HTTP (block, use stims, first mode) until it is completed. */
+async function answerAll(detail: any): Promise<any> {
+  let d = detail;
+  for (let i = 0; i < 2000 && d.round.status === 'in_progress'; i++) {
+    const p = d.round.pending_choice;
+    const body = p.kind === 'defense' ? { defense: 'block' } : p.kind === 'stim' ? { stim: true } : { mode: p.options[0] };
+    const res = await request(app).post(`/api/rounds/${d.round.id}/choice`).send(body);
+    expect(res.status).toBe(200);
+    d = res.body;
+  }
+  return d;
+}
+
 describe('basic endpoints', () => {
   it('health and catalog', async () => {
     const hres = await request(app).get('/api/health');
@@ -37,7 +50,7 @@ describe('basic endpoints', () => {
     expect((await request(app).get('/api/nope')).status).toBe(404);
     const run = (await request(app).post('/api/runs').send({ maxRounds: 3, seed: 'api-1' })).body;
     const id = run.run.id;
-    expect(run.player.gold).toBe(0);
+    expect(run.player.gold).toBe(10); // V3 starting gold
     expect(run.player.statPoints).toBe(2);
     expect((await request(app).post(`/api/runs/${id}/allocate`).send({ stat: 'str', points: 3 })).body.error).toMatch(/Not enough stat points/);
     expect((await request(app).post(`/api/runs/${id}/allocate`).send({ stat: 'str', points: -1 })).status).toBe(400);
@@ -55,8 +68,9 @@ describe('manual play over HTTP', () => {
     const id = (await request(app).post('/api/runs').send({ maxRounds: 3, seed: 'api-play' })).body.run.id;
     await request(app).post(`/api/runs/${id}/allocate`).send({ stat: 'dex', points: 2 });
     for (let n = 1; n <= 3; n++) {
-      const r = await request(app).post(`/api/runs/${id}/rounds`);
-      expect(r.status).toBe(200);
+      const start = await request(app).post(`/api/runs/${id}/rounds`);
+      expect(start.status).toBe(200);
+      const r = { body: await answerAll(start.body) };
       expect(r.body.round.round_number).toBe(n);
       expect(r.body.round.status).toBe('completed');
       expect(r.body.events.length).toBeGreaterThan(0);
@@ -88,12 +102,23 @@ describe('manual play over HTTP', () => {
     await request(app).post(`/api/runs/${id}/buy`).send({ itemId: 'bow' });
     await request(app).post(`/api/runs/${id}/buy`).send({ itemId: 'sword' });
     await request(app).post(`/api/runs/${id}/loadout`).send({ hand1: 'bow', hand2: 'sword', armour: null });
-    const r = (await request(app).post(`/api/runs/${id}/rounds`)).body;
+    let r = (await request(app).post(`/api/runs/${id}/rounds`)).body;
     expect(r.round.status).toBe('in_progress');
-    expect(r.round.pending_choice.options).toEqual(['ranged', 'melee']);
     expect((await request(app).post(`/api/runs/${id}/buy`).send({ itemId: 'knuckle' })).body.error).toMatch(/in progress/);
-    expect((await request(app).post(`/api/rounds/${r.round.id}/choice`).send({ mode: 'unarmed' })).status).toBe(400);
-    const done = (await request(app).post(`/api/rounds/${r.round.id}/choice`).send({ mode: 'ranged', repeat: true })).body;
+    // Answer Block until the first Ranged/Melee prompt, then check the prompt's validation.
+    while (r.round.pending_choice?.kind === 'defense') {
+      expect(r.round.pending_choice.incoming.attacker).toBe('boss');
+      expect(r.round.pending_choice.options).toEqual(['block', 'dodge']);
+      expect((await request(app).post(`/api/rounds/${r.round.id}/choice`).send({ mode: 'melee' })).status).toBe(400); // wrong kind
+      expect((await request(app).post(`/api/rounds/${r.round.id}/choice`).send({ defense: 'block', mode: 'melee' })).status).toBe(400); // two answers
+      r = (await request(app).post(`/api/rounds/${r.round.id}/choice`).send({ defense: 'block' })).body;
+    }
+    if (r.round.status === 'in_progress') {
+      expect(r.round.pending_choice).toMatchObject({ kind: 'attack_mode', options: ['ranged', 'melee'] });
+      expect((await request(app).post(`/api/rounds/${r.round.id}/choice`).send({ mode: 'unarmed' })).status).toBe(400);
+      r = (await request(app).post(`/api/rounds/${r.round.id}/choice`).send({ mode: 'ranged', repeat: true })).body;
+    }
+    const done = await answerAll(r);
     expect(done.round.status).toBe('completed');
   });
 });

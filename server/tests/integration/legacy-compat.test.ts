@@ -12,7 +12,7 @@ import { closePool, getPool } from '../../src/db/pool.js';
 import { buildMissingExamples } from '../../src/ml/examples.js';
 import { stopInferenceWorker } from '../../src/ml/predictor.js';
 import { startRound } from '../../src/services/rounds.js';
-import { createReadyRun, resetTables, useTestDatabase } from '../helpers/db.js';
+import { createReadyRun, resetTables, useTestDatabase, playRound } from '../helpers/db.js';
 
 const app = createApp();
 
@@ -26,8 +26,8 @@ afterAll(async () => {
 /** Play two rounds under the live engine, then relabel the run as an engine-1.1.0 run holding a V1-only Axe. */
 async function legacyRun(): Promise<{ runId: number; roundId: number }> {
   const runId = await createReadyRun({ seed: 'legacy-1' });
-  await startRound(runId);
-  await startRound(runId);
+  await playRound(runId);
+  await playRound(runId);
   const db = getPool();
   // TEST FIXTURE: stand-in for a historical engine-1.1.0 run (V1 Axe owned and equipped, also in a round snapshot).
   await db.query(`UPDATE runs SET engine_version = '1.1.0' WHERE id = $1`, [runId]);

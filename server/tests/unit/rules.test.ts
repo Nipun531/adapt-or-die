@@ -4,8 +4,8 @@
  * If a test here fails after a rule change, update docs/GAME_MECHANICS.md together with the test.
  */
 import { describe, expect, it } from 'vitest';
-import { ITEMS, ITEMS_V1, catalogFor, cheapestCost, getItem, itemForHistory } from '../../src/game/catalog.js';
-import { BASE_STATS, ENGINE_VERSION, GOLD_LEVEL_UP, GOLD_LOSS, GOLD_WIN, INITIAL_STAT_POINTS, LEVEL_UP_INCREASE, STAT_ALLOCATION_INCREASE, XP_LOSS, XP_WIN } from '../../src/game/constants.js';
+import { ITEMS, ITEMS_V1, ITEMS_V2, catalogFor, cheapestCost, getItem, itemForHistory } from '../../src/game/catalog.js';
+import { BASE_STATS, ENGINE_VERSION, GOLD_LEVEL_UP, GOLD_LOSS, GOLD_WIN, INITIAL_STAT_POINTS, LEVEL_UP_INCREASE, STARTING_GOLD, STAT_ALLOCATION_INCREASE, XP_LOSS, XP_WIN } from '../../src/game/constants.js';
 import { deriveStats, attackModesFor } from '../../src/game/derive.js';
 import { allocateStat, equip, isLegalLoadout, purchase, RuleError } from '../../src/game/equipment.js';
 import {
@@ -21,7 +21,7 @@ describe('core attributes (plan §1)', () => {
   it('stat-allocation increases', () => expect(STAT_ALLOCATION_INCREASE).toEqual({ hp: 5, str: 3, def: 2, dex: 2 }));
 });
 
-describe('equipment catalogue V2 (V2_DEMANDS §2.1, engine 2.0.0)', () => {
+describe('equipment catalogue V2 (V2_DEMANDS §2.1, engine 2.0.0 — frozen for history; V3 = this + Warhammer 45, see v3-combat.test)', () => {
   // [id, display name, category, cost, STR, DEF, DEX, has pierce]  — costs and modifiers are the user's exact values.
   const table: [string, string, string, number, number, number, number, boolean][] = [
     ['knuckle', 'Knuckle', 'melee', 3, 1, 0, 2, false], ['knife', 'Knife', 'melee', 5, 2, 0, 2, false],
@@ -38,7 +38,7 @@ describe('equipment catalogue V2 (V2_DEMANDS §2.1, engine 2.0.0)', () => {
     ['small_shield', 'Small Shield', 'shield', 20, 0, 5, -2, false], ['great_shield', 'Great Shield', 'shield', 42, 1, 8, -5, false],
   ];
   it.each(table)('%s "%s" %s cost %i, STR %i, DEF %i, DEX %i, pierce %s', (id, name, category, cost, str, def, dex, pierce) => {
-    const item = getItem(id)!;
+    const item = ITEMS_V2.find((i) => i.id === id)!;
     expect(item).toMatchObject({ name, category, cost });
     expect(item.mods).toEqual({ str, def, dex });
     expect(Boolean(item.pierce)).toBe(pierce);
@@ -126,24 +126,24 @@ describe('rewards and level-ups (V2 economy)', () => {
     expect({ XP_WIN, XP_LOSS, GOLD_WIN, GOLD_LOSS, GOLD_LEVEL_UP }).toEqual({ XP_WIN: 50, XP_LOSS: 30, GOLD_WIN: 10, GOLD_LOSS: 5, GOLD_LEVEL_UP: 20 });
   });
   it('win: +50 XP +10 gold; loss: +30 XP +5 gold', () => {
-    expect(applyRoundRewards(initialCombatant('player'), true).state).toMatchObject({ xp: 50, gold: 10, level: 1 });
-    expect(applyRoundRewards(initialCombatant('boss'), false).state).toMatchObject({ xp: 30, gold: 5, level: 1 });
+    expect(applyRoundRewards(initialCombatant('player'), true).state).toMatchObject({ xp: 50, gold: STARTING_GOLD + 10, level: 1 });
+    expect(applyRoundRewards(initialCombatant('boss'), false).state).toMatchObject({ xp: 30, gold: STARTING_GOLD + 5, level: 1 });
   });
   it('a loss can now trigger a level-up (70 + 30 = 100 XP)', () => {
     const r = applyRoundRewards({ ...initialCombatant('player'), statPoints: 0, xp: 70 }, false);
-    expect(r.state).toMatchObject({ level: 2, xp: 0, gold: 25, statPoints: 1 });
+    expect(r.state).toMatchObject({ level: 2, xp: 0, gold: STARTING_GOLD + 25, statPoints: 1 });
   });
   it('level-up: automatic increases, +1 stat point, +20 gold, surplus XP carries', () => {
     // statPoints: 0 = mid-run state with the initial points already spent, so only the level-up point is counted.
     const start: CombatantState = { ...initialCombatant('player'), statPoints: 0, xp: 70 };
     const r = applyRoundRewards(start, true); // 120 XP → level 2 with 20 surplus
     expect(r.levelUps).toBe(1);
-    expect(r.state).toMatchObject({ level: 2, xp: 20, gold: 30, statPoints: 1 });
+    expect(r.state).toMatchObject({ level: 2, xp: 20, gold: STARTING_GOLD + 30, statPoints: 1 });
     expect(r.state.stats).toEqual({ hp: 105, str: 22, def: 11, dex: 11 });
   });
   it('multiple level-ups resolve in one reward', () => {
     const r = applyRoundRewards({ ...initialCombatant('player'), statPoints: 0, xp: 190 }, true); // 240 → L2 (−100) → 140 → L3 (−112) → 28
-    expect(r.state).toMatchObject({ level: 3, xp: 28, statPoints: 2, gold: 50 });
+    expect(r.state).toMatchObject({ level: 3, xp: 28, statPoints: 2, gold: STARTING_GOLD + 50 });
   });
 });
 
@@ -205,11 +205,11 @@ describe('derived stats', () => {
 });
 
 describe('initial stat points (engine 1.1.0)', () => {
-  it('both sides start level 1, 0 gold, base stats, no items and exactly 2 unallocated points', () => {
+  it('both sides start level 1, 10 gold (V3), base stats, no items, no stims and exactly 2 unallocated points', () => {
     expect(INITIAL_STAT_POINTS).toBe(2);
     for (const side of ['player', 'boss'] as const) {
       const s = initialCombatant(side);
-      expect(s).toMatchObject({ level: 1, xp: 0, gold: 0, statPoints: 2, inventory: [] });
+      expect(s).toMatchObject({ level: 1, xp: 0, gold: STARTING_GOLD, statPoints: 2, inventory: [], supplies: { stims: 0, slots: 1, effectiveness: 0 } });
       expect(s.stats).toEqual(BASE_STATS);
     }
   });

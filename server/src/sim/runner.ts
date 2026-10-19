@@ -20,7 +20,11 @@ import { ENGINE_VERSION } from '../game/constants.js';
 import { deriveSeed, Rng } from '../game/rng.js';
 import { FEATURE_SCHEMA_VERSION } from '../ml/features.js';
 import { startRound } from '../services/rounds.js';
-import { allocate, buy, createRun, loadCombatant, setLoadout } from '../services/runs.js';
+import { autoStim } from '../game/combat.js';
+import { LIVE_RULES } from '../game/rules.js';
+import { autoSupplies, SIM_SAVINGS_RESERVE } from '../game/supply-plan.js';
+import { AGENT_DEFENSE, defenseChooserFor } from './v3-policies.js';
+import { allocate, buy, buySupplies, createRun, loadCombatant, setLoadout } from '../services/runs.js';
 import { requireAgent, SIMULATOR_VERSION, STRATEGY_NAMES, type RoundOutcome } from './agents.js';
 
 export interface BatchConfig {
@@ -85,8 +89,17 @@ export async function playSimulatedRun(opts: {
         for (const a of decision.allocations) await allocate(runId, a.stat, a.points, 'agent', c);
         for (const id of decision.purchases) await buy(runId, id, 'agent', c);
         await setLoadout(runId, decision.loadout, 'agent', c);
+        // V3: leftover gold → healing stims (same heuristic as the boss), through the player's supply service.
+        if (LIVE_RULES.v3) {
+          for (const a of autoSupplies(await loadCombatant(c, runId, 'player'), SIM_SAVINGS_RESERVE).actions) await buySupplies(runId, a.action, 'agent', c);
+        }
         const chooser = agent.chooser(new Rng(deriveSeed(opts.runSeed, `agent-choice:${roundNumber}`)));
-        const roundId = await startRound(runId, { db: c, playerChooser: chooser });
+        const roundId = await startRound(runId, {
+          db: c,
+          playerChooser: chooser,
+          playerDefense: defenseChooserFor(AGENT_DEFENSE[agent.name] ?? 'smart', new Rng(deriveSeed(opts.runSeed, `agent-defense:${roundNumber}`)), LIVE_RULES),
+          playerStim: autoStim,
+        });
         const r = await c.query('SELECT status, winner, boss_snapshot, player_snapshot, player_hp_end FROM rounds WHERE id = $1', [roundId]);
         if (r.rows[0].status !== 'completed') throw new Error(`Round ${roundNumber} did not complete (agent chooser paused)`);
         const row = r.rows[0];

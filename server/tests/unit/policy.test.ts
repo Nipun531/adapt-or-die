@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Db } from '../../src/db/pool.js';
 import { snapshotOf } from '../../src/game/derive.js';
+import { requireItem } from '../../src/game/catalog.js';
 import { initialCombatant } from '../../src/game/progression.js';
 import { Rng } from '../../src/game/rng.js';
 import { summarizeCombat } from '../../src/game/summary.js';
@@ -58,12 +59,13 @@ describe('baseline semantics', () => {
 });
 
 describe('reachable-opponent scenarios', () => {
-  it('round 1: only melee, the 4 ways to spend the 2 initial points, weights sum to 1', () => {
+  it('round 1 (10 starting gold): only melee, the 4 ways to spend the 2 initial points × the affordable melee weapons', () => {
     const s = reachableScenarios(initialCombatant('player'), 0);
-    expect(s.every((x) => x.kind === 'melee')).toBe(true);
-    expect(s.map((x) => x.allocation)).toEqual([{ str: 2 }, { dex: 2 }, { def: 2 }, { hp: 2 }]);
+    expect(s.every((x) => x.kind === 'melee')).toBe(true); // no bow is affordable with 10 gold
+    expect(new Set(s.map((x) => JSON.stringify(x.allocation)))).toEqual(new Set([{ str: 2 }, { dex: 2 }, { def: 2 }, { hp: 2 }].map((a) => JSON.stringify(a))));
+    expect(s.every((x) => x.hypotheticalItems.every((id) => requireItem(id).cost <= 10))).toBe(true);
     expect(s.reduce((a, x) => a + x.weight!, 0)).toBeCloseTo(1);
-    expect(s[1].snapshot.stats.dex).toBe(14);
+    expect(s.find((x) => x.allocation?.dex)!.snapshot.stats.dex).toBe(14);
   });
   it('no hypothetical bow the player cannot afford (the old round-1 bug)', () => {
     expect(reachableScenarios(player({ gold: 10 }), 0.5).some((x) => x.kind === 'ranged')).toBe(false);
@@ -114,9 +116,11 @@ describe('choosePlan v2', () => {
   });
   it('round 1 (rule: melee only) considers the player spending their 2 points', () => {
     const r = choosePlan({ boss: initialCombatant('boss'), observedPlayer: initialCombatant('player'), pRanged: 0, seed: 'r1' });
-    expect(r.scenarios.length).toBe(4);
-    expect(r.scenarios.every((s) => s.hypotheticalItems.length === 0)).toBe(true);
-    expect(applyPlan(initialCombatant('boss'), r.selected).statPoints).toBe(0);
+    expect(new Set(r.scenarios.map((s) => JSON.stringify(s.allocation))).size).toBe(4);
+    expect(r.scenarios.every((s) => s.kind === 'melee')).toBe(true);
+    const after = applyPlan(initialCombatant('boss'), r.selected);
+    expect(after.statPoints).toBe(0);
+    expect(after.gold).toBeGreaterThanOrEqual(0);
   });
   it('v1 path still works (rollback)', () => {
     const r = choosePlan({ boss: initialCombatant('boss'), observedPlayer: initialCombatant('player'), pRanged: 0.5, seed: 'v1', version: 'v1-deterministic' });

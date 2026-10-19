@@ -57,11 +57,13 @@ export function deriveStats(stats: Stats, loadout: Loadout, lookup: ItemLookup =
 }
 
 export function snapshotOf(state: CombatantState): FighterSnapshot {
-  return {
+  const snap: FighterSnapshot = {
     side: state.side,
     level: state.level,
     stats: { ...state.stats },
     loadout: { ...state.loadout },
     derived: deriveStats(state.stats, state.loadout),
   };
+  if (state.supplies) snap.supplies = { ...state.supplies };
+  return snap;
 }

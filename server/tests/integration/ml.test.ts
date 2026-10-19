@@ -20,7 +20,7 @@ import { loadCompletedRounds } from '../../src/services/history.js';
 import { getRoundDetail, startRound } from '../../src/services/rounds.js';
 import { buy, setLoadout } from '../../src/services/runs.js';
 import { createBatch, executeBatch, normalizeConfig } from '../../src/sim/runner.js';
-import { createReadyRun, resetTables, useTestDatabase } from '../helpers/db.js';
+import { createReadyRun, resetTables, useTestDatabase, playRound } from '../helpers/db.js';
 
 const tmpArtifacts = fs.mkdtempSync(path.join(os.tmpdir(), 'boss-ml-test-'));
 const originalArtifacts = env.artifactsDir;
@@ -41,14 +41,14 @@ describe('feature leakage boundary', () => {
   it("player's round-2 preparation changes the label but not the features or the boss's decision", async () => {
     const play = async (goRanged: boolean) => {
       const runId = await createReadyRun({ seed: 'leak-seed', maxRounds: 3 });
-      await startRound(runId);
+      await playRound(runId);
       if (goRanged) {
         // TEST FIXTURE: grant gold so the player can switch to a bow before round 2.
         await getPool().query(`UPDATE combatants SET gold = gold + 20 WHERE run_id = $1 AND side = 'player'`, [runId]);
         await buy(runId, 'bow');
         await setLoadout(runId, { hand1: 'bow', hand2: null, armour: null });
       }
-      const r2 = await startRound(runId);
+      const r2 = await playRound(runId);
       const ex = (await getPool().query('SELECT * FROM training_examples WHERE run_id = $1', [runId])).rows[0];
       return { runId, ex, decision: (await getRoundDetail(getPool(), r2)).decision };
     };
@@ -98,8 +98,8 @@ describe('training pipeline', () => {
     await getPool().query('UPDATE model_versions SET eligible = true WHERE version = $1', [m.version]);
     await activateModel(getPool(), m.version);
     const runId = await createReadyRun({ seed: 'ml-use', maxRounds: 3 });
-    const r1 = await startRound(runId);
-    // Round 1: the player had 0 gold and no items → rule-determined, no model asked (V2_DEMANDS D-P0-1).
+    const r1 = await playRound(runId);
+    // Round 1: the player had 10 gold, no bow affordable → rule-determined, no model asked (V2_DEMANDS D-P0-1).
     const d1 = (await getRoundDetail(getPool(), r1)).decision;
     expect(d1.predictor).toMatchObject({ basis: 'rule', probabilityRanged: 0, modelVersion: null });
     expect(d1.selected).toMatchObject({ policyVersion: 'v2-diverse' });

@@ -72,6 +72,15 @@ To add a strategy: implement the `Agent` interface in `agents.ts`, add it to `AG
 
 Results and conclusions: `docs/V2_BALANCE.md`. `tuneOne()` in `balance.ts` is the buff-only pierce grid search used for the V2 values.
 
+### Engine 3.0.0 agents (sim-3.0.0)
+
+Every agent now:
+- defends with its persona (`sim/v3-policies.ts` `AGENT_DEFENSE`);
+- heals with the automatic stim rule;
+- spends leftover gold on stims (`game/supply-plan.ts`), keeping 15 gold saved for gear.
+
+Build logic is unchanged. After Phase C2, `--rules v2` in the harness means V2 combat on the V3 economy (10 starting gold, V3 shop). The exact V2 control is reproducible from commit `f6eb83c` and is stored in `docs/v3-baseline/`.
+
 ### V3 control baseline
 
 `npm run v3:baseline` is the paired control for V3:

@@ -6,12 +6,14 @@
 import type { Stats } from './types.js';
 
 /** Engine version — stored on every run/round so historical data can be tied to the rules that produced it. */
-export const ENGINE_VERSION = '2.0.0';
+export const ENGINE_VERSION = '3.0.0';
 /** Engine version history (rules that change data meaning):
  *  1.0.0 — original V1 rules; combatants start with 0 stat points.
  *  1.1.0 — DEVELOPER RULE (user-approved): each combatant starts a run with INITIAL_STAT_POINTS unallocated points.
  *  2.0.0 — Version 2 (docs/V2_DEMANDS.md): V2 catalogue (catalogs/v2.ts), loss reward 30 XP / 5 gold, level-up +20 gold,
- *          pierce on any weapon that has a pierce spec, only the DEX-advantaged ranged fighter gets the opening shot. */
+ *          pierce on any weapon that has a pierce spec, only the DEX-advantaged ranged fighter gets the opening shot.
+ *  3.0.0 — Version 3 (docs/V3_DEMANDS.md): RuleSet v3 combat (block/dodge, counters, stun, stims, turn limit),
+ *          V3 catalogue (catalogs/v3.ts), 10 starting gold, healing-stim economy. */
 
 /** Plan §1: starting values. */
 export const BASE_STATS: Stats = { hp: 100, str: 20, def: 10, dex: 10 };
@@ -45,8 +47,20 @@ export const GOLD_LOSS = 5;
 /** Gold awarded on each level-up. V2: 20 (V1: 25). */
 export const GOLD_LEVEL_UP = 20;
 
-/** DECISION: both combatants start with 0 gold and no equipment. */
-export const STARTING_GOLD = 0;
+/** Both combatants start with no equipment. V3 (owner, 2026-10-19): 10 starting gold (V1/V2: 0). */
+export const STARTING_GOLD = 10;
+
+/**
+ * Healing-stim economy (V3; docs/V3_DEMANDS.md §6). Owner: 10 gold buys one stim; 1 slot to start; a used stim's slot
+ * stays empty until a new stim is bought. DEFAULT (owner delegated): each upgrade costs 25, +5 per upgrade of that
+ * kind already bought; a slot upgrade adds 1 slot (max 4); an effectiveness upgrade adds +5 pp heal (max 4 → 40%).
+ */
+export const STIM_COST = 10;
+export const STIM_UPGRADE_BASE_COST = 25;
+export const STIM_UPGRADE_STEP = 5;
+export const STIM_BASE_SLOTS = 1;
+export const STIM_MAX_SLOTS = 4;
+export const STIM_MAX_EFFECTIVENESS = 4;
 
 /** Plan §3: modifier factors in Net ATK / Net DEF / Net DEX formulas. */
 export const ATK_MOD_FACTOR = 0.25;

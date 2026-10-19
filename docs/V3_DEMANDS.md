@@ -204,6 +204,22 @@ Details fixed while building. Each is consistent with the decisions above; they 
   - **Stun triggered 0.00 times per round** in all three matchups.
   - Phase C1 measures all of this properly.
 
+## 13. Phase C2 (2026-10-20) — implementation notes
+
+**What went live with engine 3.0.0:**
+- the V3 catalogue;
+- 10 starting gold;
+- the stim economy (§6);
+- V3 combat for every new run.
+
+**[DEFAULT] Stims for the boss and simulated players** (`game/supply-plan.ts`):
+- Keep one stim; upgrade only with spare gold; fill empty slots.
+- Simulated players keep 15 gold saved for their next gear purchase. Without that reserve, archers never reached their first bow.
+- The boss keeps no reserve.
+- Phase D may replace this heuristic with policy search.
+
+**Older runs:** V1/V2 runs are view-only and keep their own catalogue prices (the Warhammer shows 40 in V2 history).
+
 ## 12. Tuning (Phase C1, 2026-10-19) — owner asked: "stun needs revision and dodging needs buff… find a sweet spot"
 
 The evidence is in `docs/V3_BALANCE.md`: a varied random-build population with random play styles, paired fights, and a paired stun-on/off test.

@@ -4,8 +4,8 @@
  * The player API, the boss decision layer and simulation agents all go through these functions.
  */
 import { getItem } from './catalog.js';
-import { STAT_ALLOCATION_INCREASE } from './constants.js';
-import type { CombatantState, ItemCategory, Loadout, StatKey } from './types.js';
+import { STAT_ALLOCATION_INCREASE, STIM_BASE_SLOTS, STIM_COST, STIM_MAX_EFFECTIVENESS, STIM_MAX_SLOTS, STIM_UPGRADE_BASE_COST, STIM_UPGRADE_STEP } from './constants.js';
+import type { CombatantState, ItemCategory, Loadout, StatKey, Supplies } from './types.js';
 import { STAT_KEYS } from './types.js';
 
 export class RuleError extends Error {
@@ -93,4 +93,46 @@ export function allocateStat(state: CombatantState, stat: StatKey, points: numbe
     statPoints: state.statPoints - points,
     stats: { ...state.stats, [stat]: state.stats[stat] + STAT_ALLOCATION_INCREASE[stat] * points },
   };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// V3 healing-stim economy (docs/V3_DEMANDS.md §6). Same rules for player, boss and simulation agents.
+// ---------------------------------------------------------------------------------------------------------------
+
+export type SupplyAction = 'buy_stim' | 'upgrade_slots' | 'upgrade_effectiveness';
+
+/** Supplies of a state (pre-V3 states have none: 0 stims, 1 slot). */
+export function suppliesOf(state: CombatantState): Supplies {
+  return state.supplies ?? { stims: 0, slots: STIM_BASE_SLOTS, effectiveness: 0 };
+}
+
+/** Price of the next upgrade of a kind: 25, 30, 35, … (+5 per upgrade of that kind already bought). */
+export function supplyCost(state: CombatantState, action: SupplyAction): number {
+  const s = suppliesOf(state);
+  if (action === 'buy_stim') return STIM_COST;
+  const bought = action === 'upgrade_slots' ? s.slots - STIM_BASE_SLOTS : s.effectiveness;
+  return STIM_UPGRADE_BASE_COST + STIM_UPGRADE_STEP * bought;
+}
+
+/** Returns null when legal, otherwise the reason. */
+export function supplyProblem(state: CombatantState, action: SupplyAction): string | null {
+  const s = suppliesOf(state);
+  const cost = supplyCost(state, action);
+  if (action === 'buy_stim' && s.stims >= s.slots) return `No empty stim slot (${s.stims}/${s.slots}); upgrade slots to carry more`;
+  if (action === 'upgrade_slots' && s.slots >= STIM_MAX_SLOTS) return `Stim slots are at the maximum (${STIM_MAX_SLOTS})`;
+  if (action === 'upgrade_effectiveness' && s.effectiveness >= STIM_MAX_EFFECTIVENESS) return `Stim effectiveness is at the maximum (${STIM_MAX_EFFECTIVENESS} upgrades)`;
+  if (state.gold < cost) return `Not enough gold (cost ${cost}, have ${state.gold})`;
+  return null;
+}
+
+/** Buy a stim / an upgrade. Gold never goes negative. */
+export function buySupply(state: CombatantState, action: SupplyAction): CombatantState {
+  const problem = supplyProblem(state, action);
+  if (problem) throw new RuleError(problem);
+  const s = { ...suppliesOf(state) };
+  const cost = supplyCost(state, action);
+  if (action === 'buy_stim') s.stims++;
+  else if (action === 'upgrade_slots') s.slots++;
+  else s.effectiveness++;
+  return { ...state, gold: state.gold - cost, supplies: s };
 }

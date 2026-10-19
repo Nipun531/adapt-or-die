@@ -10,6 +10,7 @@
  * shipped rule sets keep all of them on.
  */
 import { requireItem, requireItemV3 } from './catalog.js';
+import { ENGINE_VERSION } from './constants.js';
 import type { Item } from './types.js';
 
 export type RuleSetId = 'v2' | 'v3';
@@ -113,6 +114,9 @@ export const RULES_V3: RuleSet = Object.freeze({ id: 'v3', dexBenefits: ALL_DEX,
 export function itemLookup(rules: Pick<RuleSet, 'id'>): (id: string) => Item {
   return rules.id === 'v3' ? requireItemV3 : requireItem;
 }
+
+/** Combat rules of the live engine (engine 3.x → v3). */
+export const LIVE_RULES: RuleSet = ENGINE_VERSION.startsWith('3.') ? RULES_V3 : RULES_V2;
 
 export function rulesFor(id: RuleSetId | undefined): RuleSet {
   return id === 'v3' ? RULES_V3 : RULES_V2;

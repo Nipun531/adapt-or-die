@@ -1,4 +1,4 @@
-# Game Mechanics — The Boss Remembers (engine 2.0.0)
+# Game Mechanics — The Boss Remembers (engine 3.0.0; §1–11 = the shared damage pipeline and V2 rules)
 
 Source of truth: `context/adaptive_boss_duel_v1_game_plan_updated.docx` ("Game Mechanics — Current V1 Specification").
 This file copies those rules faithfully and lists every **developer decision** made where the plan is silent.
@@ -30,6 +30,52 @@ Engine versions:
   - only the DEX-advantaged ranged fighter gets the opening shot (§5).
 
 Runs created under 1.x are **view-only** under 2.0.0. They display with their own (V1) catalogue, but they cannot be continued, because their rules and items differ. Ending them is still allowed.
+
+## 0. Version 3 combat (engine 3.0.0) — what changed
+
+The spec of record is `docs/V3_DEMANDS.md` (owner decisions plus documented defaults). Every number below lives in `server/src/game/rules.ts` `V3_COMBAT`. Sections 1–11 still describe the damage pipeline every hit uses. RuleSet v2 (engine 2.0.0) stays runnable for comparisons.
+
+**Economy**
+- Start of a run: 10 gold (was 0).
+- Healing stims:
+  - 10 gold buys one stim into an empty slot. The first slot is free.
+  - A used stim is gone until a new one is bought; unused stims carry over.
+  - Upgrades cost 25 / 30 / 35 … (+5 per upgrade of that kind):
+    - +1 slot, up to 4;
+    - +5 percentage points of heal, up to 4 upgrades.
+- A stim heals 20% of max HP (+5 pp per effectiveness upgrade), never above max HP. It is used before one of your own regular actions, at most once per action, and never while stunned.
+
+**Catalogue**
+- `catalogs/v3.ts`: the V2 items and tuned pierce, the Warhammer at 45 gold, plus the doc's combat properties.
+- Block bonus: Light Armor 2%, Heavy Armor 5%, Wood Shield 10%, Small Shield 20%, Great Shield 30%.
+- Stun boost: Wooden Club 4%, Iron Club 8%, Mace 12%, Warhammer 20%.
+- Can stun: Iron Club, Mace, Flail, Warhammer.
+- Dodge counter: Flail 5%, Spear 10%, Lance 20%, Pike 30%.
+
+**Every attack, in order**
+1. The attacker picks its mode (as in V2) and the attack is announced: who, weapon, ranged or melee.
+2. The defender answers **Block** or **Dodge**. A fighter stunned since its last defence cannot defend, and the attack lands.
+3. The would-be hit is computed with the V2 pipeline (§3: Net ATK or effective DEX, pierce, A²/(A+DEF), DEX mitigation).
+   - *Attack shaved off* = (A − would-be damage) / A.
+4. Resolve the defence:
+   - **Block chance** = min(70%, 0.5% × DEF stat + gear block bonuses). The DEF stat counts base + level-ups + points. On success: no damage, but a "very heavy" hit (≥ 25% of the blocker's max HP) still adds stun to the blocker.
+   - **Dodge chance** = min(70%, 10% + 2% × max(0, own effective DEX − attacker's)). On success: no damage.
+   - **Failed defence:** the hit lands.
+5. **Stun gain** per landed hit = 17.5 + 17.5 × min(1, shaved + mitigation roll + weapon stun boost). That gives 17.5–35 per hit.
+6. **Stun trigger:** at a meter of 100, a hit from a can-stun weapon stuns. The target takes +25% of that hit as extra damage, loses its next defence and one attack turn, and the meter resets to 0.
+   - Without a can-stun weapon the meter waits at 100.
+   - Meters start at 0 every round.
+7. **Counters** (never against ranged attacks, including the First Shot) are a mini move inside the attacker's sequence, with the counterer's own attack formula:
+   - **Block counter:** chance = min(70%, attack shaved off). Needs a melee weapon or bare hands. Damage × 1.5; adds +20 stun to the attacker.
+   - **Dodge counter:** chance = min(70%, DEX lead % + weapon dodge-counter modifier). Needs a dodge-counter weapon. Damage × 0.75; no stun.
+   - Counters cannot be blocked, dodged or countered.
+
+**Round end**
+- KO, or the **turn limit** (owner D-19): after turn 30, the higher HP share wins; an exact tie goes to the initiative coin-flip winner.
+
+**Fixed random draws**
+- Six per attack: defence, counter, pierce, mitigation, counter pierce, counter mitigation.
+- A defence choice never shifts later rolls.
 
 ## 1. Core attributes (plan §1)
 

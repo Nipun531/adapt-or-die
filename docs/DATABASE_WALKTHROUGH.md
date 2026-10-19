@@ -30,6 +30,22 @@ Applied files are recorded in `schema_migrations`, so re-running is safe.
  To change the schema add `002_<name>.sql` (never edit an applied file).
 Tests call `migrate(TEST_DATABASE_URL)` automatically.
 
+### Migration 003 (engine 3.0.0, additive only)
+
+New nullable columns (NULL = a pre-V3 record):
+- `combatants.supplies`: stims, slots, effectiveness.
+- `combat_events.kind` / `parent_seq` / `defense` / `stun`.
+- `rounds.combat_notes` (lost turns, stims, the turn limit) and `rounds.end_reason` (`turn_limit`).
+
+Widened CHECK lists:
+- `combat_events.phase` adds `counter`.
+- `progression_events.kind` adds `stim_purchase`, `stim_slot_upgrade` and `stim_effectiveness_upgrade`.
+
+Applied on 2026-10-20:
+1. A dev backup was taken: `artifacts/backups/pre-v3-migration-2026-10-20.sql`, sha256 `49aea7ff…`.
+2. The migration ran on a restored copy first; every row count was identical and every new column empty.
+3. Then it ran on the dev DB.
+
 ## Tables
 
 Raw gameplay history (append-only except the mutable `combatants` state and in-progress round fields):

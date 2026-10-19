@@ -15,6 +15,7 @@ import { ITEMS, requireItem } from '../game/catalog.js';
 import { autoStim, runFullCombat, type Chooser, type CombatEvent } from '../game/combat.js';
 import { RULES_V2, type RuleSet } from '../game/rules.js';
 import { AGENT_DEFENSE, defenseChooserFor } from './v3-policies.js';
+import { autoSupplies, SIM_SAVINGS_RESERVE } from '../game/supply-plan.js';
 import { deriveStats, snapshotOf } from '../game/derive.js';
 import { allocateStat, equip, purchase } from '../game/equipment.js';
 import { applyRoundRewards, initialCombatant } from '../game/progression.js';
@@ -129,6 +130,7 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
       for (const id of d.purchases) player = purchase(player, id);
       player = equip(player, d.loadout);
     }
+    if (rules.v3) player = autoSupplies(player, SIM_SAVINGS_RESERVE).state;
 
     const observed = records.length ? records[records.length - 1].playerPost : initialCombatant('player');
     const pRanged = yield { records: [...records], observed };
@@ -137,6 +139,7 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
     });
     previousArchetype = policy.selected.archetype;
     boss = applyPlan(boss, policy.selected);
+    if (rules.v3) boss = autoSupplies(boss).state; // as boss/prepare.ts
 
     const pSnap = snapshotOf(player);
     const bSnap = snapshotOf(boss);
@@ -150,6 +153,11 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
       stim: { player: autoStim, boss: bossStim },
     } : {});
     const winner = state.winner!;
+    // V3: used stims are gone (as services/rounds.ts completeRound).
+    if (state.v3) {
+      if (player.supplies) player = { ...player, supplies: { ...player.supplies, stims: state.v3.stims.player } };
+      if (boss.supplies) boss = { ...boss, supplies: { ...boss.supplies, stims: state.v3.stims.boss } };
+    }
     player = applyRoundRewards(player, winner === 'player').state;
     boss = applyRoundRewards(boss, winner === 'boss').state;
 

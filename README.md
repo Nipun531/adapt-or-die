@@ -1,4 +1,4 @@
-# The Boss Remembers (Adaptive Boss Duel, Version 2)
+# The Boss Remembers (Adaptive Boss Duel, Version 3)
 
 A browser-playable, text-focused medieval duel. You and the boss start from the same base — level 1, unarmed, no gold, base stats plus
 **2 stat points each to allocate before round 1** — and fight over many rounds.
@@ -118,12 +118,14 @@ npm run typecheck   # server + client
 - `docs/DATABASE_WALKTHROUGH.md` — schema, lifecycle, backup, inspection queries
 - `docs/SIMULATIONS.md` — batches, agents, seeds, outputs
 - `docs/FILE_GUIDE.md` — every file and where to change things
+- `docs/V3_IMPLEMENTATION_PLAN.md`, `docs/V3_DEMANDS.md`, `docs/V3_BASELINE.md`, `docs/V3_BALANCE.md` — Version 3 plan, spec, baseline and balance
 - `docs/V2_DEMANDS.md`, `docs/V2_IMPLEMENTATION_PLAN.md`, `docs/V2_BALANCE.md`, `docs/HANDOFF.md` — Version 2 spec, plan, balance report, handoff
 - `client/DESIGN.md` — the UI design system
 
 ## Known limitations
 
-- Game-rules version is `ENGINE_VERSION` 2.0.0. Data and models from 1.x are kept as history but not used for training or inference; 1.x runs are view-only — run `npm run db:migrate` after updating.
+- Game-rules version is `ENGINE_VERSION` 3.0.0 (V3 combat: block/dodge every incoming attack, counters, stun, healing stims, a 30-turn limit; 10 starting gold; `docs/GAME_MECHANICS.md` §0). Data and models from 1.x/2.x are kept as history but not used for training or inference; older runs are view-only — run `npm run db:migrate` after updating.
+- The UI shown is the V2 "Court Deck" with minimal V3 prompts (Block `B` / Dodge `D`, stims, supplies). The V3 redesign is Phase E of `docs/V3_IMPLEMENTATION_PLAN.md`.
 - Known balance issues (DEX dominance and others) are measured in `docs/V2_BALANCE.md` §4 and deferred to the next version.
 - Skills and item upgrades are mentioned in the plan but not specified, so they are not implemented. Pierce values were tuned by simulation (`docs/V2_BALANCE.md`).
 - Training data is mostly simulated by scripted agents; model metrics on it overstate accuracy on human players (see ML walkthrough §10).

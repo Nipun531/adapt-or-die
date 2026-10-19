@@ -39,8 +39,10 @@ import { STAT_KEYS } from '../game/types.js';
  *  sim-2.0.0 — engine 2.0.0: V2 catalogue wishlists; new `piercer` and `duelist` agents; adaptive cycles 3 styles.
  *  sim-2.1.0 — adds style-switching `opportunist` and `switcher` agents (existing agents unchanged).
  *  sim-2.2.0 — adds the randomised, conditional `reactive` agent; agents also observe the boss's last gear and their HP left.
+ *  sim-3.0.0 — engine 3.0.0: agents defend with their V3 persona (sim/v3-policies.ts AGENT_DEFENSE), heal with the
+ *              automatic stim rule and spend leftover gold on stims (game/supply-plan.ts). Build logic unchanged.
  */
-export const SIMULATOR_VERSION = 'sim-2.2.0';
+export const SIMULATOR_VERSION = 'sim-3.0.0';
 
 /** What the player saw of a finished round (all visible in the round view: result, the boss's gear, own HP left). */
 export interface RoundOutcome {

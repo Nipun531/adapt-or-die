@@ -456,3 +456,8 @@ input[type='number'] { width: 6rem; font-variant-numeric: tabular-nums; }
   .strategies { grid-template-columns: 1fr; }
   .field-inline { margin-left: 0; }
 }
+
+/* V3 (Phase C2, minimal until the Phase E redesign): healing stims and between-attack notes. */
+.supplies { margin-top: var(--s4); display: grid; gap: var(--s2); }
+.supply-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.attack.note .attack-what { color: var(--ink-2); font-style: italic; }

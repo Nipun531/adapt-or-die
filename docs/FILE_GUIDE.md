@@ -99,6 +99,8 @@ Purpose of every project file, and where to make common changes. Keep this in sy
 | `src/dev-testdb.ts` | `npm run dev:testdb` (launch config `api-testdb`): the API on the **test** DB, for click-testing without touching dev data. |
 | `src/sim/balance.ts` | Balance harness: in-memory runs vs the real boss, weapon matrix, pierce tuning, item-override experiments. |
 | `src/sim/balance-cli.ts` | `npm run balance` — full balance study → `artifacts/balance/report.{md,json}`. |
+| `src/game/supply-plan.ts` | Documented heuristic (not a rule) by which the boss and simulated players spend leftover gold on stims; simulated players keep a 15-gold savings reserve. |
+| `src/db/migrations/003_v3_combat.sql` | V3 columns (supplies, counter/defence/stun event fields, combat notes, end reason); additive only. |
 | `src/game/rules.ts` | RuleSets: `v2` (engine 2.0.0 control) and `v3` (block/dodge/counter/stun/stims). All V3 numbers in `V3_COMBAT`; `withRules` for harness ablations/sweeps. |
 | `src/game/catalogs/v3.ts` | V3 catalogue: V2 items + Warhammer 45 + block/stun/dodge-counter properties (not live until Phase C2). |
 | `src/sim/v3-policies.ts` | V3 in-fight play styles (defence/stim/mode) for simulated fighters; `AGENT_DEFENSE` = each run agent's defence persona. |

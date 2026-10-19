@@ -7,7 +7,11 @@ import { closePool, getPool } from '../../src/db/pool.js';
 import { isLegalLoadout } from '../../src/game/equipment.js';
 import { stopInferenceWorker } from '../../src/ml/predictor.js';
 import { adaptiveStyle, SIMULATOR_VERSION, STRATEGY_NAMES } from '../../src/sim/agents.js';
-import { createBatch, executeBatch, getBatch, normalizeConfig } from '../../src/sim/runner.js';
+import { createBatch, executeBatch, getBatch, normalizeConfig, playSimulatedRun } from '../../src/sim/runner.js';
+import { playInMemoryRun } from '../../src/sim/balance.js';
+import { LIVE_RULES } from '../../src/game/rules.js';
+import type { CombatEvent } from '../../src/game/combat.js';
+import { loadEvents } from '../../src/services/history.js';
 import { resetTables, useTestDatabase } from '../helpers/db.js';
 
 beforeAll(useTestDatabase);
@@ -91,5 +95,22 @@ describe('adaptive agent style', () => {
     expect(adaptiveStyle([
       { roundNumber: 1, winner: 'boss' }, { roundNumber: 2, winner: 'player' }, { roundNumber: 3, winner: 'boss' },
     ])).toBe('melee');
+  });
+});
+
+describe('live = harness (V3 Phase C2)', () => {
+  it('a DB-simulated run and the in-memory harness play identical rounds for the same seed', async () => {
+    for (const strategy of ['shield_turtle', 'duelist', 'archer']) {
+      const runSeed = `parity:${strategy}`;
+      const runId = await playSimulatedRun({ batchId: null, strategy, runSeed, maxRounds: 4 });
+      const mem = playInMemoryRun(strategy, runSeed, 4, { rules: LIVE_RULES });
+      const rounds = (await getPool().query('SELECT id, round_number, winner FROM rounds WHERE run_id = $1 ORDER BY round_number', [runId])).rows;
+      expect(rounds.map((r) => r.winner)).toEqual(mem.rounds.map((r) => r.winner));
+      for (const [i, r] of rounds.entries()) {
+        const db = await loadEvents(getPool(), r.id);
+        const key = (e: CombatEvent) => [e.seq, e.attacker, e.kind, e.mode, e.weaponId, e.defense?.action, e.defense?.success, Math.round(e.damage * 1e6)];
+        expect(db.map(key)).toEqual(mem.rounds[i].events.map(key));
+      }
+    }
   });
 });

@@ -18,7 +18,7 @@ import { activateModel } from '../../src/ml/training.js';
 import { allocate } from '../../src/services/runs.js';
 import { SIMULATOR_VERSION, STRATEGY_NAMES } from '../../src/sim/agents.js';
 import { createBatch, executeBatch, normalizeConfig } from '../../src/sim/runner.js';
-import { resetTables, useTestDatabase } from '../helpers/db.js';
+import { resetTables, useTestDatabase, finishRound } from '../helpers/db.js';
 
 const app = createApp();
 beforeAll(useTestDatabase);
@@ -107,8 +107,7 @@ describe('manual runs', () => {
     const after = (await request(app).get(`/api/runs/${id}`)).body;
     expect(after.player.statPoints).toBe(0);
     expect(after.player.stats.def).toBe(14);
-    await request(app).post(`/api/runs/${id}/rounds`);
-    await request(app).post(`/api/runs/${id}/rounds`);
+    for (let n = 0; n < 2; n++) await finishRound((await request(app).post(`/api/runs/${id}/rounds`)).body.round.id);
     expect((await ledger(id, 'initial_points')).length).toBe(2);
     // After round 1 the only new points come from level-ups: available = 2 initial + level-ups − spent.
     const v = (await request(app).get(`/api/runs/${id}`)).body;
@@ -173,7 +172,7 @@ describe('ML data and model versioning', () => {
     const features = (await getPool().query('SELECT features FROM training_examples LIMIT 1')).rows[0].features;
     const p = await predictPlayerStyle(getPool(), features, 0.5);
     expect(p.kind).toBe('fallback');
-    expect(p.fallbackReason).toMatch(/engine 1\.0\.0 data; current rules are engine 2\.0\.0/);
+    expect(p.fallbackReason).toMatch(/engine 1\.0\.0 data; current rules are engine 3\.0\.0/);
     await expect(activateModel(getPool(), 'legacy-model')).rejects.toThrow(/trained on engine 1\.0\.0/);
   });
 });

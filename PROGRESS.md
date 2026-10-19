@@ -46,7 +46,17 @@ V3 plan written: `docs/V3_IMPLEMENTATION_PLAN.md` (audit, requirements matrix, b
 - DEX ablation: no single DEX benefit drives dominance; recommend keeping all (D-8).
 - Still open: the boss plays hybrid 96–100% of late rounds.
 
-**Next: Phase C2** (V3 catalogue live, starting gold 10, stim economy, migration 003, API, shared `playRound`).
+**Phase C2 DONE (2026-10-20):** engine 3.0.0 is live.
+- V3 catalogue (the Warhammer at 45), 10 starting gold, stims and upgrades (`buySupply`, `POST /runs/:id/supplies`).
+- Migration 003 (additive). Dev DB backed up, the migration tested on a restored copy, then applied.
+- Rounds pause for Block/Dodge and stims (`POST /rounds/:id/choice`).
+- The boss and the agents buy stims (heuristic).
+- `sim-3.0.0`.
+- DB sim = in-memory harness: identical events (test).
+- Minimal client support: Block/Dodge prompt with odds (B/D), stim prompt, supplies panel, counter/stun/defence tags, notes in the log. Browser-checked on the test DB.
+- Tests: 203 server + 5 client.
+
+**Next: Phase D** (boss evaluation with V3 economy; better opponents; hybrid dominance; the boss's fixed round-1 opener of +2 STR and a Sword).
 
 ## 0. Version 2 — Phase 8 final verification DONE (2026-10-17) — start here
 

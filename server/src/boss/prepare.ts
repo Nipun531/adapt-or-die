@@ -8,6 +8,8 @@
  * plus automatic level-up increases awarded after it). It never sees the player's current-round changes.
  */
 import { getItem } from '../game/catalog.js';
+import { LIVE_RULES } from '../game/rules.js';
+import { autoSupplies } from '../game/supply-plan.js';
 import { snapshotOf } from '../game/derive.js';
 import { initialCombatant } from '../game/progression.js';
 import { deriveSeed } from '../game/rng.js';
@@ -16,7 +18,7 @@ import type { Db } from '../db/pool.js';
 import { baselineProbability, buildFeatures, rangedFeasibility } from '../ml/features.js';
 import { predictPlayerStyle, type Prediction } from '../ml/predictor.js';
 import { loadCompletedRounds } from '../services/history.js';
-import { loadCombatant, logProgression, saveCombatant } from '../services/runs.js';
+import { loadCombatant, logProgression, saveCombatant, SUPPLY_LEDGER_KIND } from '../services/runs.js';
 import type { Weakness } from './analysis.js';
 import { applyPlan, choosePlan, type Archetype } from './policy.js';
 
@@ -58,9 +60,13 @@ export async function bossPrepare(db: Db, runId: number, runSeed: string, roundN
     pRanged: prediction.probabilityRanged,
     seed: String(deriveSeed(runSeed, `boss:${roundNumber}`)),
     previousArchetype: prev as Archetype | null,
+    rules: LIVE_RULES,
   });
   const plan = policy.selected;
-  const after = applyPlan(before, plan); // re-validated by the rules (throws on anything illegal)
+  const geared = applyPlan(before, plan); // re-validated by the rules (throws on anything illegal)
+  // V3: leftover gold goes to healing stims by the documented supply heuristic (game/supply-plan.ts), same rules as the player.
+  const supplies = LIVE_RULES.v3 ? autoSupplies(geared) : { state: geared, actions: [] };
+  const after = supplies.state;
 
   // Ledger: one entry per concrete action, mirroring what a player would do.
   const actions: { kind: string; detail: unknown }[] = [];
@@ -68,6 +74,7 @@ export async function bossPrepare(db: Db, runId: number, runSeed: string, roundN
   for (const itemId of plan.purchases) actions.push({ kind: 'purchase', detail: { itemId, cost: getItem(itemId)!.cost } });
   const loadoutChanged = JSON.stringify(before.loadout) !== JSON.stringify(after.loadout);
   if (loadoutChanged) actions.push({ kind: 'equip', detail: { loadout: after.loadout } });
+  for (const a of supplies.actions) actions.push({ kind: SUPPLY_LEDGER_KIND[a.action], detail: a });
   for (const a of actions) {
     await logProgression(db, { runId, side: 'boss', kind: a.kind, actor: 'boss_policy', payload: { ...(a.detail as object), forRoundNumber: roundNumber }, stateAfter: after });
   }
@@ -105,7 +112,7 @@ export async function bossPrepare(db: Db, runId: number, runSeed: string, roundN
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
     [runId, roundNumber, JSON.stringify(prediction), JSON.stringify(evidence),
       JSON.stringify({ candidatesEvaluated: policy.candidatesEvaluated, current: policy.current, alternatives: policy.alternatives }),
-      JSON.stringify({ plan, rationale: policy.rationale, policyVersion: policy.version, band: policy.band ?? null, draw: policy.draw ?? null }), JSON.stringify(actions), plan.cost,
+      JSON.stringify({ plan, rationale: policy.rationale, policyVersion: policy.version, band: policy.band ?? null, draw: policy.draw ?? null }), JSON.stringify(actions), plan.cost + supplies.actions.reduce((g, a) => g + a.cost, 0),
       JSON.stringify(before), JSON.stringify(after)],
   );
   return { decisionId: ins.rows[0].id, boss: after, prediction };

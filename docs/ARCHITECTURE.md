@@ -52,6 +52,33 @@ Responsibility map:
 
 The client is never authoritative: it sends intents (allocate, buy, equip, begin round, choose mode) and renders what the server returns.
 
+## Version 3 (engine 3.0.0)
+
+**Rule sets** (`game/rules.ts`)
+- `RULES_V2` = engine 2.0.0 combat; `RULES_V3` = V3 combat. `LIVE_RULES` follows `ENGINE_VERSION`.
+- A `CombatState` carries its rule set as plain data, so a paused round resumes under the same rules.
+- `rulesForEngine(run.engine_version)` picks the rules for a run.
+
+**Pauses**
+- The engine pauses (`pending.kind`) for the human on three kinds of decision:
+  - `attack_mode` (Ranged/Melee);
+  - `defense` (Block/Dodge against an announced boss attack, with `incoming` and public `odds`);
+  - `stim` (heal before your action).
+- The boss answers with `bossChooser` / `bossDefense` (expected value) / `bossStim`.
+- Choosers only see a `ChooserView`: no RNG state, no seed, no opponent "repeat" setting.
+
+**Events**
+- `CombatEvent` gains `kind` (`attack` | `counter`), `parentSeq`, `defense` and `stun`.
+- Lost turns, stims and the turn limit are `CombatNote`s, sharing `seq` with the events and stored in `rounds.combat_notes`.
+
+**Supplies**
+- `game/equipment.ts` `buySupply` (rules) and `services/runs.ts` `buySupplies` (`POST /api/runs/:id/supplies`).
+- The boss and the simulated players spend leftover gold with the `game/supply-plan.ts` heuristic.
+
+**Live = harness**
+- `sim/balance.ts` plays the same steps as `services/rounds.ts` + `boss/prepare.ts` + `sim/runner.ts`.
+- `tests/integration/sim.test.ts` checks that a DB-simulated run and the in-memory run give identical events for the same seed.
+
 ## Run creation (`services/runs.ts → createRun`)
 
 One transaction (API and simulator both wrap it): insert `runs` (engine version, seed, `config.initialStatPoints = 2`) → insert both
@@ -113,6 +140,13 @@ sim agents ─► same services ─► raw records (runs, rounds, combat_events,
 - `training_examples` (derived) → `dataset_snapshots` → `model_versions`.
 
 ## API endpoints
+
+V3 additions:
+- `POST /api/rounds/:id/choice` takes exactly one of `{ mode, repeat? }`, `{ defense: 'block'|'dodge' }` or `{ stim: true|false }`.
+- `POST /api/runs/:id/supplies { action: 'buy_stim'|'upgrade_slots'|'upgrade_effectiveness' }`.
+- `GET /api/catalog` → `rules.combat` (the V3 numbers).
+- The run view's combatants carry `supplies` and `supplyInfo` (prices, blocking reasons, heal size).
+
 
 | Method | Path | Purpose |
 |---|---|---|

@@ -5,7 +5,7 @@
  * "Show all" (or reduced motion) shows the whole log at once.
  */
 import { useEffect, useMemo, useState } from 'react';
-import type { AttackMode, CombatEvent, RoundDetail, Side } from '../api';
+import type { AttackMode, CombatEvent, CombatNote, PendingChoice, PlayerAnswer, RoundDetail, Side } from '../api';
 import { Icon } from '../ui/Icon';
 import { Meter } from '../ui/states';
 import type { PhaseAction } from './actions';
@@ -52,6 +52,11 @@ function AttackRow({ e, maxHp }: { e: CombatEvent; maxHp: Record<Side, number> }
             <span className="attack-what">
               <b className="attack-who">{sideName(e.attacker)}</b> {e.mode === 'ranged' ? 'shoots' : 'strikes'} with <b>{weapon}</b>
               {e.phase === 'opening' && <span className="tag tag-yellow">First Shot</span>}
+              {e.kind === 'counter' && <span className="tag tag-red">Counter</span>}
+              {e.defense?.action === 'block' && e.defense.success && <span className="tag tag-blue">Blocked</span>}
+              {e.defense?.action === 'dodge' && e.defense.success && <span className="tag tag-blue">Dodged</span>}
+              {e.defense?.action === 'none' && <span className="tag tag-ink">No defence (stunned)</span>}
+              {e.stun?.triggered && <span className="tag tag-red">Stun! {sideName(e.stun.triggered.target)}</span>}
               {e.phase === 'dex_bonus' && <span className="tag tag-ink">DEX bonus</span>}
               {e.calc.pierce?.success && <span className="tag tag-blue">Pierce −{Math.round(e.calc.pierce.defIgnore * 100)}% DEF</span>}
               {ko && <span className="tag tag-red">KO</span>}
@@ -64,7 +69,59 @@ function AttackRow({ e, maxHp }: { e: CombatEvent; maxHp: Record<Side, number> }
         </span>
       </button>
       {open && <Calc e={e} />}
+      {open && e.defense && (
+        <div className="calc">
+          <div>{sideName(e.defender)} {e.defense.action === 'none' ? 'could not defend (stunned)' : `chose ${e.defense.action}`}: chance {pct(e.defense.chance, 0)}, roll {n2(e.defense.roll)} → {e.defense.success ? 'success' : 'failed'}{e.defense.heavy ? ' (very heavy hit: stun still builds)' : ''}</div>
+          <div>Attack shaved off {pct(e.defense.shaved, 0)}{e.defense.counter ? `; ${e.defense.counter.type} counter chance ${pct(e.defense.counter.chance, 0)}, roll ${n2(e.defense.counter.roll)} → ${e.defense.counter.success ? 'counter!' : 'no counter'}` : e.defense.noCounterReason ? `; no counter: ${e.defense.noCounterReason}` : ''}</div>
+          {e.stun && <div>Stun meters after: you {Math.round(e.stun.meters.player)} / boss {Math.round(e.stun.meters.boss)}{e.stun.gains.map((g) => ` · ${sideName(g.side)} +${Math.round(g.amount)} (${g.cause.replace('_', ' ')})`).join('')}</div>}
+        </div>
+      )}
     </li>
+  );
+}
+
+/** V3: an announced boss attack — Block (B) or Dodge (D), with the odds the server computed. */
+function DefensePrompt({ p, onAnswer, busy }: { p: PendingChoice; onAnswer: (a: PlayerAnswer) => void; busy?: boolean }) {
+  const catalog = useCatalog();
+  const inc = p.incoming!;
+  const odds = p.odds!;
+  useEffect(() => {
+    const key = (ev: KeyboardEvent) => {
+      const t = ev.target as HTMLElement | null;
+      if (busy || ev.ctrlKey || ev.metaKey || ev.altKey || (t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && (t as HTMLInputElement).type === 'text')))) return;
+      if (ev.key.toLowerCase() === 'b') onAnswer({ defense: 'block' });
+      if (ev.key.toLowerCase() === 'd') onAnswer({ defense: 'dodge' });
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [busy, onAnswer]);
+  const weapon = inc.weaponId ? itemName(catalog, inc.weaponId) : 'bare hands';
+  return (
+    <div className="choice" role="group" aria-labelledby="defense-h">
+      <p id="defense-h"><b>Incoming</b>: the boss {inc.mode === 'ranged' ? 'shoots' : 'strikes'} with <b>{weapon}</b> (about {n2(odds.expectedDamage)} damage if it lands). {inc.mode === 'ranged' ? 'Ranged attacks cannot be countered.' : ''}</p>
+      <div className="choice-actions">
+        <button className="btn btn-primary btn-big" disabled={busy} onClick={() => onAnswer({ defense: 'block' })}>
+          Block {pct(odds.block.chance, 0)}<kbd>B</kbd>
+        </button>
+        <button className="btn btn-primary btn-big" disabled={busy} onClick={() => onAnswer({ defense: 'dodge' })}>
+          Dodge {pct(odds.dodge.chance, 0)}<kbd>D</kbd>
+        </button>
+      </div>
+      <p className="muted-ink">Block: no damage on success{odds.block.counterPossible ? `, may counter ×1.5 (+20 stun to the boss)` : ', no counter possible'}{odds.block.heavy ? '; this hit is very heavy — blocking it still builds your stun' : ''}. Dodge: no damage on success{odds.dodge.counterPossible ? `, ${pct(odds.dodge.counterChance, 0)} dodge-counter chance (×0.75)` : ', no dodge counter with your weapon'}.</p>
+    </div>
+  );
+}
+
+/** V3: use a healing stim before your turn (U) or keep it (S). */
+function StimPrompt({ p, onAnswer, busy }: { p: PendingChoice; onAnswer: (a: PlayerAnswer) => void; busy?: boolean }) {
+  return (
+    <div className="choice" role="group" aria-labelledby="stim-h">
+      <p id="stim-h"><b>Your turn</b>: use a healing stim first? It heals {n2(p.heal ?? 0)} HP (never above your max).</p>
+      <div className="choice-actions">
+        <button className="btn btn-primary btn-big" disabled={busy} onClick={() => onAnswer({ stim: true })}>Use stim</button>
+        <button className="btn btn-quiet btn-big" disabled={busy} onClick={() => onAnswer({ stim: false })}>Keep it</button>
+      </div>
+    </div>
   );
 }
 
@@ -98,6 +155,14 @@ function ChoicePrompt({ options, turn, phase, onChoose, busy }: {
   );
 }
 
+function NoteRow({ n }: { n: CombatNote }) {
+  const you = n.side === 'player';
+  const text = n.kind === 'skip' ? (you ? 'You are stunned and lose this turn.' : 'The boss is stunned and loses this turn.')
+    : n.kind === 'stim' ? `${you ? 'You use' : 'The boss uses'} a healing stim: +${n2(n.detail.heal ?? 0)} HP (${n2(n.detail.hpAfter ?? 0)} HP).`
+    : `Turn limit reached: ${you ? 'you win' : 'the boss wins'} on the higher HP share.`;
+  return <li className={`attack attack-${n.side} note`}><span className="attack-line"><span className="attack-side"><span className="attack-body"><span className="attack-what">{text}</span></span></span></span></li>;
+}
+
 function Summary({ events, side }: { events: CombatEvent[]; side: Side }) {
   const mine = events.filter((e) => e.attacker === side);
   const dmg = mine.reduce((a, e) => a + e.damage, 0);
@@ -110,7 +175,7 @@ function Summary({ events, side }: { events: CombatEvent[]; side: Side }) {
 }
 
 export function Fight({ detail, onChoose, busy, deal, next }: {
-  detail: RoundDetail; onChoose?: (mode: AttackMode, repeat: boolean) => void; busy?: boolean; deal?: boolean; next?: PhaseAction;
+  detail: RoundDetail; onChoose?: (a: PlayerAnswer) => void; busy?: boolean; deal?: boolean; next?: PhaseAction;
 }) {
   const r = detail.round;
   const events = detail.events;
@@ -126,11 +191,17 @@ export function Fight({ detail, onChoose, busy, deal, next }: {
 
   const maxHp = { player: r.player_snapshot.derived.maxHp, boss: r.boss_snapshot.derived.maxHp };
   const visible = events.slice(0, shown);
+  const notes = detail.notes ?? [];
   const turns = useMemo(() => {
-    const m = new Map<number, CombatEvent[]>();
-    for (const e of visible) m.set(e.turn, [...(m.get(e.turn) ?? []), e]);
+    const lastSeq = visible.length ? visible[visible.length - 1].seq : 0;
+    const items: ({ type: 'e'; e: CombatEvent } | { type: 'n'; n: CombatNote })[] = [
+      ...visible.map((e) => ({ type: 'e' as const, e })),
+      ...notes.filter((n) => n.seq <= lastSeq + 1 || shown >= events.length).map((n) => ({ type: 'n' as const, n })),
+    ].sort((a, b) => (a.type === 'e' ? a.e.seq : a.n.seq) - (b.type === 'e' ? b.e.seq : b.n.seq));
+    const m = new Map<number, typeof items>();
+    for (const it of items) { const t = it.type === 'e' ? it.e.turn : it.n.turn; m.set(t, [...(m.get(t) ?? []), it]); }
     return [...m.entries()];
-  }, [visible]);
+  }, [visible, notes, shown, events.length]);
   const done = r.status === 'completed';
   const dealing = shown < events.length;
 
@@ -153,11 +224,14 @@ export function Fight({ detail, onChoose, busy, deal, next }: {
         {turns.map(([turn, evs]) => (
           <li key={turn} className="turn">
             <span className="turn-label">{turn === 0 ? 'Opening' : `Turn ${turn}`}</span>
-            <ol className="attacks">{evs.map((e) => <AttackRow key={e.seq} e={e} maxHp={maxHp} />)}</ol>
+            <ol className="attacks">{evs.map((it) => (it.type === 'e' ? <AttackRow key={`e${it.e.seq}`} e={it.e} maxHp={maxHp} /> : <NoteRow key={`n${it.n.seq}`} n={it.n} />))}</ol>
           </li>
         ))}
       </ol>
-      {r.pending_choice && onChoose && !dealing && <ChoicePrompt options={r.pending_choice.options} turn={r.pending_choice.turn} phase={r.pending_choice.phase} onChoose={onChoose} busy={busy} />}
+      {r.stun && <p className="fight-opening">Stun meters: you {Math.round(r.stun.player)} / boss {Math.round(r.stun.boss)} (100 = stunned){r.stims ? ` · stims left: you ${r.stims.player}, boss ${r.stims.boss}` : ''}.</p>}
+      {r.pending_choice && onChoose && !dealing && r.pending_choice.kind === 'defense' && <DefensePrompt p={r.pending_choice} onAnswer={onChoose} busy={busy} />}
+      {r.pending_choice && onChoose && !dealing && r.pending_choice.kind === 'stim' && <StimPrompt p={r.pending_choice} onAnswer={onChoose} busy={busy} />}
+      {r.pending_choice && onChoose && !dealing && (r.pending_choice.kind ?? 'attack_mode') === 'attack_mode' && <ChoicePrompt options={r.pending_choice.options as AttackMode[]} turn={r.pending_choice.turn} phase={r.pending_choice.phase} onChoose={(mode, repeat) => onChoose({ mode, repeat })} busy={busy} />}
       {next && !dealing && <div className="phase-end"><button className="btn btn-primary btn-big" onClick={next.onClick}>{next.label} <Icon name="arrow" /></button></div>}
       <p className="fight-seed">Round seed {r.seed} · engine {r.engine_version}: the seed plus the stored snapshots reproduce this fight.</p>
     </section>

@@ -19,6 +19,7 @@ export function rowToCombatant(row: any): CombatantState {
     stats: row.stats,
     inventory: row.inventory,
     loadout: row.loadout,
+    ...(row.supplies ? { supplies: row.supplies } : {}),
   };
 }
 
@@ -38,6 +39,10 @@ export function rowToEvent(r: any): CombatEvent {
     defenderHpBefore: r.defender_hp_before,
     defenderHpAfter: r.defender_hp_after,
     attackerHp: r.attacker_hp,
+    ...(r.kind ? { kind: r.kind } : {}),
+    ...(r.parent_seq != null ? { parentSeq: r.parent_seq } : {}),
+    ...(r.defense ? { defense: r.defense } : {}),
+    ...(r.stun ? { stun: r.stun } : {}),
   };
 }
 

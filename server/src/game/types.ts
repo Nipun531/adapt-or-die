@@ -80,6 +80,8 @@ export interface CombatantState {
   stats: Stats;
   inventory: string[];
   loadout: Loadout;
+  /** V3 healing stims (absent on pre-V3 states = none). */
+  supplies?: Supplies;
 }
 
 /** Combat-ready numbers derived from a combatant's stats + equipped gear (see rules/derive.ts). */

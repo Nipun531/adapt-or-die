@@ -14,15 +14,23 @@ export interface Derived {
   netAtk: number; netDef: number; netDexRaw: number; effDex: number;
   attackModes: AttackMode[]; rangedWeaponId: string | null; meleeWeaponId: string | null;
 }
+export type SupplyAction = 'buy_stim' | 'upgrade_slots' | 'upgrade_effectiveness';
+export interface Supplies { stims: number; slots: number; effectiveness: number }
 export interface Combatant {
   side: Side; level: number; xp: number; gold: number; statPoints: number;
   stats: Stats; inventory: string[]; loadout: Loadout; derived: Derived; xpToNext: number;
+  /** V3 healing stims (absent on pre-V3 runs). */
+  supplies?: Supplies;
+  /** V3: heal size and the price / blocking reason of each supply action (server-computed). */
+  supplyInfo?: { healFraction: number; actions: Record<SupplyAction, { cost: number; problem: string | null }> } | null;
 }
 export interface Item {
   id: string; name: string; category: 'melee' | 'ranged' | 'shield' | 'armour';
   family: 'blade' | 'blunt' | 'polearm' | 'bow' | 'shield' | 'armour'; cost: number;
   mods: { str: number; def: number; dex: number };
   pierce?: { chance: number; defIgnore: number; placeholder: boolean };
+  /** V3 combat properties. */
+  combat?: { blockBonus?: number; stunBoost?: number; canStun?: boolean; dodgeCounter?: number };
 }
 export interface Catalog {
   items: Item[];
@@ -36,6 +44,15 @@ export interface Catalog {
     dexBonusThresholds: { advantage: number; attacks: number }[];
     mitigationRoll: [number, number];
     defaultMaxRounds: number;
+    startingGold?: number;
+    /** V3 combat numbers (null before engine 3.0.0). */
+    combat?: {
+      dodge: { perDexPoint: number; cap: number; base: number };
+      block: { defFactor: number; cap: number };
+      counter: { blockMultiplier: number; dodgeMultiplier: number; blockCounterStun: number };
+      stun: { threshold: number; extraDamageFraction: number };
+      round: { turnLimit: number };
+    } | null;
   };
 }
 export interface RoundRow {
@@ -63,11 +80,42 @@ export interface AttackCalc {
   mitigationUniform: number; mitigationRoll: number; rawMitigation: number; mitigation: number;
   mitigationClamped: boolean; finalDamage: number;
 }
+export type DefenseAction = 'block' | 'dodge';
+export interface DefenseResult {
+  action: DefenseAction | 'none'; source: string; reason?: string; chance: number; roll: number; success: boolean;
+  shaved: number; wouldBeDamage: number; heavy?: boolean;
+  counter: { type: DefenseAction; chance: number; roll: number; success: boolean } | null;
+  noCounterReason?: string;
+}
+export interface StunChange {
+  gains: { side: Side; amount: number; cause: 'hit' | 'heavy_block' | 'block_counter' }[];
+  triggered: { target: Side; extraDamage: number; weaponId: string } | null;
+  meters: Record<Side, number>;
+}
 export interface CombatEvent {
-  seq: number; turn: number; phase: 'opening' | 'regular' | 'dex_bonus'; attacker: Side; defender: Side;
+  seq: number; turn: number; phase: 'opening' | 'regular' | 'dex_bonus' | 'counter'; attacker: Side; defender: Side;
   mode: AttackMode; weaponId: string | null; choiceSource: string; choiceReason?: string;
   calc: AttackCalc; damage: number; defenderHpBefore: number; defenderHpAfter: number; attackerHp: number;
+  /** V3 only. */
+  kind?: 'attack' | 'counter'; parentSeq?: number; defense?: DefenseResult; stun?: StunChange;
 }
+/** V3: lost turns, stims used and the turn limit, in order with the events (shared seq). */
+export interface CombatNote {
+  seq: number; turn: number; side: Side; kind: 'skip' | 'stim' | 'turn_limit';
+  detail: { reason?: string; heal?: number; hpBefore?: number; hpAfter?: number; stimsLeft?: number; hpShare?: Record<Side, number> };
+}
+export interface DefenseOdds {
+  block: { chance: number; counterPossible: boolean; heavy: boolean };
+  dodge: { chance: number; counterPossible: boolean; counterChance: number };
+  expectedDamage: number; expectedShaved: number;
+}
+export interface PendingChoice {
+  side: Side; kind?: 'attack_mode' | 'defense' | 'stim'; options: string[]; phase: string; turn: number;
+  incoming?: { attacker: Side; mode: AttackMode; weaponId: string | null; phase: string; turn: number; counterable: boolean };
+  odds?: DefenseOdds; heal?: number;
+}
+/** Answer to a paused round: exactly one of mode / defense / stim. */
+export interface PlayerAnswer { mode?: AttackMode; repeat?: boolean; defense?: DefenseAction; stim?: boolean }
 export interface Weakness { code: string; severity: number; evidence: string; metrics: Record<string, number> }
 export interface Analysis {
   roundNumber: number; outcome: 'boss_won' | 'boss_lost';
@@ -131,10 +179,13 @@ export interface RoundDetail {
   round: RoundRow & {
     run_id: number; seed: number; engine_version: string; initiative: Initiative;
     player_snapshot: Snapshot; boss_snapshot: Snapshot;
-    pending_choice: { side: Side; options: AttackMode[]; phase: string; turn: number } | null;
+    pending_choice: PendingChoice | null;
     hp: Record<Side, number> | null; error: string | null;
+    /** V3: live meters while in progress; how the round ended. */
+    stun?: Record<Side, number> | null; stims?: Record<Side, number> | null; end_reason?: string | null;
   };
   events: CombatEvent[];
+  notes?: CombatNote[];
   analysis: Analysis | null;
   decision: Decision | null;
   progression: ProgressionRow[];
@@ -227,6 +278,8 @@ export const api = {
   startRound: (id: number) => call<RoundDetail>('POST', `/runs/${id}/rounds`),
   getRound: (id: number) => call<RoundDetail>('GET', `/rounds/${id}`),
   choose: (id: number, mode: AttackMode, repeat: boolean) => call<RoundDetail>('POST', `/rounds/${id}/choice`, { mode, repeat }),
+  answer: (id: number, a: PlayerAnswer) => call<RoundDetail>('POST', `/rounds/${id}/choice`, a),
+  supplies: (id: number, action: SupplyAction) => call<RunView>('POST', `/runs/${id}/supplies`, { action }),
   strategies: () => call<{ strategies: { name: string; description: string }[]; limits: { maxRuns: number; maxRounds: number }; running: number | null }>('GET', '/simulations/strategies'),
   listBatches: () => call<{ batches: Batch[]; running: number | null }>('GET', '/simulations'),
   getBatch: (id: number) => call<Batch>('GET', `/simulations/${id}`),

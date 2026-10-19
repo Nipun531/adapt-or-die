@@ -41,6 +41,10 @@ function ItemCard({ item, owned, equipped, gold, selected, onPick }: { item: Ite
       <span className="item-tags">
         {item.category === 'ranged' && <span className="tag tag-yellow">First Shot</span>}
         {item.pierce && <span className="tag tag-blue">Pierce {Math.round(item.pierce.chance * 100)}% · ignores {Math.round(item.pierce.defIgnore * 100)}% DEF</span>}
+        {item.combat?.blockBonus ? <span className="tag tag-ink">Block +{Math.round(item.combat.blockBonus * 100)}%</span> : null}
+        {item.combat?.canStun ? <span className="tag tag-red">Can stun</span> : null}
+        {item.combat?.stunBoost ? <span className="tag tag-ink">Stun boost +{Math.round(item.combat.stunBoost * 100)}%</span> : null}
+        {item.combat?.dodgeCounter ? <span className="tag tag-ink">Dodge counter +{Math.round(item.combat.dodgeCounter * 100)}%</span> : null}
       </span>
       <Mods item={item} />
       {short && <span className="item-short">Need {item.cost - gold} more gold</span>}
@@ -199,6 +203,26 @@ export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunVi
             ))}
           </div>
         </div>
+        {p.supplies && p.supplyInfo && (
+          <div className="supplies">
+            <header className="points-head">
+              <h4>Healing stims</h4>
+              <span className="chip">{p.supplies.stims} / {p.supplies.slots} carried</span>
+            </header>
+            <p className="points-hint">Each stim heals {Math.round(p.supplyInfo.healFraction * 100)}% of your max HP, used before one of your turns. A used stim is gone until you buy another.</p>
+            <div className="supply-actions">
+              {([['buy_stim', 'Buy stim'], ['upgrade_slots', '+1 slot'], ['upgrade_effectiveness', '+5% heal']] as const).map(([a, label]) => {
+                const info = p.supplyInfo!.actions[a];
+                return (
+                  <button key={a} className="btn btn-quiet btn-small" disabled={act.busy || !!info.problem} title={info.problem ?? undefined}
+                    onClick={() => apply(() => api.supplies(runId, a), `${label} (${info.cost}g)`)}>
+                    {label} · {info.cost}g
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {view.lastDecision && (
           <div className="last-hand">
             <h4>The boss’s last hand</h4>
@@ -206,7 +230,7 @@ export function Armory({ view, onChange, begin, onShowAftermath }: { view: RunVi
           </div>
         )}
         <ErrorBox error={act.error} />
-        <p className="rules-note">Legal hands: shield + weapon, bow + melee weapon, one item, or empty. If both fighters hold a bow, only the faster one gets the First Shot (equal DEX: nobody). Pierce works with any weapon that has it.</p>
+        <p className="rules-note">Legal hands: shield + weapon, bow + melee weapon, one item, or empty. If both fighters hold a bow, only the faster one gets the First Shot (equal DEX: nobody). Pierce works with any weapon that has it. Every incoming attack can be blocked (DEF and shields) or dodged (a DEX lead); a successful block or a dodge with a long weapon can counter, except against ranged attacks.</p>
         {begin && (
           <div className="begin">
             {begin.hint && <p>{begin.hint}</p>}

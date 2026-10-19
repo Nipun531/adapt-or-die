@@ -8,6 +8,7 @@ import { getPool, setDatabaseUrl, withTransaction } from '../../src/db/pool.js';
 import { INITIAL_STAT_POINTS } from '../../src/game/constants.js';
 import type { StatKey } from '../../src/game/types.js';
 import { allocate, createRun, type CreateRunOptions } from '../../src/services/runs.js';
+import { startRound, submitChoice, type PlayerAnswer } from '../../src/services/rounds.js';
 
 let migrated = false;
 
@@ -34,4 +35,31 @@ export async function createReadyRun(opts: CreateRunOptions = {}, stat: StatKey 
   const runId = await withTransaction((c) => createRun(c, opts));
   await allocate(runId, stat, INITIAL_STAT_POINTS);
   return runId;
+}
+
+/** Default answers for a paused V3 round: block every boss attack, use stims, first attack mode offered. */
+export function autoAnswer(pending: { kind?: string; options: string[] }): PlayerAnswer {
+  if (pending.kind === 'defense') return { defense: 'block' };
+  if (pending.kind === 'stim') return { stim: true };
+  return { mode: pending.options[0] as PlayerAnswer['mode'] };
+}
+
+/**
+ * Engine 3.0.0 pauses for the human on every incoming boss attack (Block/Dodge) and before stim use. This answers
+ * every pending decision (default: autoAnswer) until the round is over.
+ */
+export async function finishRound(roundId: number, answer: (p: any) => PlayerAnswer = autoAnswer): Promise<void> {
+  for (let i = 0; i < 2000; i++) {
+    const r = (await getPool().query('SELECT status, pending_choice FROM rounds WHERE id = $1', [roundId])).rows[0];
+    if (r.status !== 'in_progress') return;
+    await submitChoice(roundId, answer(r.pending_choice));
+  }
+  throw new Error(`Round ${roundId} did not finish`);
+}
+
+/** Start the next round and play it to the end with the given answers. */
+export async function playRound(runId: number, answer?: (p: any) => PlayerAnswer): Promise<number> {
+  const roundId = await startRound(runId);
+  await finishRound(roundId, answer);
+  return roundId;
 }

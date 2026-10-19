@@ -10,9 +10,9 @@ import { isLegalLoadout } from '../../src/game/equipment.js';
 import { stopInferenceWorker } from '../../src/ml/predictor.js';
 import { FEATURE_SCHEMA_VERSION } from '../../src/ml/features.js';
 import { buy, getRunView, setLoadout } from '../../src/services/runs.js';
-import { ENGINE_VERSION } from '../../src/game/constants.js';
+import { ENGINE_VERSION, STARTING_GOLD } from '../../src/game/constants.js';
 import { getRoundDetail, startRound, submitChoice } from '../../src/services/rounds.js';
-import { createReadyRun, resetTables, useTestDatabase } from '../helpers/db.js';
+import { createReadyRun, resetTables, useTestDatabase, autoAnswer, finishRound, playRound } from '../helpers/db.js';
 
 beforeAll(useTestDatabase);
 beforeEach(resetTables);
@@ -24,14 +24,17 @@ afterAll(async () => {
 describe('round lifecycle', () => {
   it('plays round 1 end-to-end and persists everything', async () => {
     const runId = await createReadyRun({ seed: 'test-seed-1', maxRounds: 3 });
-    const roundId = await startRound(runId);
+    const roundId = await playRound(runId);
     const d = await getRoundDetail(getPool(), roundId);
     expect(d.round.status).toBe('completed');
     expect(d.events.length).toBeGreaterThan(0);
-    expect(d.events.every((e) => e.mode === 'unarmed')).toBe(true);
+    expect(d.events.filter((e) => e.attacker === 'player' && e.kind === 'attack').every((e) => e.mode === 'unarmed')).toBe(true);
+    // V3: every boss attack was announced and the human answered it (block).
+    expect(d.events.filter((e) => e.kind === 'attack' && e.defender === 'player').every((e) => e.defense?.source === 'player' || e.defense?.action === 'none')).toBe(true);
+    expect(d.events.filter((e) => e.kind === 'attack' && e.defender === 'boss').every((e) => e.defense?.source === 'boss_policy' || e.defense?.action === 'none')).toBe(true);
     expect(d.analysis.roundNumber).toBe(1);
     expect(d.decision.predictor.kind).toBe('fallback');
-    // Round 1: 0 gold, no items → rule-determined (not a fake 50% estimate).
+    // Round 1: 10 gold, no items, no bow affordable → rule-determined (not a fake 50% estimate).
     expect(d.decision.predictor).toMatchObject({ basis: 'rule', probabilityRanged: 0 });
     expect(d.decision.predictor.fallbackReason).toMatch(/cannot afford/);
 
@@ -39,18 +42,19 @@ describe('round lifecycle', () => {
     const winner = d.round.winner;
     const w = winner === 'player' ? v.player : v.boss;
     const l = winner === 'player' ? v.boss : v.player;
-    expect([w.xp, w.gold]).toEqual([50, 10]);
-    expect([l.xp, l.gold]).toEqual([30, 5]);
+    expect([w.xp, l.xp]).toEqual([50, 30]);
+    // The player spent nothing in round 1: 10 starting gold + its reward.
+    expect(v.player.gold).toBe(STARTING_GOLD + (winner === 'player' ? 10 : 5));
     const kinds = d.progression.map((p: any) => p.kind);
     expect(kinds.filter((k: string) => k === 'xp').length).toBe(2);
   });
 
   it('round 2 appends a training example and the boss decision uses history', async () => {
     const runId = await createReadyRun({ seed: 'test-seed-2', maxRounds: 5 });
-    await startRound(runId);
+    await playRound(runId);
     await buy(runId, 'knuckle');
     await setLoadout(runId, { hand1: 'knuckle', hand2: null, armour: null });
-    const r2 = await startRound(runId);
+    const r2 = await playRound(runId);
     const d = await getRoundDetail(getPool(), r2);
     expect(d.decision.evidence.sourceRound).toBe(1);
     expect(d.decision.predictor.features).not.toBeNull();
@@ -70,20 +74,31 @@ describe('round lifecycle', () => {
     const roundId = await startRound(runId);
     let d = await getRoundDetail(getPool(), roundId);
     expect(d.round.status).toBe('in_progress');
-    expect(d.round.pending_choice.options).toEqual(['ranged', 'melee']);
+    expect(['attack_mode', 'defense']).toContain(d.round.pending_choice.kind);
     expect(d.events.some((e) => e.phase === 'opening' && e.attacker === 'player')).toBe(true);
     await expect(startRound(runId)).rejects.toThrow(/in progress/);
-    await submitChoice(roundId, 'melee');
-    await submitChoice(roundId, 'ranged', true);
+    // First attack-mode prompt: melee once; then ranged for the rest of the round. Block every boss attack.
+    let modes = 0;
+    await finishRound(roundId, (p) => {
+      if (p.kind === 'attack_mode') {
+        expect(p.options).toEqual(['ranged', 'melee']);
+        return modes++ === 0 ? { mode: 'melee' } : { mode: 'ranged', repeat: true };
+      }
+      return autoAnswer(p);
+    });
     d = await getRoundDetail(getPool(), roundId);
     expect(d.round.status).toBe('completed');
     expect(d.events.some((e) => e.choiceSource === 'player')).toBe(true);
-    expect(d.events.some((e) => e.choiceSource === 'player_auto')).toBe(true);
+    if (modes > 1) expect(d.events.some((e) => e.choiceSource === 'player_auto')).toBe(true);
+    // A wrong answer for the pending decision is refused.
+    const r2 = await startRound(runId);
+    const p2 = (await getRoundDetail(getPool(), r2)).round.pending_choice;
+    await expect(submitChoice(r2, p2.kind === 'defense' ? { mode: 'melee' } : { defense: 'block' })).rejects.toThrow(/not available|pending/);
   });
 
   it('history survives a connection-pool restart', async () => {
     const runId = await createReadyRun({ seed: 'test-seed-4', maxRounds: 3 });
-    await startRound(runId);
+    await playRound(runId);
     const before = await getRunView(getPool(), runId);
     await setDatabaseUrl(env.testDatabaseUrl); // closes and recreates the pool
     const after = await getRunView(getPool(), runId);
@@ -96,7 +111,7 @@ describe('round lifecycle', () => {
 describe('boss legality over a full run', () => {
   it('every boss decision is affordable and legal; run closes at max rounds', async () => {
     const runId = await createReadyRun({ seed: 'test-seed-5', maxRounds: 8 });
-    for (let i = 0; i < 8; i++) await startRound(runId);
+    for (let i = 0; i < 8; i++) await playRound(runId);
     const decisions = (await getPool().query('SELECT * FROM boss_decisions WHERE run_id = $1 ORDER BY for_round_number', [runId])).rows;
     expect(decisions.length).toBe(8);
     for (const d of decisions) {
@@ -122,7 +137,7 @@ describe('ML fallback honesty', () => {
          data_stats, eligible, eligibility_reasons, is_active, training_seconds)
        VALUES ('test-missing','xgboost','t',$2,$1,'artifacts/models/does-not-exist','{}','{}','{}','{}',true,'[]',true,0)`, [ENGINE_VERSION, FEATURE_SCHEMA_VERSION]);
     const runId = await createReadyRun({ seed: 'test-seed-6', maxRounds: 3 });
-    const r1 = await startRound(runId);
+    const r1 = await playRound(runId);
     // TEST FIXTURE: recorded gold so a bow is affordable → ranged feasible → the model path is tried.
     await getPool().query(`UPDATE rounds SET player_post = jsonb_set(player_post, '{gold}', '40') WHERE id = $1`, [r1]);
     const r2 = await startRound(runId);
