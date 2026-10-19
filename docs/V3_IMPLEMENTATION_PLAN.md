@@ -1,6 +1,6 @@
 # The Boss Remembers — Version 3 Implementation Plan (Phase 1: audit + plan)
 
-**Status (2026-10-19): PLAN ONLY. Nothing in V3 is implemented.** The owner answered §I on 2026-10-19; the answers and their exact formulas are in **`docs/V3_DEMANDS.md`**, which supersedes the recommendations in §I where they differ. Q-1…Q-4 were answered as well, so no blocking decision is open. **Phase A DONE 2026-10-19** (`docs/V3_BASELINE.md`). Next: Phase B.
+**Status (2026-10-19): PLAN ONLY. Nothing in V3 is implemented.** The owner answered §I on 2026-10-19; the answers and their exact formulas are in **`docs/V3_DEMANDS.md`**, which supersedes the recommendations in §I where they differ. Q-1…Q-4 were answered as well, so no blocking decision is open. **Phase A DONE 2026-10-19** (`docs/V3_BASELINE.md`). **Phase B DONE 2026-10-19** (engine behind RuleSet v3; notes in V3_DEMANDS §11). Next: Phase C1.
 Design input: `context/The_Boss_Remembers_V3_Combat_Redesign_Plan_1.3.docx` (found in the repo, read in full; 148 text blocks, 3 tables).
 Its "Plan 1.3" text is quoted as **[DOC]**. Code observations are **[CODE]**, measured numbers **[DATA]**, my proposals **[REC]**, and open owner decisions **[DECIDE D-n]**.
 
@@ -556,7 +556,13 @@ The order is adjusted to the repo: balance tooling comes **right after** the eng
 - **Acceptance:** every **blocking** decision in §I is answered; baseline committed.
 - **Approval:** §I; any rule change found by the asymmetry investigation.
 
-### Phase B — Combat foundation (engine only, pure)
+### Phase B — Combat foundation (engine only, pure) — DONE 2026-10-19
+
+> Result: RuleSet v2/v3 (`game/rules.ts`), V3 formulas, `catalogs/v3.ts`, and the V3 attack sequence in `combat.ts`.
+> - 22 V3 tests.
+> - The v2 path is byte-identical (240-run diff).
+> - The DEX-benefit toggles are in place for the C1 ablation.
+> - Not live yet: no persistence or API (Phase C2).
 
 - **Objective:** V3 attack sequence per the approved rules.
 - **Files:**

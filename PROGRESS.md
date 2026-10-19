@@ -19,7 +19,13 @@ V3 plan written: `docs/V3_IMPLEMENTATION_PLAN.md` (audit, requirements matrix, b
   - the boss plays hybrid in 94–100% of late rounds.
 - Tests: 167 server + 5 client.
 
-**Next: Phase B** (combat foundation: RuleSet v2/v3, block/dodge/counter/stun/stims in the pure engine).
+**Phase B DONE (2026-10-19):** the V3 engine runs behind RuleSet v3 (`game/rules.ts`, `combat.ts` `advanceV3`, `catalogs/v3.ts`).
+- 22 V3 unit tests.
+- The v2 path is byte-identical (240-run diff).
+- Not live: no DB/API yet.
+- First look: shields work; the DEX dodger fails; stun almost never triggers.
+
+**Next: Phase C1** (harness v3: shared `playRound`, V3 agent policies, paired V2/V3 runs, DEX ablation, mechanic shares).
 
 ## 0. Version 2 — Phase 8 final verification DONE (2026-10-17) — start here
 

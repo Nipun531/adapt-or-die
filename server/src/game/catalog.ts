@@ -8,15 +8,24 @@
  */
 import { ITEMS_V1 } from './catalogs/v1.js';
 import { ITEMS_V2 } from './catalogs/v2.js';
+import { ITEMS_V3 } from './catalogs/v3.js';
 import type { Item, ItemCategory } from './types.js';
 
-export { ITEMS_V1, ITEMS_V2 };
+export { ITEMS_V1, ITEMS_V2, ITEMS_V3 };
 
 /** The live catalogue (engine 2.0.0). */
 export const ITEMS: readonly Item[] = ITEMS_V2;
 
 const BY_ID = new Map(ITEMS.map((i) => [i.id, i]));
 const BY_ID_V1 = new Map(ITEMS_V1.map((i) => [i.id, i]));
+const BY_ID_V3 = new Map(ITEMS_V3.map((i) => [i.id, i]));
+
+/** V3 table lookup (RuleSet v3; not live until Phase C2). Throws on unknown ids. */
+export function requireItemV3(id: string): Item {
+  const item = BY_ID_V3.get(id);
+  if (!item) throw new Error(`Unknown V3 item id "${id}"`);
+  return item;
+}
 
 export function getItem(id: string): Item | undefined {
   return BY_ID.get(id);
@@ -29,9 +38,11 @@ export function requireItem(id: string): Item {
   return item;
 }
 
-/** Catalogue that applied under a given engine version (1.x → V1, otherwise the live V2 table). */
+/** Catalogue that applied under a given engine version (1.x → V1, 3.x → V3, otherwise V2). */
 export function catalogFor(engineVersion: string | null | undefined): readonly Item[] {
-  return engineVersion && engineVersion.startsWith('1.') ? ITEMS_V1 : ITEMS_V2;
+  if (engineVersion?.startsWith('1.')) return ITEMS_V1;
+  if (engineVersion?.startsWith('3.')) return ITEMS_V3;
+  return ITEMS_V2;
 }
 
 /**

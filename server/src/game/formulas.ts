@@ -101,3 +101,56 @@ export function dexBonusAttacks(attackerDex: number, defenderDex: number): numbe
 export function xpToNextLevel(level: number): number {
   return Math.round(XP_BASE * Math.pow(XP_MULTIPLIER, level - 1));
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// V3 combat formulas (docs/V3_DEMANDS.md). Probabilities are 0..1. Numbers come from RuleSet v3 (rules.ts).
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Dodge delta = defender effective DEX − attacker effective DEX, floored at 0 (the DEX the First Shot compares). */
+export function dodgeDelta(defenderDex: number, attackerDex: number): number {
+  return Math.max(0, defenderDex - attackerDex);
+}
+
+/** Dodge chance = min(cap, perDexPoint × dodge delta). Owner: 2% per DEX point, cap 70%. */
+export function dodgeChance(delta: number, perDexPoint: number, cap: number): number {
+  return Math.min(cap, perDexPoint * Math.max(0, delta));
+}
+
+/** Block chance = min(cap, defFactor × DEF + Σ gear block bonus), never below 0. Owner: 0.5 × DEF (as %), cap 70%. */
+export function blockChance(def: number, gearBonus: number, defFactor: number, cap: number): number {
+  return Math.min(cap, Math.max(0, defFactor * def + gearBonus));
+}
+
+/**
+ * Attack shaved off = share of the attack value that DEF and DEX would remove if the attack hit:
+ * (A − would-be final damage) / A, in 0..1 (owner Q-1). Used for block-counter chance and stun gain.
+ */
+export function attackShavedOff(attackValue: number, wouldBeFinal: number): number {
+  if (attackValue <= 0) return 0;
+  return Math.min(1, Math.max(0, (attackValue - wouldBeFinal) / attackValue));
+}
+
+/** Block-counter chance = min(cap, attack shaved off). */
+export function blockCounterChance(shaved: number, cap: number): number {
+  return Math.min(cap, Math.max(0, shaved));
+}
+
+/** Dodge-counter chance = min(cap, dodge delta % + weapon dodge-counter modifier). Delta 15 + Spear 10% → 25%. */
+export function dodgeCounterChance(delta: number, weaponMod: number, cap: number): number {
+  return Math.min(cap, Math.max(0, delta / 100 + weaponMod));
+}
+
+/** Stun gain of one hit = base + span × min(1, shaved + mitigation roll + weapon stun boost) — 10..20 (owner Q-2). */
+export function stunGain(shaved: number, mitigationRoll: number, stunBoost: number, base: number, span: number): number {
+  return base + span * Math.min(1, Math.max(0, shaved + mitigationRoll + stunBoost));
+}
+
+/** A blocked hit is "very heavy" when its would-be damage reaches `fraction` of the blocker's max HP. */
+export function isHeavyHit(wouldBeFinal: number, blockerMaxHp: number, fraction: number): boolean {
+  return wouldBeFinal >= fraction * blockerMaxHp;
+}
+
+/** Stim heal amount = (base + perUpgrade × effectiveness upgrades) × max HP. */
+export function stimHealAmount(maxHp: number, effectivenessUpgrades: number, base: number, perUpgrade: number): number {
+  return (base + perUpgrade * effectivenessUpgrades) * maxHp;
+}

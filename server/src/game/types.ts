@@ -33,6 +33,21 @@ export interface PierceSpec {
   placeholder: boolean;
 }
 
+/**
+ * V3 combat properties (docs/V3_DEMANDS.md §2–§5). Absent in the V1/V2 catalogues; read only by RuleSet v3.
+ * All fractions are 0..1 (0.10 = 10%).
+ */
+export interface ItemCombat {
+  /** Added to the holder's block chance (shields, armour). */
+  blockBonus?: number;
+  /** Added to the stun-gain sum of hits made with this weapon (Wooden Club 0.04 … Warhammer 0.20). */
+  stunBoost?: number;
+  /** A hit (or block counter) with this weapon can trigger a stun when the target's meter is full. */
+  canStun?: boolean;
+  /** Added to the dodge-counter chance; only weapons with this can counter after a dodge. */
+  dodgeCounter?: number;
+}
+
 export interface Item {
   id: string;
   name: string;
@@ -41,6 +56,7 @@ export interface Item {
   cost: number;
   mods: ItemMods;
   pierce?: PierceSpec;
+  combat?: ItemCombat;
 }
 
 /** Two hand slots plus a separate armour (body) slot. null = empty slot. */
@@ -85,6 +101,13 @@ export interface DerivedStats {
   meleeWeaponId: string | null;
 }
 
+/** Healing stims a fighter carries into a round (V3). `effectiveness` = number of effectiveness upgrades bought. */
+export interface Supplies {
+  stims: number;
+  slots: number;
+  effectiveness: number;
+}
+
 /** Immutable snapshot of a fighter taken when a round starts. */
 export interface FighterSnapshot {
   side: Side;
@@ -92,4 +115,6 @@ export interface FighterSnapshot {
   stats: Stats;
   loadout: Loadout;
   derived: DerivedStats;
+  /** V3 only; absent = no stims. */
+  supplies?: Supplies;
 }

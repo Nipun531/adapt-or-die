@@ -7,7 +7,8 @@ import type { CombatEvent } from './combat.js';
 import type { Side } from './types.js';
 
 type ModeCounts = { melee: number; ranged: number; unarmed: number };
-type PhaseCounts = { opening: number; regular: number; dex_bonus: number };
+/** `counter` appears only for V3 rounds (counter mini moves). */
+type PhaseCounts = { opening: number; regular: number; dex_bonus: number; counter?: number };
 
 export interface SideCombatSummary {
   attacks: number;
@@ -65,19 +66,29 @@ export function summarizeCombat(events: CombatEvent[]): CombatSummary {
   let lastTurn = 0;
   for (const e of events) {
     const s = out[e.attacker];
+    if (e.kind === 'counter') {
+      // V3 counter mini move: real damage, but not a style choice (forced melee) — kept out of attack/mode/label counts.
+      s.damageDealt += e.damage;
+      s.damageByPhase.counter = (s.damageByPhase.counter ?? 0) + e.damage;
+      const cw = e.weaponId ?? 'unarmed';
+      s.damageByWeapon[cw] = (s.damageByWeapon[cw] ?? 0) + e.damage;
+      lastTurn = Math.max(lastTurn, e.turn);
+      continue;
+    }
+    const landed = !e.defense || !e.defense.success; // V3: a blocked/dodged attack still shows the style, but deals nothing
     s.attacks++;
     s.attacksByMode[e.mode]++;
-    s.attacksByPhase[e.phase]++;
+    s.attacksByPhase[e.phase as 'opening' | 'regular' | 'dex_bonus']++;
     if (e.phase !== 'opening') {
       s.nonOpeningAttacks++;
       if (e.mode === 'ranged') s.nonOpeningRanged++;
     }
     s.damageDealt += e.damage;
     s.damageByMode[e.mode] += e.damage;
-    s.damageByPhase[e.phase] += e.damage;
+    s.damageByPhase[e.phase as 'opening' | 'regular' | 'dex_bonus'] += e.damage;
     const w = e.weaponId ?? 'unarmed';
     s.damageByWeapon[w] = (s.damageByWeapon[w] ?? 0) + e.damage;
-    if (e.calc.pierce) {
+    if (e.calc.pierce && landed) {
       s.pierceAttempts++;
       if (e.calc.pierce.success) {
         s.pierces++;
@@ -94,5 +105,5 @@ export function summarizeCombat(events: CombatEvent[]): CombatSummary {
     s.avgMitigationSuffered = s.attacks ? mitSum[side] / s.attacks : 0;
     s.rangedShare = s.attacks ? s.attacksByMode.ranged / s.attacks : null;
   }
-  return { player: out.player, boss: out.boss, totalAttacks: events.length, lastTurn };
+  return { player: out.player, boss: out.boss, totalAttacks: events.filter((e) => e.kind !== 'counter').length, lastTurn };
 }

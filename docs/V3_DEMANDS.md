@@ -156,3 +156,50 @@ Rules for using stims **[DEFAULT]**:
   - D-13 (boss difficulty bands);
   - D-17 (rewards);
   - D-18 (UI test dev dependency).
+
+## 11. Phase B engine notes (2026-10-19) — how the rules are implemented
+
+Code:
+- `server/src/game/rules.ts`: RuleSet v2/v3; every V3 number lives in `V3_COMBAT`.
+- `game/formulas.ts`: the V3 section.
+- `game/combat.ts`: `advanceV3` / `resolveExchange`.
+- `game/catalogs/v3.ts`: not live until Phase C2.
+- Tests: `tests/unit/v3-combat.test.ts`.
+
+Details fixed while building. Each is consistent with the decisions above; they are **[DEFAULT]** until the owner objects.
+
+- **Order inside one attack:**
+  1. Announce the attack.
+  2. Defence: block or dodge, or none if the defender is stunned.
+  3. Compute the would-be hit (V2 pipeline).
+  4. Land the hit, or block/dodge it.
+  5. Stun gain and trigger.
+  6. KO check.
+  7. Counter mini move: its damage, its stun, KO check.
+- **Fixed random draws:** six per attack, always in this order: defence, counter, pierce, mitigation, counter pierce, counter mitigation. The defence choice never shifts later rolls (tested).
+- **Counters:**
+  - The counter uses the defender's melee weapon, or fists when it holds no weapon at all.
+  - Bow-only and bow + shield defenders cannot block-counter.
+  - A counter has its own pierce and mitigation rolls.
+  - The +20 block-counter stun can trigger a stun only if the counter weapon can stun.
+- **Lost attack turn (exactly one):**
+  - Stunned during its own action with attacks left → the rest of that action is lost.
+  - Otherwise → its next action is skipped (a `skip` note).
+  - The lost defence applies to the next incoming attack.
+- **Heavy block:**
+  - The stun gain uses the same formula as a hit.
+  - If it triggers a stun, the extra damage is 25% of the blocked hit's would-be damage.
+- **Stims:**
+  - Offered at the start of the fighter's regular action, before the attack.
+  - Only offered if it holds a stim and is below max HP.
+  - Not offered on a skipped (stunned) action.
+- **Automatic choices** (boss and agents until Phase C2/D refine them):
+  - Defence: the higher success chance; a tie goes to block.
+  - Stim: used when the HP lost ≥ the heal amount.
+  - The human's choices pause the engine (`pending.kind` = `attack_mode` / `defense` / `stim`).
+- **Chance caps:** block and dodge are capped at 70%. The caps also prevent stalls. With a 100% defence on both sides a round could never end; the harness tests use one-sided 100% only.
+- **First look** (scratch run, untuned, mid-game builds; not evidence yet):
+  - Block turtle vs the hybrid boss build: boss 100% → 46%.
+  - DEX dodger (Pike) vs hybrid: still 100%, because gear DEX mods multiply and the hybrid reaches about 60 DEX.
+  - **Stun triggered 0.00 times per round** in all three matchups.
+  - Phase C1 measures all of this properly.
