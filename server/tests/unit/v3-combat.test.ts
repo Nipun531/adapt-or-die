@@ -287,6 +287,26 @@ describe('V3 attack sequence', () => {
     expect(JSON.parse(JSON.stringify(paused))).toEqual(paused);
   });
 
+  it('turn limit (D-19): after turn 30 the higher HP share wins; an exact tie goes to the initiative winner', () => {
+    // Hopeless archers (effective DEX 1 vs huge DEF): the pairing that used to stall.
+    const p = fighter('player', { hand1: 'great_shield', hand2: 'bow', armour: 'heavy_armour' }, { dex: 10, hp: 300 });
+    const b = fighter('boss', { hand1: 'great_shield', hand2: 'bow', armour: 'light_armour' }, { dex: 10, hp: 300 });
+    const { state, notes, events } = runFullCombat(p, b, 12, choosers, { rules: RULES_V3 });
+    const tl = notes.find((n) => n.kind === 'turn_limit')!;
+    expect(tl).toBeDefined();
+    expect(state.endReason).toBe('turn_limit');
+    expect(Math.max(...events.map((e) => e.turn))).toBe(30);
+    const share = tl.detail.hpShare!;
+    expect(state.winner).toBe(share.player > share.boss ? 'player' : share.boss > share.player ? 'boss' : state.initiative.tieWinner);
+    expect(tl.side).toBe(state.winner);
+    // Both block every attack and never counter: no damage at all → tie → coin-flip winner.
+    const wall = withRules(ALWAYS_BLOCK, { v3: { round: { turnLimit: 2 }, counter: { blockChanceCap: 0 } } });
+    const q = fighter('player', { hand1: 'sword' }, { hp: 500 });
+    const r = runFullCombat(q, { ...q, side: 'boss' }, 4, choosers, { rules: wall, defense: { player: always('block'), boss: always('block') } });
+    expect(r.state.winner).toBe(r.state.initiative.tieWinner);
+    expect(r.notes.at(-1)!.detail.hpShare).toEqual({ player: 1, boss: 1 });
+  });
+
   it('robustness: 1,500 random V3 fights terminate with a winner, under the attack guard', () => {
     const rng = new Rng(2026);
     const hands = [null, 'knife', 'sword', 'mace', 'warhammer', 'spear', 'pike', 'flail', 'bow', 'crossbow', 'wood_shield', 'great_shield'];

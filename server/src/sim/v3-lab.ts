@@ -12,18 +12,19 @@
  * Builds fight random opponents of the same stage. Builds, pairings and seeds are generated once and reused for every
  * rule variant, so variants are compared on identical fights (paired). Nothing here is a game rule.
  */
-import { autoDefense, autoStim, runFullCombat, type Chooser, type CombatEvent, type CombatNote, type DefenseChooser, type StimChooser } from '../game/combat.js';
+import { runFullCombat, type CombatEvent, type CombatNote } from '../game/combat.js';
 import { ITEMS_V3 } from '../game/catalog.js';
 import { BASE_STATS, LEVEL_UP_INCREASE, STAT_ALLOCATION_INCREASE } from '../game/constants.js';
 import { snapshotOf } from '../game/derive.js';
 import { loadoutProblem } from '../game/equipment.js';
-import { bestMode } from '../game/expected.js';
 import { initialCombatant } from '../game/progression.js';
 import { deriveSeed, Rng } from '../game/rng.js';
 import type { RuleSet } from '../game/rules.js';
 import type { FighterSnapshot, Item, ItemCategory, Loadout, Side, StatKey, Stats, Supplies } from '../game/types.js';
 import { STAT_KEYS } from '../game/types.js';
 import { wilson, type Interval } from './v3-baseline.js';
+import { DEFENSE_STYLES, defenseChooserFor as defenseChooser, modeChooserFor as modeChooser, stimChooserFor as stimChooser, type DefenseStyle, type ModeStyle, type StimStyle } from './v3-policies.js';
+export { DEFENSE_STYLES, type DefenseStyle, type ModeStyle, type StimStyle };
 
 export interface LabStage { name: string; level: number; points: number; budget: number }
 
@@ -38,10 +39,6 @@ export const LAB_STAGES: LabStage[] = [
   { name: 'late', level: 6, points: 7, budget: 140 },
 ];
 
-export type DefenseStyle = 'smart' | 'block' | 'dodge' | 'random' | 'greedy';
-export type StimStyle = 'auto' | 'low' | 'never';
-export type ModeStyle = 'best' | 'melee' | 'ranged' | 'random';
-export const DEFENSE_STYLES: DefenseStyle[] = ['smart', 'block', 'dodge', 'random', 'greedy'];
 
 /** Stim economy used for build generation (owner: 10 g per stim; DEFAULT upgrade prices 25, 30, …). */
 const STIM_COST = 10;
@@ -139,40 +136,6 @@ export function randomBuild(id: number, stage: LabStage, rng: Rng): LabBuild {
   return { id, stage: stage.name, snap, style: { defense, stim, mode }, shape: shape.name, spent: stage.budget - budget, allocation };
 }
 
-// ---------- play styles as choosers ----------
-
-function defenseChooser(style: DefenseStyle, rng: Rng, rules: RuleSet): DefenseChooser {
-  switch (style) {
-    case 'block': return () => ({ action: 'block', source: 'agent' });
-    case 'dodge': return () => ({ action: 'dodge', source: 'agent' });
-    case 'random': return () => ({ action: rng.next() < 0.5 ? 'block' : 'dodge', source: 'agent' });
-    case 'greedy': return autoDefense;
-    case 'smart': return ({ odds }) => {
-      // Value of a successful defence: the hit avoided, plus the counter's expected worth; a blocked heavy hit still stuns.
-      const c = rules.v3!.counter;
-      const blockV = odds.block.chance * (1 + (odds.block.counterPossible ? Math.min(c.blockChanceCap, odds.expectedShaved) * c.blockMultiplier * 0.5 : 0) - (odds.block.heavy ? 0.15 : 0));
-      const dodgeV = odds.dodge.chance * (1 + odds.dodge.counterChance * c.dodgeMultiplier * 0.5);
-      return { action: dodgeV > blockV ? 'dodge' : 'block', source: 'agent' };
-    };
-  }
-}
-
-function stimChooser(style: StimStyle): StimChooser {
-  if (style === 'auto') return autoStim;
-  if (style === 'never') return () => ({ use: false, source: 'agent' });
-  return ({ view, side }) => ({ use: view.hp[side] < 0.5 * view.fighters[side].derived.maxHp, source: 'agent' });
-}
-
-function modeChooser(style: ModeStyle, rng: Rng): Chooser {
-  return (ctx) => {
-    const att = ctx.view.fighters[ctx.side];
-    const def = ctx.view.fighters[ctx.side === 'player' ? 'boss' : 'player'];
-    if (style === 'best') return { mode: bestMode(att, def, ctx.options).mode, source: 'agent' };
-    if (style === 'random') return { mode: rng.pick(ctx.options), source: 'agent' };
-    return { mode: ctx.options.includes(style) ? style : ctx.options[0], source: 'agent' };
-  };
-}
-
 // ---------- population + pairings ----------
 
 export interface LabPopulation { stage: LabStage; builds: LabBuild[]; pairs: { a: number; b: number; seed: number }[] }
@@ -201,6 +164,8 @@ export interface LabMetrics {
   fights: number;
   attacksPerFight: number;
   stalls: number;
+  /** Rounds decided by the turn limit (D-19). */
+  turnLimitShare: Interval;
   // stun
   stunsPerFight: number;
   /** Fights with a can-stun weapon on either side in which that holder stunned its opponent at least once. */
@@ -234,6 +199,7 @@ interface Tally { w: number; n: number }
 const add = (t: Record<string, Tally>, k: string, won: boolean) => { const x = (t[k] ??= { w: 0, n: 0 }); x.n++; if (won) x.w++; };
 
 export function runLab(pop: LabPopulation, rules: RuleSet): LabMetrics {
+  let turnLimited = 0;
   let attacks = 0, stalls = 0, stuns = 0, stunExtra = 0, damage = 0, skips = 0, counters = 0, counterDmg = 0, stims = 0, heal = 0;
   let blockTry = 0, blockOk = 0, dodgeTry = 0, dodgeOk = 0, smartBlock = 0, smartDodge = 0;
   let stunFights = 0, stunLanded = 0, stunFightSides = 0, chainFights = 0;
@@ -258,6 +224,7 @@ export function runLab(pop: LabPopulation, rules: RuleSet): LabMetrics {
       continue;
     }
     const winner = res.state.winner!;
+    if (res.notes.some((x) => x.kind === 'turn_limit')) turnLimited++;
     const sides: [LabBuild, Side][] = [[A, 'player'], [B, 'boss']];
     const stunnedCount: Record<Side, number> = { player: 0, boss: 0 };
     const stunsBy: Record<Side, number> = { player: 0, boss: 0 };
@@ -324,6 +291,7 @@ export function runLab(pop: LabPopulation, rules: RuleSet): LabMetrics {
     fights: n,
     attacksPerFight: attacks / n,
     stalls,
+    turnLimitShare: wilson(turnLimited, n),
     stunsPerFight: stuns / n,
     stunHolderLandsStun: wilson(stunLanded, stunFightSides),
     stunExtraDamageShare: damage ? stunExtra / damage : 0,

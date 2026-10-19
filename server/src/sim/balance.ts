@@ -12,7 +12,9 @@
  * Nothing here is a game rule. Results feed docs/V2_BALANCE.md.
  */
 import { ITEMS, requireItem } from '../game/catalog.js';
-import { runFullCombat, type Chooser, type CombatEvent } from '../game/combat.js';
+import { autoStim, runFullCombat, type Chooser, type CombatEvent } from '../game/combat.js';
+import { RULES_V2, type RuleSet } from '../game/rules.js';
+import { AGENT_DEFENSE, defenseChooserFor } from './v3-policies.js';
 import { deriveStats, snapshotOf } from '../game/derive.js';
 import { allocateStat, equip, purchase } from '../game/equipment.js';
 import { applyRoundRewards, initialCombatant } from '../game/progression.js';
@@ -20,7 +22,7 @@ import { deriveSeed, Rng } from '../game/rng.js';
 import { summarizeCombat } from '../game/summary.js';
 import type { CombatantState, FighterSnapshot, Item, Loadout, PierceSpec, Side, StatKey, Stats } from '../game/types.js';
 import { BASE_STATS, INITIAL_STAT_POINTS, LEVEL_UP_INCREASE, STAT_ALLOCATION_INCREASE } from '../game/constants.js';
-import { analyticScore, applyPlan, bossChooser, choosePlan, type Archetype as BossArchetype, type PolicyVersion, type Scenario } from '../boss/policy.js';
+import { analyticScore, applyPlan, bossChooser, bossDefense, bossStim, choosePlan, type Archetype as BossArchetype, type PolicyVersion, type Scenario } from '../boss/policy.js';
 import { baselineProbability, rangedFeasibility, type RoundRecord } from '../ml/features.js';
 import { requireAgent, type RoundOutcome } from './agents.js';
 
@@ -58,6 +60,27 @@ export interface RunResult {
  * the RULES, separately from how much smarter the boss is than the scripted agents.
  */
 export const MIRROR = 'mirror';
+/**
+ * Harness-only, V3 Phase C1: an exactly symmetric mirror. Like MIRROR, but the player also gets the boss's predictor
+ * (baselinePredict on the role-swapped history, feasibility check included) and the boss's anti-repeat diversity
+ * penalty. Any remaining win-rate gap is then a structural asymmetry of the rules or the run loop.
+ */
+export const MIRROR_SYM = 'mirror_sym';
+const isMirror = (s: string) => s === MIRROR || s === MIRROR_SYM;
+
+/** A completed round seen from the boss's side (so boss-side predictors can be reused for the player). */
+function swapRecord(r: RoundRecord, bossPost: CombatantState): RoundRecord {
+  return {
+    roundNumber: r.roundNumber,
+    winner: r.winner === 'boss' ? 'player' : 'boss',
+    playerSnapshot: { ...r.bossSnapshot, side: 'player' },
+    bossSnapshot: { ...r.playerSnapshot, side: 'boss' },
+    playerPost: { ...bossPost, side: 'player' },
+    playerHpEnd: r.bossHpEnd,
+    bossHpEnd: r.playerHpEnd,
+    summary: { ...r.summary, player: r.summary.boss, boss: r.summary.player },
+  };
+}
 
 /** What the boss's predictor is asked before each round (decision-time information only). */
 export interface PredictionRequest { records: RoundRecord[]; observed: CombatantState }
@@ -73,9 +96,12 @@ export function baselinePredict({ records, observed }: PredictionRequest): numbe
  * The run loop as a generator: it yields a PredictionRequest before every boss preparation and expects
  * P(ranged) back, so the same loop serves the synchronous baseline driver and the async model driver.
  */
-function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: { policyVersion?: PolicyVersion }): Generator<PredictionRequest, RunResult, number | null> {
+function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: RunOptions): Generator<PredictionRequest, RunResult, number | null> {
+  const rules = opts.rules ?? RULES_V2;
   let previousArchetype: BossArchetype | null = null;
-  const agent = strategy === MIRROR ? requireAgent('hybrid') /* chooser only */ : requireAgent(strategy);
+  const agent = isMirror(strategy) ? requireAgent('hybrid') /* chooser only */ : requireAgent(strategy);
+  const swapped: RoundRecord[] = [];
+  let playerPrevArchetype: BossArchetype | null = null;
   let player = initialCombatant('player');
   let boss = initialCombatant('boss');
   const history: RoundOutcome[] = [];
@@ -87,7 +113,15 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: {
       const bossSeen = boss; // the boss before its own prep = its last observed build + level-ups (what a player can see)
       const flags = records.map((r) => ((r.summary.boss.rangedShare ?? 0) >= 0.5 ? 1 : 0));
       const pBossRanged = flags.length ? 0.5 * flags[flags.length - 1] + 0.5 * (flags.reduce((a: number, c) => a + c, 0) + 1) / (flags.length + 2) : 0.5;
-      const plan = choosePlan({ boss: player, observedPlayer: { ...bossSeen, side: 'player' }, pRanged: pBossRanged, seed: String(deriveSeed(runSeed, `mirror:${n}`)) });
+      const plan = choosePlan({ boss: player, observedPlayer: { ...bossSeen, side: 'player' }, pRanged: pBossRanged, seed: String(deriveSeed(runSeed, `mirror:${n}`)), rules: opts.rules });
+      player = applyPlan(player, plan.selected);
+    } else if (strategy === MIRROR_SYM) {
+      const seen: CombatantState = { ...boss, side: 'player' };
+      const plan = choosePlan({
+        boss: player, observedPlayer: seen, pRanged: baselinePredict({ records: swapped, observed: seen }),
+        seed: String(deriveSeed(runSeed, `mirror:${n}`)), previousArchetype: playerPrevArchetype, version: opts.policyVersion, rules: opts.rules,
+      });
+      playerPrevArchetype = plan.selected.archetype;
       player = applyPlan(player, plan.selected);
     } else {
       const d = agent.decide({ roundNumber: n, state: player, history: [...history], rng: new Rng(deriveSeed(runSeed, `agent:${n}`)), runSeed });
@@ -99,15 +133,22 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: {
     const observed = records.length ? records[records.length - 1].playerPost : initialCombatant('player');
     const pRanged = yield { records: [...records], observed };
     const policy = choosePlan({
-      boss, observedPlayer: observed, pRanged, seed: String(deriveSeed(runSeed, `boss:${n}`)), previousArchetype, version: opts.policyVersion,
+      boss, observedPlayer: observed, pRanged, seed: String(deriveSeed(runSeed, `boss:${n}`)), previousArchetype, version: opts.policyVersion, rules: opts.rules,
     });
     previousArchetype = policy.selected.archetype;
     boss = applyPlan(boss, policy.selected);
 
     const pSnap = snapshotOf(player);
     const bSnap = snapshotOf(boss);
-    const chooser = strategy === MIRROR ? bossChooser : agent.chooser(new Rng(deriveSeed(runSeed, `agent-choice:${n}`)));
-    const { state, events } = runFullCombat(pSnap, bSnap, deriveSeed(runSeed, `round:${n}`), { player: chooser, boss: bossChooser });
+    const chooser = isMirror(strategy) ? bossChooser : agent.chooser(new Rng(deriveSeed(runSeed, `agent-choice:${n}`)));
+    const { state, events } = runFullCombat(pSnap, bSnap, deriveSeed(runSeed, `round:${n}`), { player: chooser, boss: bossChooser }, rules.v3 ? {
+      rules,
+      defense: {
+        player: defenseChooserFor(isMirror(strategy) ? 'smart' : AGENT_DEFENSE[strategy] ?? 'smart', new Rng(deriveSeed(runSeed, `agent-defense:${n}`)), rules),
+        boss: bossDefense(rules),
+      },
+      stim: { player: autoStim, boss: bossStim },
+    } : {});
     const winner = state.winner!;
     player = applyRoundRewards(player, winner === 'player').state;
     boss = applyRoundRewards(boss, winner === 'boss').state;
@@ -116,6 +157,7 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: {
       roundNumber: n, winner, playerSnapshot: pSnap, bossSnapshot: bSnap, playerPost: player,
       playerHpEnd: state.hp.player, bossHpEnd: state.hp.boss, summary: summarizeCombat(events),
     });
+    if (strategy === MIRROR_SYM) swapped.push(swapRecord(records[records.length - 1], boss));
     history.push({ roundNumber: n, winner, bossLoadout: bSnap.loadout, playerHpEndFrac: Math.max(0, state.hp.player) / pSnap.derived.maxHp });
     const bossMargin = winner === 'boss' ? Math.max(0, state.hp.boss) / bSnap.derived.maxHp : -Math.max(0, state.hp.player) / pSnap.derived.maxHp;
     rounds.push({
@@ -127,7 +169,10 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: {
 }
 
 /** One complete run without the database. Mirrors sim/runner.ts → services/rounds.ts (baseline predictor). */
-export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 10, opts: { policyVersion?: PolicyVersion } = {}): RunResult {
+/** Harness run options: boss policy version and combat rules (default v2 = engine 2.0.0). */
+export interface RunOptions { policyVersion?: PolicyVersion; rules?: RuleSet }
+
+export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 10, opts: RunOptions = {}): RunResult {
   const it = runSteps(strategy, runSeed, maxRounds, opts);
   let step = it.next();
   while (!step.done) step = it.next(baselinePredict(step.value));
@@ -135,7 +180,7 @@ export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 1
 }
 
 /** Same run, but the boss's P(ranged) comes from `predict` (e.g. a trained model or ensemble). Identical seeds → paired comparison. */
-export async function playInMemoryRunWith(strategy: string, runSeed: string, predict: InMemoryPredictor, maxRounds = 10, opts: { policyVersion?: PolicyVersion } = {}): Promise<RunResult> {
+export async function playInMemoryRunWith(strategy: string, runSeed: string, predict: InMemoryPredictor, maxRounds = 10, opts: RunOptions = {}): Promise<RunResult> {
   const it = runSteps(strategy, runSeed, maxRounds, opts);
   let step = it.next();
   while (!step.done) step = it.next(await predict(step.value));

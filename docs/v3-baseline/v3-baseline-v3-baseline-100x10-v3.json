@@ -1,0 +1,1495 @@
+{
+  "kind": "v3-baseline (rules v3)",
+  "rules": {
+    "id": "v3",
+    "dexBenefits": {
+      "mitigation": true,
+      "bonusAttacks": true,
+      "turnOrder": true,
+      "firstShot": true
+    },
+    "v3": {
+      "dodge": {
+        "perDexPoint": 0.02,
+        "cap": 0.7,
+        "base": 0.1,
+        "delta": "points"
+      },
+      "block": {
+        "defFactor": 0.005,
+        "defSource": "raw",
+        "cap": 0.7
+      },
+      "counter": {
+        "blockMultiplier": 1.5,
+        "dodgeMultiplier": 0.75,
+        "blockChanceCap": 0.7,
+        "dodgeChanceCap": 0.7,
+        "blockCounterStun": 20
+      },
+      "stun": {
+        "threshold": 100,
+        "base": 17.5,
+        "span": 17.5,
+        "sumCap": 1,
+        "boostScale": 1,
+        "heavyBlockFraction": 0.25,
+        "extraDamageFraction": 0.25,
+        "trigger": true
+      },
+      "stim": {
+        "healBase": 0.2,
+        "healPerUpgrade": 0.05
+      },
+      "round": {
+        "turnLimit": 30
+      }
+    }
+  },
+  "createdAt": "2026-10-19T18:02:02.712Z",
+  "git": "4b2ee7e",
+  "engineVersion": "2.0.0",
+  "policyVersion": "v2-diverse",
+  "simulatorVersion": "sim-2.2.0",
+  "predictor": "baseline",
+  "config": {
+    "runs": 100,
+    "rounds": 10,
+    "seed": "v3-baseline",
+    "seedPattern": "v3-baseline:<strategy>:<i>",
+    "mirrorR1": 2000,
+    "mirrorR1Pattern": "v3-baseline:mirror-r1:<i>",
+    "bootstrap": 2000
+  },
+  "resultsSha256": "40164395aed34697c6c633120d1f345b34ee9265eab538ea91558b0251ed5187",
+  "seconds": 954.486,
+  "reports": [
+    {
+      "strategy": "melee_bruiser",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.961,
+        "lo": 0.945,
+        "hi": 0.974,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.79,
+        "lo": 0.7001985069803768,
+        "hi": 0.8583445046835422,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.8461538461538461,
+        "lo": 0.7021276595744681,
+        "hi": 0.972972972972973,
+        "n": 39
+      },
+      "playerComeback": {
+        "value": 0.013937282229965157,
+        "lo": 0.006896551724137931,
+        "hi": 0.02122641509433962,
+        "n": 861
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.79,
+        "lo": 0.7001985069803768,
+        "hi": 0.8583445046835422,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.86,
+            "lo": 0.81,
+            "hi": 0.905,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.24058592957852312,
+            "lo": 0.2095507661778999,
+            "hi": 0.2721516295320747,
+            "n": 200
+          },
+          "attacksPerRound": 10.405,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.499855720876405,
+          "bossArchetypes": {
+            "bruiser": 149,
+            "duelist": 51
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9633333333333334,
+            "lo": 0.94,
+            "hi": 0.9833333333333333,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7721348179273707,
+            "lo": 0.7288069652371486,
+            "hi": 0.8140161681498889,
+            "n": 300
+          },
+          "attacksPerRound": 5.72,
+          "dexLeadBossMedian": 18.25,
+          "bossTopBuild": {
+            "build": "Crossbow + Sword",
+            "share": 0.19333333333333333
+          },
+          "bossBuildEntropy": 3.377216798029912,
+          "bossArchetypes": {
+            "duelist": 26,
+            "hybrid": 272,
+            "bruiser": 2
+          },
+          "pierceDamageShare": 0.02488167895910261
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 1,
+            "lo": 1,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9699131460434157,
+            "lo": 0.958525818335668,
+            "hi": 0.9800151233692526,
+            "n": 500
+          },
+          "attacksPerRound": 3.718,
+          "dexLeadBossMedian": 31.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.152
+          },
+          "bossBuildEntropy": 3.6515345237479053,
+          "bossArchetypes": {
+            "hybrid": 493,
+            "bruiser": 5,
+            "duelist": 2
+          },
+          "pierceDamageShare": 0.02611304902043654
+        }
+      }
+    },
+    {
+      "strategy": "archer",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.982,
+        "lo": 0.974,
+        "hi": 0.989,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.83,
+        "lo": 0.7445181876635703,
+        "hi": 0.8910652394022684,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 1,
+        "lo": 1,
+        "hi": 1,
+        "n": 18
+      },
+      "playerComeback": {
+        "value": 0.0011337868480725624,
+        "lo": 0,
+        "hi": 0.003432494279176201,
+        "n": 882
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.83,
+        "lo": 0.7445181876635703,
+        "hi": 0.8910652394022684,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.915,
+            "lo": 0.875,
+            "hi": 0.95,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.39226561724770775,
+            "lo": 0.3732573681402638,
+            "hi": 0.4115626727584131,
+            "n": 200
+          },
+          "attacksPerRound": 10.64,
+          "dexLeadBossMedian": -2,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.4854752972273344,
+          "bossArchetypes": {
+            "bruiser": 160,
+            "duelist": 40
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9966666666666667,
+            "lo": 0.99,
+            "hi": 1,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7646540026920424,
+            "lo": 0.7408286980965668,
+            "hi": 0.7899547229852057,
+            "n": 300
+          },
+          "attacksPerRound": 5.886666666666667,
+          "dexLeadBossMedian": 1,
+          "bossTopBuild": {
+            "build": "Leather Armor + LongSword",
+            "share": 0.22666666666666666
+          },
+          "bossBuildEntropy": 3.38874393351986,
+          "bossArchetypes": {
+            "hybrid": 194,
+            "duelist": 47,
+            "bruiser": 59
+          },
+          "pierceDamageShare": 0.08083311689132973
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 1,
+            "lo": 1,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9431156489985599,
+            "lo": 0.9346022267902404,
+            "hi": 0.9512114360242799,
+            "n": 500
+          },
+          "attacksPerRound": 3.97,
+          "dexLeadBossMedian": 15.25,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Rapier",
+            "share": 0.272
+          },
+          "bossBuildEntropy": 3.0645931567442304,
+          "bossArchetypes": {
+            "hybrid": 500
+          },
+          "pierceDamageShare": 0.026893136179423446
+        }
+      }
+    },
+    {
+      "strategy": "shield_turtle",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.983,
+        "lo": 0.975,
+        "hi": 0.991,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.94,
+        "lo": 0.8752303146877748,
+        "hi": 0.9722142547333433,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 1,
+        "lo": 1,
+        "hi": 1,
+        "n": 17
+      },
+      "playerComeback": {
+        "value": 0.01245753114382786,
+        "lo": 0.00562429696287964,
+        "hi": 0.02043132803632236,
+        "n": 883
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.94,
+        "lo": 0.8752303146877748,
+        "hi": 0.9722142547333433,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.965,
+            "lo": 0.94,
+            "hi": 0.985,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.37506530426699114,
+            "lo": 0.3501523261070021,
+            "hi": 0.39724796064486384,
+            "n": 200
+          },
+          "attacksPerRound": 10.23,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.462409352486515,
+          "bossArchetypes": {
+            "bruiser": 166,
+            "duelist": 34
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.98,
+            "lo": 0.9633333333333334,
+            "hi": 0.9933333333333333,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.8015964370021257,
+            "lo": 0.7741274829351663,
+            "hi": 0.8288558954814744,
+            "n": 300
+          },
+          "attacksPerRound": 6.743333333333333,
+          "dexLeadBossMedian": 17.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Sword",
+            "share": 0.24666666666666667
+          },
+          "bossBuildEntropy": 3.2017226289192564,
+          "bossArchetypes": {
+            "hybrid": 293,
+            "bruiser": 1,
+            "duelist": 6
+          },
+          "pierceDamageShare": 0.049543453947213115
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.992,
+            "lo": 0.982,
+            "hi": 0.998,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.8742974782987161,
+            "lo": 0.8534340421098845,
+            "hi": 0.8948121505716979,
+            "n": 500
+          },
+          "attacksPerRound": 5.586,
+          "dexLeadBossMedian": 30.25,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Mace",
+            "share": 0.176
+          },
+          "bossBuildEntropy": 4.126790445928281,
+          "bossArchetypes": {
+            "hybrid": 478,
+            "duelist": 6,
+            "marksman": 16
+          },
+          "pierceDamageShare": 0.05324366072703099
+        }
+      }
+    },
+    {
+      "strategy": "hybrid",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.948,
+        "lo": 0.911,
+        "hi": 0.977,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.79,
+        "lo": 0.7001985069803768,
+        "hi": 0.8583445046835422,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.4897959183673469,
+        "lo": 0.27848101265822783,
+        "hi": 1,
+        "n": 49
+      },
+      "playerComeback": {
+        "value": 0.007050528789659225,
+        "lo": 0.0023148148148148147,
+        "hi": 0.013221153846153846,
+        "n": 851
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.82,
+        "lo": 0.7333246397578691,
+        "hi": 0.8829986834574896,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.86,
+            "lo": 0.81,
+            "hi": 0.91,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.23587738710291145,
+            "lo": 0.20904179496465644,
+            "hi": 0.2613697063114432,
+            "n": 200
+          },
+          "attacksPerRound": 10.38,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.5,
+          "bossArchetypes": {
+            "bruiser": 150,
+            "duelist": 50
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9733333333333334,
+            "lo": 0.9366666666666666,
+            "hi": 1,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7577605940902369,
+            "lo": 0.7072223410052725,
+            "hi": 0.8021864680428514,
+            "n": 300
+          },
+          "attacksPerRound": 5.926666666666667,
+          "dexLeadBossMedian": 15,
+          "bossTopBuild": {
+            "build": "Crossbow + Sword",
+            "share": 0.18666666666666668
+          },
+          "bossBuildEntropy": 3.1336820081661445,
+          "bossArchetypes": {
+            "hybrid": 272,
+            "duelist": 24,
+            "bruiser": 4
+          },
+          "pierceDamageShare": 0.013855548597585681
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.968,
+            "lo": 0.93,
+            "hi": 0.998,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.8253838360402946,
+            "lo": 0.7661846090873776,
+            "hi": 0.8739706625268127,
+            "n": 500
+          },
+          "attacksPerRound": 4.128,
+          "dexLeadBossMedian": 18.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Rapier",
+            "share": 0.196
+          },
+          "bossBuildEntropy": 3.5014222981104797,
+          "bossArchetypes": {
+            "hybrid": 497,
+            "bruiser": 1,
+            "duelist": 2
+          },
+          "pierceDamageShare": 0.016354819414919553
+        }
+      }
+    },
+    {
+      "strategy": "adaptive",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.952,
+        "lo": 0.931,
+        "hi": 0.969,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.72,
+        "lo": 0.6251178763865427,
+        "hi": 0.7986044083240164,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.7916666666666666,
+        "lo": 0.6271186440677966,
+        "hi": 0.9743589743589743,
+        "n": 48
+      },
+      "playerComeback": {
+        "value": 0.011737089201877934,
+        "lo": 0.004705882352941176,
+        "hi": 0.018779342723004695,
+        "n": 852
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.73,
+        "lo": 0.6356769977376873,
+        "hi": 0.8073053908233518,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.83,
+            "lo": 0.775,
+            "hi": 0.88,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.22880201736004666,
+            "lo": 0.19890783096684797,
+            "hi": 0.25773199376959444,
+            "n": 200
+          },
+          "attacksPerRound": 10.35,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.4994227679976009,
+          "bossArchetypes": {
+            "bruiser": 148,
+            "duelist": 52
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.96,
+            "lo": 0.93,
+            "hi": 0.9833333333333333,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7770669513571775,
+            "lo": 0.7287219947819531,
+            "hi": 0.8179387096579618,
+            "n": 300
+          },
+          "attacksPerRound": 5.873333333333333,
+          "dexLeadBossMedian": 15,
+          "bossTopBuild": {
+            "build": "Crossbow + Knife + Leather Armor",
+            "share": 0.19333333333333333
+          },
+          "bossBuildEntropy": 3.350414228473721,
+          "bossArchetypes": {
+            "duelist": 32,
+            "hybrid": 267,
+            "bruiser": 1
+          },
+          "pierceDamageShare": 0.03143989446037959
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.996,
+            "lo": 0.99,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9737441365389771,
+            "lo": 0.961036902090986,
+            "hi": 0.9836948230356807,
+            "n": 500
+          },
+          "attacksPerRound": 3.674,
+          "dexLeadBossMedian": 26.25,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Rapier",
+            "share": 0.214
+          },
+          "bossBuildEntropy": 3.405131897691578,
+          "bossArchetypes": {
+            "hybrid": 493,
+            "duelist": 4,
+            "bruiser": 2,
+            "bulwark": 1
+          },
+          "pierceDamageShare": 0.02257082128729072
+        }
+      }
+    },
+    {
+      "strategy": "piercer",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.971,
+        "lo": 0.958,
+        "hi": 0.983,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.87,
+        "lo": 0.7901947810519012,
+        "hi": 0.9224290614158575,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 1,
+        "lo": 1,
+        "hi": 1,
+        "n": 25
+      },
+      "playerComeback": {
+        "value": 0.018285714285714287,
+        "lo": 0.00904977375565611,
+        "hi": 0.028935185185185185,
+        "n": 875
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.87,
+        "lo": 0.7901947810519012,
+        "hi": 0.9224290614158575,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.935,
+            "lo": 0.9,
+            "hi": 0.965,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.40184690702152487,
+            "lo": 0.3790242600294515,
+            "hi": 0.4240668572886363,
+            "n": 200
+          },
+          "attacksPerRound": 9.72,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.4854752972273344,
+          "bossArchetypes": {
+            "bruiser": 160,
+            "duelist": 40
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.97,
+            "lo": 0.95,
+            "hi": 0.9866666666666667,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7983212355254982,
+            "lo": 0.7664011261502357,
+            "hi": 0.827665523198819,
+            "n": 300
+          },
+          "attacksPerRound": 5.746666666666667,
+          "dexLeadBossMedian": 16,
+          "bossTopBuild": {
+            "build": "Bow + Leather Armor + Sabre",
+            "share": 0.19
+          },
+          "bossBuildEntropy": 3.1840991941677927,
+          "bossArchetypes": {
+            "hybrid": 287,
+            "duelist": 10,
+            "bruiser": 3
+          },
+          "pierceDamageShare": 0.03166546974173261
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.986,
+            "lo": 0.976,
+            "hi": 0.994,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.8922260339114046,
+            "lo": 0.8706300609525094,
+            "hi": 0.9137797694995018,
+            "n": 500
+          },
+          "attacksPerRound": 4.056,
+          "dexLeadBossMedian": 27.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Rapier",
+            "share": 0.198
+          },
+          "bossBuildEntropy": 3.6593322659416496,
+          "bossArchetypes": {
+            "hybrid": 485,
+            "bruiser": 10,
+            "duelist": 2,
+            "marksman": 1,
+            "bulwark": 2
+          },
+          "pierceDamageShare": 0.041010565455389066
+        }
+      }
+    },
+    {
+      "strategy": "duelist",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.606,
+        "lo": 0.533,
+        "hi": 0.679,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.55,
+        "lo": 0.45244427031643447,
+        "hi": 0.6438562489359654,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.261455525606469,
+        "lo": 0.2088888888888889,
+        "hi": 0.3277591973244147,
+        "n": 371
+      },
+      "playerComeback": {
+        "value": 0.14177693761814744,
+        "lo": 0.10758377425044091,
+        "hi": 0.18292682926829268,
+        "n": 529
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.86,
+        "lo": 0.7786263961619276,
+        "hi": 0.914737342455351,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.555,
+            "lo": 0.47,
+            "hi": 0.64,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": -0.008892089882004166,
+            "lo": -0.046382249745865016,
+            "hi": 0.027896238173245238,
+            "n": 200
+          },
+          "attacksPerRound": 10.57,
+          "dexLeadBossMedian": -2,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.4987007942838697,
+          "bossArchetypes": {
+            "bruiser": 153,
+            "duelist": 47
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.5266666666666666,
+            "lo": 0.44666666666666666,
+            "hi": 0.6066666666666667,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.07930052569306598,
+            "lo": -0.015225983341163705,
+            "hi": 0.1798515006807255,
+            "n": 300
+          },
+          "attacksPerRound": 6.483333333333333,
+          "dexLeadBossMedian": -7.5,
+          "bossTopBuild": {
+            "build": "Leather Armor + LongSword + Wood Shield",
+            "share": 0.18
+          },
+          "bossBuildEntropy": 3.681335537801324,
+          "bossArchetypes": {
+            "bulwark": 28,
+            "bruiser": 98,
+            "hybrid": 106,
+            "duelist": 68
+          },
+          "pierceDamageShare": 0.011557226806947684
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.674,
+            "lo": 0.596,
+            "hi": 0.748,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.33983687197900087,
+            "lo": 0.2251025590691047,
+            "hi": 0.44891644858568575,
+            "n": 500
+          },
+          "attacksPerRound": 4.638,
+          "dexLeadBossMedian": 5.5,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + LongSword",
+            "share": 0.158
+          },
+          "bossBuildEntropy": 3.900463177825284,
+          "bossArchetypes": {
+            "hybrid": 482,
+            "bruiser": 18
+          },
+          "pierceDamageShare": 0.026099911597867436
+        }
+      }
+    },
+    {
+      "strategy": "opportunist",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.952,
+        "lo": 0.93,
+        "hi": 0.97,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.76,
+        "lo": 0.6676748127670786,
+        "hi": 0.8330878873454004,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.75,
+        "lo": 0.5925925925925926,
+        "hi": 0.926829268292683,
+        "n": 48
+      },
+      "playerComeback": {
+        "value": 0.014084507042253521,
+        "lo": 0.005875440658049354,
+        "hi": 0.023058252427184466,
+        "n": 852
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.77,
+        "lo": 0.6784543514317231,
+        "hi": 0.841568452531236,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.855,
+            "lo": 0.805,
+            "hi": 0.9,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.2149369346576018,
+            "lo": 0.18521640384449697,
+            "hi": 0.2458055917586593,
+            "n": 200
+          },
+          "attacksPerRound": 10.525,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.4994227679976009,
+          "bossArchetypes": {
+            "bruiser": 152,
+            "duelist": 48
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.94,
+            "lo": 0.9033333333333333,
+            "hi": 0.97,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7510778636509616,
+            "lo": 0.7019726011147053,
+            "hi": 0.7951280850737444,
+            "n": 300
+          },
+          "attacksPerRound": 6.086666666666667,
+          "dexLeadBossMedian": 13,
+          "bossTopBuild": {
+            "build": "Crossbow + Sword",
+            "share": 0.19
+          },
+          "bossBuildEntropy": 3.2647195438484142,
+          "bossArchetypes": {
+            "hybrid": 270,
+            "duelist": 26,
+            "bruiser": 4
+          },
+          "pierceDamageShare": 0.04634233952123948
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.998,
+            "lo": 0.994,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9725783521030693,
+            "lo": 0.9642795884374529,
+            "hi": 0.979678284252837,
+            "n": 500
+          },
+          "attacksPerRound": 3.672,
+          "dexLeadBossMedian": 18.75,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Rapier",
+            "share": 0.288
+          },
+          "bossBuildEntropy": 2.999943998659663,
+          "bossArchetypes": {
+            "hybrid": 499,
+            "bruiser": 1
+          },
+          "pierceDamageShare": 0.023278017770624347
+        }
+      }
+    },
+    {
+      "strategy": "switcher",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.969,
+        "lo": 0.957,
+        "hi": 0.98,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.79,
+        "lo": 0.7001985069803768,
+        "hi": 0.8583445046835422,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.967741935483871,
+        "lo": 0.9,
+        "hi": 1,
+        "n": 31
+      },
+      "playerComeback": {
+        "value": 0.010356731875719217,
+        "lo": 0.004555808656036446,
+        "hi": 0.01756440281030445,
+        "n": 869
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.79,
+        "lo": 0.7001985069803768,
+        "hi": 0.8583445046835422,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.89,
+            "lo": 0.845,
+            "hi": 0.93,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.27557579516602754,
+            "lo": 0.2509700731701842,
+            "hi": 0.2983264726306029,
+            "n": 200
+          },
+          "attacksPerRound": 9.925,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.4882502343789121,
+          "bossArchetypes": {
+            "bruiser": 159,
+            "duelist": 41
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9733333333333334,
+            "lo": 0.9566666666666667,
+            "hi": 0.99,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.79611351522316,
+            "lo": 0.7576313141599952,
+            "hi": 0.8293227733465799,
+            "n": 300
+          },
+          "attacksPerRound": 5.733333333333333,
+          "dexLeadBossMedian": 16,
+          "bossTopBuild": {
+            "build": "Crossbow + Sword",
+            "share": 0.23333333333333334
+          },
+          "bossBuildEntropy": 3.288089784919575,
+          "bossArchetypes": {
+            "hybrid": 278,
+            "duelist": 22
+          },
+          "pierceDamageShare": 0.028798803228352366
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.998,
+            "lo": 0.994,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9667261706753435,
+            "lo": 0.9562939198723018,
+            "hi": 0.9758364182562967,
+            "n": 500
+          },
+          "attacksPerRound": 3.558,
+          "dexLeadBossMedian": 27,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.22
+          },
+          "bossBuildEntropy": 3.3185356728494826,
+          "bossArchetypes": {
+            "hybrid": 496,
+            "bruiser": 3,
+            "duelist": 1
+          },
+          "pierceDamageShare": 0.019913179295358276
+        }
+      }
+    },
+    {
+      "strategy": "reactive",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.979,
+        "lo": 0.969,
+        "hi": 0.988,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.92,
+        "lo": 0.8500173312059693,
+        "hi": 0.9589070305141891,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.8571428571428571,
+        "lo": 0.7391304347826086,
+        "hi": 1,
+        "n": 21
+      },
+      "playerComeback": {
+        "value": 0.011376564277588168,
+        "lo": 0.0056179775280898875,
+        "hi": 0.01845444059976932,
+        "n": 879
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.92,
+        "lo": 0.8500173312059693,
+        "hi": 0.9589070305141891,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.925,
+            "lo": 0.885,
+            "hi": 0.96,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.34259096061495464,
+            "lo": 0.3102306544782168,
+            "hi": 0.3738786009157121,
+            "n": 200
+          },
+          "attacksPerRound": 10.555,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.4823997742525434,
+          "bossArchetypes": {
+            "bruiser": 161,
+            "duelist": 39
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.98,
+            "lo": 0.9633333333333334,
+            "hi": 0.9933333333333333,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.7862794481729855,
+            "lo": 0.757679682808279,
+            "hi": 0.8145031304159759,
+            "n": 300
+          },
+          "attacksPerRound": 5.63,
+          "dexLeadBossMedian": 13.5,
+          "bossTopBuild": {
+            "build": "Bow + Leather Armor + Sabre",
+            "share": 0.19
+          },
+          "bossBuildEntropy": 3.7820594372455942,
+          "bossArchetypes": {
+            "hybrid": 259,
+            "duelist": 19,
+            "bruiser": 21,
+            "bulwark": 1
+          },
+          "pierceDamageShare": 0.037603960801592715
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 1,
+            "lo": 1,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9649035759770563,
+            "lo": 0.9546767389069702,
+            "hi": 0.9739694241394012,
+            "n": 500
+          },
+          "attacksPerRound": 3.648,
+          "dexLeadBossMedian": 24.125,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Rapier",
+            "share": 0.224
+          },
+          "bossBuildEntropy": 3.4484148843447935,
+          "bossArchetypes": {
+            "hybrid": 492,
+            "bruiser": 2,
+            "duelist": 6
+          },
+          "pierceDamageShare": 0.02447674278955499
+        }
+      }
+    },
+    {
+      "strategy": "random",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.977,
+        "lo": 0.968,
+        "hi": 0.987,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.84,
+        "lo": 0.7557955544110557,
+        "hi": 0.8990479765052628,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 1,
+        "lo": 1,
+        "hi": 1,
+        "n": 23
+      },
+      "playerComeback": {
+        "value": 0.00798175598631699,
+        "lo": 0.0022701475595913734,
+        "hi": 0.01380897583429229,
+        "n": 877
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.84,
+        "lo": 0.7557955544110557,
+        "hi": 0.8990479765052628,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.91,
+            "lo": 0.87,
+            "hi": 0.945,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.3536965318949416,
+            "lo": 0.32280227363262687,
+            "hi": 0.38553493405373557,
+            "n": 200
+          },
+          "attacksPerRound": 10.14,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.475336046343533,
+          "bossArchetypes": {
+            "bruiser": 163,
+            "duelist": 37
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.9833333333333333,
+            "lo": 0.9666666666666667,
+            "hi": 0.9966666666666667,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.8309633221522755,
+            "lo": 0.7983147725240407,
+            "hi": 0.860588782905196,
+            "n": 300
+          },
+          "attacksPerRound": 5.263333333333334,
+          "dexLeadBossMedian": 13.625,
+          "bossTopBuild": {
+            "build": "Bow + Leather Armor + Sabre",
+            "share": 0.16666666666666666
+          },
+          "bossBuildEntropy": 3.868791689396088,
+          "bossArchetypes": {
+            "hybrid": 258,
+            "duelist": 17,
+            "bulwark": 5,
+            "bruiser": 20
+          },
+          "pierceDamageShare": 0.023963846901266416
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 1,
+            "lo": 1,
+            "hi": 1,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.9565189258745834,
+            "lo": 0.9462085044381683,
+            "hi": 0.9656335788687356,
+            "n": 500
+          },
+          "attacksPerRound": 3.664,
+          "dexLeadBossMedian": 24,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.244
+          },
+          "bossBuildEntropy": 3.525530548505158,
+          "bossArchetypes": {
+            "hybrid": 489,
+            "duelist": 9,
+            "bruiser": 1,
+            "marksman": 1
+          },
+          "pierceDamageShare": 0.02029685282586069
+        }
+      }
+    },
+    {
+      "strategy": "mirror",
+      "runs": 100,
+      "bossWin": {
+        "value": 0.619,
+        "lo": 0.536,
+        "hi": 0.695,
+        "n": 1000
+      },
+      "roundOneBossWin": {
+        "value": 0.62,
+        "lo": 0.5220957382071033,
+        "hi": 0.7090255079986562,
+        "n": 100
+      },
+      "bossComeback": {
+        "value": 0.21613832853025935,
+        "lo": 0.16103896103896104,
+        "hi": 0.2892857142857143,
+        "n": 347
+      },
+      "playerComeback": {
+        "value": 0.12839059674502712,
+        "lo": 0.0967741935483871,
+        "hi": 0.16533864541832669,
+        "n": 553
+      },
+      "runWinnerFromRoundOne": {
+        "value": 0.84,
+        "lo": 0.7557955544110557,
+        "hi": 0.8990479765052628,
+        "n": 100
+      },
+      "stages": {
+        "r1-2": {
+          "bossWin": {
+            "value": 0.595,
+            "lo": 0.515,
+            "hi": 0.675,
+            "n": 200
+          },
+          "bossMargin": {
+            "value": 0.02232002577152403,
+            "lo": -0.01358474100182237,
+            "hi": 0.056491702081335464,
+            "n": 200
+          },
+          "attacksPerRound": 9.95,
+          "dexLeadBossMedian": 0,
+          "bossTopBuild": {
+            "build": "unarmed",
+            "share": 0.5
+          },
+          "bossBuildEntropy": 1.49290751858946,
+          "bossArchetypes": {
+            "bruiser": 143,
+            "duelist": 57
+          },
+          "pierceDamageShare": 0
+        },
+        "r3-5": {
+          "bossWin": {
+            "value": 0.62,
+            "lo": 0.54,
+            "hi": 0.7,
+            "n": 300
+          },
+          "bossMargin": {
+            "value": 0.14462805188006972,
+            "lo": 0.04267814294820924,
+            "hi": 0.2417425683657591,
+            "n": 300
+          },
+          "attacksPerRound": 6.326666666666667,
+          "dexLeadBossMedian": 1.5,
+          "bossTopBuild": {
+            "build": "Bow + Knife + Leather Armor",
+            "share": 0.14
+          },
+          "bossBuildEntropy": 3.9376280580361014,
+          "bossArchetypes": {
+            "duelist": 63,
+            "bruiser": 41,
+            "hybrid": 186,
+            "bulwark": 10
+          },
+          "pierceDamageShare": 0.04443571528929506
+        },
+        "r6-10": {
+          "bossWin": {
+            "value": 0.628,
+            "lo": 0.546,
+            "hi": 0.714,
+            "n": 500
+          },
+          "bossMargin": {
+            "value": 0.20173602405672209,
+            "lo": 0.0528258495391494,
+            "hi": 0.3347318296911976,
+            "n": 500
+          },
+          "attacksPerRound": 4.55,
+          "dexLeadBossMedian": 6,
+          "bossTopBuild": {
+            "build": "Crossbow + Leather Armor + Sabre",
+            "share": 0.178
+          },
+          "bossBuildEntropy": 3.9935244728390433,
+          "bossArchetypes": {
+            "hybrid": 492,
+            "bruiser": 6,
+            "duelist": 2
+          },
+          "pierceDamageShare": 0.03219863121688652
+        }
+      }
+    }
+  ],
+  "mirrorR1": {
+    "n": 2000,
+    "bossWin": {
+      "value": 0.484,
+      "lo": 0.4621494134309505,
+      "hi": 0.5059119343322659,
+      "n": 2000
+    },
+    "dexTieRounds": 1100,
+    "tieFirstMoverIsBoss": {
+      "value": 0.5,
+      "lo": 0.4705033498540466,
+      "hi": 0.5294966501459534,
+      "n": 1100
+    },
+    "tieFirstMoverWins": {
+      "value": 0.6845454545454546,
+      "lo": 0.6564816863836281,
+      "hi": 0.711324709026728,
+      "n": 1100
+    },
+    "fasterSide": {
+      "boss": 455,
+      "player": 445
+    },
+    "fasterSideWins": {
+      "value": 0.42444444444444446,
+      "lo": 0.3925411274371348,
+      "hi": 0.45699002934962957,
+      "n": 900
+    }
+  }
+}

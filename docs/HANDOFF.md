@@ -8,8 +8,8 @@ Plan: `docs/V3_IMPLEMENTATION_PLAN.md`. Decisions: `docs/V3_DEMANDS.md`.
 - **Phase A done:** `docs/V3_BASELINE.md`.
 - Backup: `artifacts/backups/pre-v3-2026-10-19.sql`.
 - **Phase B done:** engine behind RuleSet v3 (V3_DEMANDS §11).
-- **C1 part 1 done:** stun/dodge sweet spot (`docs/V3_BALANCE.md`). Open: D-19 (stall rule).
-- **Next:** the rest of C1. Evidence scripts: `docs/v3-plan-evidence/`.
+- **C1 done:** stun/dodge sweet spot, turn limit (D-19), boss under V3, mirror, DEX ablation (`docs/V3_BALANCE.md`).
+- **Next: Phase C2.** Evidence scripts: `docs/v3-plan-evidence/`.
 
 ## Where things stand
 

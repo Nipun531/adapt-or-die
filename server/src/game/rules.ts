@@ -71,6 +71,13 @@ export interface V3Combat {
     healBase: number;
     healPerUpgrade: number;
   };
+  round: {
+    /**
+     * Owner decision D-19 (2026-10-19): when turn `turnLimit` has been fully played and both fighters still stand,
+     * the fighter with the higher HP share (HP / max HP) wins. Exact tie → the initiative coin-flip winner.
+     */
+    turnLimit: number;
+  };
 }
 
 /** Plain data (JSON-serialisable): a paused CombatState stores its RuleSet, harness variants included. */
@@ -97,6 +104,7 @@ export const V3_COMBAT: V3Combat = Object.freeze({
   counter: { blockMultiplier: 1.5, dodgeMultiplier: 0.75, blockChanceCap: 0.7, dodgeChanceCap: 0.7, blockCounterStun: 20 },
   stun: { threshold: 100, base: 17.5, span: 17.5, sumCap: 1, boostScale: 1, heavyBlockFraction: 0.25, extraDamageFraction: 0.25, trigger: true },
   stim: { healBase: 0.2, healPerUpgrade: 0.05 },
+  round: { turnLimit: 30 },
 }) as V3Combat;
 
 export const RULES_V3: RuleSet = Object.freeze({ id: 'v3', dexBenefits: ALL_DEX, v3: V3_COMBAT });

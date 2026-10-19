@@ -32,7 +32,21 @@ V3 plan written: `docs/V3_IMPLEMENTATION_PLAN.md` (audit, requirements matrix, b
 - Open: D-19 (round stall rule).
 - Tests: 164 unit pass.
 
-**Next:** the rest of C1 (shared `playRound`, V3 policies for the run agents and the boss, paired V2/V3 runs vs the boss, DEX ablation).
+**Phase C1 DONE (2026-10-20):** see `docs/V3_BALANCE.md` §7–§9.
+- Turn limit: D-19 decided, 30 turns.
+- The boss and the agents play V3: expected-value defence, defence personas.
+- Paired V2/V3 runs:
+  - the boss stays at 95–98% vs scripted agents;
+  - the duelist reaches 39% wins;
+  - round 1 is no longer a coin flip.
+- Symmetric mirror (`mirror_sym`):
+  - no structural boss edge (about 47%, 200 runs);
+  - comebacks 0.3% → about 20%;
+  - the round-1 winner takes the run 77–82% instead of 100%.
+- DEX ablation: no single DEX benefit drives dominance; recommend keeping all (D-8).
+- Still open: the boss plays hybrid 96–100% of late rounds.
+
+**Next: Phase C2** (V3 catalogue live, starting gold 10, stim economy, migration 003, API, shared `playRound`).
 
 ## 0. Version 2 — Phase 8 final verification DONE (2026-10-17) — start here
 

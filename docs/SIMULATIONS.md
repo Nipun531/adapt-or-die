@@ -81,6 +81,15 @@ Results and conclusions: `docs/V2_BALANCE.md`. `tuneOne()` in `balance.ts` is th
 
 Results and findings: `docs/V3_BASELINE.md`.
 
+Options:
+- `--rules v3`: the same seeds under RuleSet v3.
+- `--ablate mitigation|bonusAttacks|turnOrder|firstShot`: switch one DEX benefit off.
+- `--agents a,b`: run a subset.
+- `--compare <json>`: paired difference table.
+- The `mirror_sym` agent is an exactly symmetric mirror.
+
+V3 results: `docs/V3_BALANCE.md` §8–§9.
+
 ## Seeds and reproducibility
 
 ```

@@ -161,9 +161,12 @@ export interface CombatNote {
   seq: number;
   turn: number;
   side: Side;
-  kind: 'skip' | 'stim';
-  /** skip: why; stim: heal amount, HP before/after and stims left. */
-  detail: { reason?: string; heal?: number; hpBefore?: number; hpAfter?: number; stimsLeft?: number; source?: ChoiceSource };
+  kind: 'skip' | 'stim' | 'turn_limit';
+  /** skip: why; stim: heal amount, HP before/after and stims left; turn_limit: both HP shares (`side` = the winner). */
+  detail: {
+    reason?: string; heal?: number; hpBefore?: number; hpAfter?: number; stimsLeft?: number; source?: ChoiceSource;
+    hpShare?: Record<Side, number>;
+  };
 }
 
 /** Why the opening phase looks the way it does (engine ≥ 2.0.0; absent on older rounds). 'off' = harness ablation. */
@@ -249,6 +252,8 @@ export interface CombatState {
   autoMode: Partial<Record<Side, AttackMode>>;
   pending: PendingChoice | null;
   v3?: V3State;
+  /** v3: how the round ended (absent = KO, and on every v2 state). */
+  endReason?: 'turn_limit';
 }
 
 /**
@@ -748,6 +753,19 @@ function advanceV3(state: CombatState, choosers: Record<Side, Chooser>, options:
       throw new Error(`Combat exceeded ${MAX_ATTACKS_PER_ROUND} attacks — aborting round (safety guard)`);
     }
     const c = state.cursor;
+    // D-19: turn limit — after the last allowed turn, the higher HP share wins (tie → initiative coin-flip winner).
+    if (slot.phase !== 'opening' && slot.turn > rules.v3!.round.turnLimit) {
+      const share = { player: state.hp.player / state.fighters.player.derived.maxHp, boss: state.hp.boss / state.fighters.boss.derived.maxHp };
+      const winner: Side = share.player === share.boss ? state.initiative.tieWinner : share.player > share.boss ? 'player' : 'boss';
+      notes.push({
+        seq: ++state.seq, turn: rules.v3!.round.turnLimit, side: winner, kind: 'turn_limit',
+        detail: { reason: `turn limit ${rules.v3!.round.turnLimit}: higher HP share wins${share.player === share.boss ? ' (tie → initiative winner)' : ''}`, hpShare: share },
+      });
+      state.winner = winner;
+      state.endReason = 'turn_limit';
+      state.cursor.stage = 'done';
+      break;
+    }
     const A = slot.attacker;
     const D = otherSide(A);
     const att = state.fighters[A];

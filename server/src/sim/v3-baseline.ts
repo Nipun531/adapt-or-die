@@ -14,7 +14,7 @@
  */
 import { Rng, hashSeed } from '../game/rng.js';
 import { requireItem } from '../game/catalog.js';
-import { MIRROR, playInMemoryRun, type RunResult } from './balance.js';
+import { MIRROR, playInMemoryRun, type RunOptions, type RunResult } from './balance.js';
 
 export const BOOT = 2000;
 
@@ -157,10 +157,10 @@ export function reportFor(strategy: string, results: RunResult[], seed: string):
  * Round-1 mirror check (plan D-16). Both sides use the boss policy and start identical, so a fair rule set gives 50%.
  * Also splits by who won the initiative coin flip and whether DEX tied, to locate any edge.
  */
-export function mirrorRoundOne(n: number, seed: string) {
+export function mirrorRoundOne(n: number, seed: string, opts: RunOptions = {}) {
   let boss = 0, coinBoss = 0, coinBossWins = 0, coinPlayerWins = 0, tie = 0, faster = { boss: 0, player: 0 }, fasterWins = 0;
   for (let i = 0; i < n; i++) {
-    const r = playInMemoryRun(MIRROR, `${seed}:mirror-r1:${i}`, 1).rounds[0];
+    const r = playInMemoryRun(MIRROR, `${seed}:mirror-r1:${i}`, 1, opts).rounds[0];
     const bossWon = r.winner === 'boss';
     if (bossWon) boss++;
     const e = r.events[0];

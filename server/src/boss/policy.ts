@@ -25,10 +25,11 @@
  * The policy only RETURNS a plan; prepare.ts applies it through equipment.ts (which re-validates).
  */
 import { ITEMS, requireItem } from '../game/catalog.js';
-import { openingShooters, runFullCombat, type Chooser } from '../game/combat.js';
+import { autoStim, openingShooters, runFullCombat, type Chooser, type DefenseChooser, type StimChooser } from '../game/combat.js';
 import { deriveStats, snapshotOf } from '../game/derive.js';
 import { allocateStat, equip, isLegalLoadout, purchase } from '../game/equipment.js';
-import { bestMode, expectedAttackDamage } from '../game/expected.js';
+import { bestMode, expectedAttackDamage, smartDefense } from '../game/expected.js';
+import { RULES_V2, type RuleSet } from '../game/rules.js';
 import { dexBonusAttacks } from '../game/formulas.js';
 import { deriveSeed, Rng } from '../game/rng.js';
 import type { AttackMode, CombatantState, FighterSnapshot, Item, ItemFamily, Loadout, StatKey } from '../game/types.js';
@@ -271,7 +272,18 @@ function scenarioChooser(pref: AttackMode): Chooser {
 }
 
 /** Monte-Carlo outcome of a boss build vs a scenario, using the real combat engine: win rate + expected HP margin. */
-export function simulatedOutcome(boss: FighterSnapshot, sc: Scenario, seedBase: string, fights: number): { winRate: number; margin: number } {
+/** V3: the boss defends by expected value and heals with the automatic rule (public odds only). */
+export const bossDefense = (rules: RuleSet): DefenseChooser => smartDefense(rules, 'boss_policy');
+export const bossStim: StimChooser = autoStim;
+
+/** Extra combat options for a rule set: v3 adds both fighters' defence/stim policies (a competent opponent is assumed). */
+function v3Options(rules: RuleSet) {
+  return rules.v3
+    ? { rules, defense: { player: smartDefense(rules), boss: bossDefense(rules) }, stim: { player: autoStim, boss: bossStim } }
+    : { rules };
+}
+
+export function simulatedOutcome(boss: FighterSnapshot, sc: Scenario, seedBase: string, fights: number, rules: RuleSet = RULES_V2): { winRate: number; margin: number } {
   let wins = 0;
   let margin = 0;
   const key = sc.label ?? sc.kind;
@@ -279,7 +291,7 @@ export function simulatedOutcome(boss: FighterSnapshot, sc: Scenario, seedBase: 
     const { state } = runFullCombat(sc.snapshot, boss, deriveSeed(seedBase, `${key}:${i}`), {
       player: scenarioChooser(sc.preferredMode),
       boss: bossChooser,
-    });
+    }, v3Options(rules));
     if (state.winner === 'boss') {
       wins++;
       margin += Math.max(0, state.hp.boss) / boss.derived.maxHp;
@@ -291,13 +303,13 @@ export function simulatedOutcome(boss: FighterSnapshot, sc: Scenario, seedBase: 
 }
 
 /** Monte-Carlo win rate of a boss build vs a scenario (policy v1). */
-export function simulatedWinRate(boss: FighterSnapshot, sc: Scenario, seedBase: string, fights: number): number {
+export function simulatedWinRate(boss: FighterSnapshot, sc: Scenario, seedBase: string, fights: number, rules: RuleSet = RULES_V2): number {
   let wins = 0;
   for (let i = 0; i < fights; i++) {
     const { state } = runFullCombat(sc.snapshot, boss, deriveSeed(seedBase, `${sc.kind}:${i}`), {
       player: scenarioChooser(sc.preferredMode),
       boss: bossChooser,
-    });
+    }, v3Options(rules));
     if (state.winner === 'boss') wins++;
   }
   return wins / fights;
@@ -355,6 +367,8 @@ export function choosePlan(input: {
   /** Archetype the boss used last round (v2 diversity: repeating it is less likely among equal plans). */
   previousArchetype?: Archetype | null;
   version?: PolicyVersion;
+  /** Combat rules the Monte-Carlo verification uses (default v2 = live engine 2.0.0). */
+  rules?: RuleSet;
 }): PolicyResult {
   const version = input.version ?? POLICY_VERSION;
   const { boss, observedPlayer } = input;
@@ -393,10 +407,10 @@ export function choosePlan(input: {
   const verify = (p: ScoredPlan): ScoredPlan => {
     const snap = snapshotOf(applyPlan(boss, p));
     if (v1) {
-      const wr = scenarios.map((sc) => simulatedWinRate(snap, sc, `${input.seed}:mc`, fights));
+      const wr = scenarios.map((sc) => simulatedWinRate(snap, sc, `${input.seed}:mc`, fights, input.rules));
       return { ...p, winRate: byStyle(wr), weighted: weigh(wr) };
     }
-    const out = scenarios.map((sc) => simulatedOutcome(snap, sc, `${input.seed}:mc`, fights));
+    const out = scenarios.map((sc) => simulatedOutcome(snap, sc, `${input.seed}:mc`, fights, input.rules));
     return { ...p, winRate: byStyle(out.map((o) => o.winRate)), margin: byStyle(out.map((o) => o.margin)), weighted: weigh(out.map((o) => o.margin)) };
   };
 

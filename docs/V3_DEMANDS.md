@@ -215,6 +215,8 @@ The evidence is in `docs/V3_BALANCE.md`: a varied random-build population with r
 
 Everything else in §2–§6 is unchanged.
 
-**[OPEN D-19] Round stall.** Two hopeless ranged builds (effective DEX 1) can block each other forever; it happened 1–3 times per 30,000 late fights.
+**[OWNER D-19, decided 2026-10-19] Round stall.** Rule: after turn 30, the fighter with the higher HP share wins; an exact tie goes to the initiative winner. Implemented as `V3_COMBAT.round.turnLimit`.
+
+Original problem: Two hopeless ranged builds (effective DEX 1) can block each other forever; it happened 1–3 times per 30,000 late fights.
 - Proposal: after turn 30, the fighter with the higher HP share wins.
 - Until decided, the engine's safety guard ends such a round with an error.

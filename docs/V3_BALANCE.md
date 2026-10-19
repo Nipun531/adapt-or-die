@@ -1,4 +1,4 @@
-# V3 Balance — stun and dodge tuning (Phase C1, 2026-10-19)
+# V3 Balance — Phase C1 (2026-10-19/20): stun and dodge tuning, turn limit, the boss under V3, DEX ablation
 
 **Owner's request:** stun needs revision and dodge needs a buff; find a sweet spot through rigorous testing; use varied play styles, not archetypes.
 
@@ -172,11 +172,97 @@ Dodge at base 10% + 2% per point, early / mid / late:
    - These are gear/DEX balance (V2_BALANCE §4 #1–#6). V3 mechanics narrowed them only slightly.
 5. **Selection bias warning.** "A stunner wins 93–98% of fights where it lands a stun" is true but misleading: landing a stun requires landing many hits. Only the paired on/off effect measures what stun changes, and that is what was scored.
 
-## 7. Next
+## 7. Turn limit (owner decision D-19, 2026-10-19)
 
-- **Phase C1 continues:**
-  - shared `playRound`;
-  - V3 defence/stim policies for the run agents and the boss;
-  - paired V2/V3 full runs against the boss;
-  - DEX-benefit ablation.
-- Then Phase C2 (catalogue live, starting gold 10, DB/API).
+**Rule.** When turn 30 has been fully played and both fighters still stand, the fighter with the higher HP share (HP ÷ max HP) wins. An exact tie goes to the initiative coin-flip winner.
+- Code: `V3_COMBAT.round.turnLimit` and the `turn_limit` note in `combat.ts`.
+- Tests: `v3-combat.test.ts`.
+
+**Measured** on the `lab-verify` population (30,000 fights per stage):
+
+| Stage | Stalls | Rounds decided by the limit |
+|---|---|---|
+| early | 0 | 0% |
+| mid | 0 | 0.18% |
+| late | 0 | 0.96% |
+
+Those rounds are long turtle fights.
+
+## 8. The boss under V3 — paired full runs (same seeds as the V2 control)
+
+Command: `npm run v3:baseline -- --rules v3 --compare docs/v3-baseline/v3-baseline-v3-baseline-100x10.json`
+- 100 runs × 10 rounds per agent, seed `v3-baseline`.
+- The boss plans with V3 Monte-Carlo fights and defends by expected value.
+- Each run agent has a V3 defence persona (`sim/v3-policies.ts` `AGENT_DEFENSE`).
+- **Not yet included** (Phase C2): stim buying/upgrades in runs, starting gold 10, the Warhammer at 45. Runs still use the live V2 shop.
+
+| Agent (defence persona) | Boss win V2 → V3 | Round 1 Δ | Player comeback V2 → V3 | Round-1 winner wins the run V2 → V3 |
+|---|---|---|---|---|
+| melee_bruiser (greedy) | 100% → 96.1% | −21 pp | 0% → 1.4% | 100% → 79% |
+| archer (dodge) | 100% → 98.2% | −17 | 0% → 0.1% | 100% → 83% |
+| shield_turtle (block) | 100% → 98.3% | −6 | 0% → 1.2% | 100% → 94% |
+| hybrid (smart) | 100% → 94.8% | −21 | 0% → 0.7% | 100% → 82% |
+| adaptive (smart) | 100% → 95.2% | −28 | 0% → 1.2% | 100% → 73% |
+| piercer (greedy) | 100% → 97.1% | −13 | 0% → 1.8% | 100% → 87% |
+| **duelist (dodge)** | **98.5% → 60.6%** | −44 | 1.6% → **14.2%** | 99% → 86% |
+| opportunist (smart) | 100% → 95.2% | −24 | 0% → 1.4% | 100% → 77% |
+| switcher (random) | 100% → 96.9% | −21 | 0% → 1.0% | 100% → 79% |
+| reactive (smart) | 100% → 97.9% | −8 | 0% → 1.1% | 100% → 92% |
+| random (random) | 98.0% → 97.7% | +1 | 0.1% → 0.8% | 83% → 84% |
+
+What this shows:
+- **Round 1 is no longer a coin flip.** In equal-DEX round-1 mirror fights the first mover now wins 68.5% (V2: 100%), because block/dodge rolls add real uncertainty.
+- **Against scripted agents the boss is still dominant (95–98%) after round 1.** These agents do not search; they only got a defence persona.
+- **The DEX duelist with dodge became competitive** (boss 60.6%).
+- **The boss's late-game archetype is still hybrid in 96–100% of rounds.** V3 mechanics did not break the hybrid dominance (V2_BALANCE #9). That is a gear/DEX issue, not a combat-mechanic one.
+
+### Mirror (equal intelligence and information)
+
+Two kinds of mirror player:
+- **mirror:** the player uses the boss's own policy.
+- **mirror_sym** (new, harness only): additionally gets the boss's exact predictor (role-swapped history, feasibility check) and the boss's anti-repeat rule. It is exactly symmetric.
+
+| Run set | Boss win (95% CI) | Boss / player comeback | Round-1 winner wins the run |
+|---|---|---|---|
+| V2 mirror, seed `v3-baseline`, 100 runs | 45.2% [35.4–55.0] | 0.4% / 0.5% | 100% |
+| V3 mirror, seed `v3-baseline`, 100 runs | 61.9% [53.6–69.5] | 21.6% / 12.8% | 84% |
+| V2 mirror, fresh seed `mirror-check`, 200 runs | 49.6% [42.4–56.4] | 0.3% / 0.2% | 100% |
+| V2 mirror_sym, `mirror-check`, 200 runs | 46.4% [39.5–53.1] | 0.2% / 0.2% | 100% |
+| **V3 mirror, `mirror-check`, 200 runs** | **47.6% [42.0–53.1]** | 18.6% / 21.6% | **77%** |
+| **V3 mirror_sym, `mirror-check`, 200 runs** | **46.8% [41.0–52.4]** | 19.7% / 21.3% | **82%** |
+
+- The 61.9% on the first seed set did **not** reproduce on an independent seed set twice its size. The first sample was an outlier (its interval just excluded 50%).
+- Two independent V3 samples agree at about 47%. **V3 gives the boss no structural edge.**
+- The big V3 effect is on the **snowball**:
+  - Comebacks rise from about 0.3% to about 20%.
+  - The round-1 winner takes the whole run 77–82% of the time instead of 100%.
+  - So equal opponents no longer have their run decided by one coin flip.
+
+## 9. DEX-benefit ablation (plan D-8)
+
+Setup: V3, 40 runs × 10 rounds per agent, one DEX benefit switched off at a time, paired against V3 with all of them on.
+- Command: `npm run v3:baseline -- --rules v3 --ablate <x> --runs 40`.
+- Per-agent intervals at 40 runs are about ±8–15 pp, so only large effects are readable.
+
+| Switched off | Effect on boss win vs agents | Duelist | Mirror |
+|---|---|---|---|
+| mitigation | −1.3 … +3.3 pp | +3.3 | +5.2 |
+| bonus attacks | −1.8 … +0.3 pp (late margin −0.05 … −0.12) | −3.5 | −2.7 |
+| turn order (coin flip instead of DEX) | −0.7 … +2.2 pp; round 1 +5 … +20 | **+10.5** | +7.3 |
+| First Shot | −1.2 … +0.7 pp | −3.0 | −2.0 |
+
+**Conclusion:**
+- No single DEX benefit is what makes the boss dominant. Removing any one moves its win rate against agents by about 0–3 pp.
+- Turn order is the one that helps the fast duelist most.
+- **Recommendation for D-8:** keep all four DEX benefits in V3. DEX dominance is driven by gear DEX modifiers stacking (the hybrid build) and agent quality, not by one rule. Revisit with the gear balance (V2_BALANCE §4).
+
+## 10. Next
+
+- **Phase C2:**
+  - make the V3 catalogue live;
+  - starting gold 10;
+  - stim shop and upgrades for the player and the boss;
+  - migration 003;
+  - API and persisted events;
+  - shared `playRound` so live play and the harness run the identical round step.
+- **Phase D:** better opponents (searching/best-response agents), boss build diversity, and the hybrid dominance.
