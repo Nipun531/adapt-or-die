@@ -7,6 +7,7 @@
  * createApp() has no side effects, so tests can mount it with supertest.
  */
 import cors from 'cors';
+import type { Side } from '../game/types.js';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -24,6 +25,8 @@ import { activateModel, deactivateModels, listModels, MlError, mlStatus, trainMo
 import { getRoundDetail, startRound, submitChoice } from '../services/rounds.js';
 import { LIVE_RULES } from '../game/rules.js';
 import { allocate, buy, buyAndEquip, buySupplies, createRun, endRun, getRunView, listRuns, NotFoundError, previewBuild, setLoadout } from '../services/runs.js';
+import { activeProfileByKey, assertRunAccess, createProfile, profileByKey, startFresh } from '../services/profiles.js';
+import { profileSummary } from '../services/learning.js';
 import { AGENTS, SIMULATOR_VERSION } from '../sim/agents.js';
 import { BATCH_LIMITS, createBatch, executeBatch, getBatch, listBatches, normalizeConfig } from '../sim/runner.js';
 
@@ -49,7 +52,8 @@ const schemas = {
     allocation: z.object({ hp: z.number().int().min(0).max(50), str: z.number().int().min(0).max(50), def: z.number().int().min(0).max(50), dex: z.number().int().min(0).max(50) }).partial().strict().optional(),
     loadout: loadoutSchema.optional(),
   }).strict(),
-  createRun: z.object({ maxRounds: z.number().int().min(1).max(100).optional(), seed: z.string().min(1).max(100).optional() }).strict(),
+  createRun: z.object({ maxRounds: z.number().int().min(1).max(100).optional(), seed: z.string().min(1).max(100).optional(), mode: z.enum(['prepared', 'learning', 'pvp']).optional(), names: z.tuple([z.string().max(40), z.string().max(40)]).optional() }).strict(),
+  profile: z.object({ name: z.string().max(40).optional() }).strict(),
   allocate: z.object({ stat: z.enum(STAT_KEYS as [string, ...string[]]), points: z.number().int().positive() }).strict(),
   loadout: z.object({ hand1: slot, hand2: slot, armour: slot }).strict(),
   // Exactly one of mode / defense / stim (it must match the pending decision; the engine re-checks).
@@ -58,6 +62,8 @@ const schemas = {
     repeat: z.boolean().optional(),
     defense: z.enum(['block', 'dodge']).optional(),
     stim: z.boolean().optional(),
+    /** PvP only: which human answers (the pending decision's side; checked by the service). */
+    side: z.enum(['player', 'boss']).optional(),
   }).strict().refine((b) => [b.mode, b.defense, b.stim].filter((x) => x !== undefined).length === 1, 'Send exactly one of mode, defense or stim'),
   supplies: z.object({ action: z.enum(['buy_stim', 'upgrade_slots', 'upgrade_effectiveness']) }).strict(),
   simulation: z.object({
@@ -106,6 +112,21 @@ export function createApp() {
     },
   })));
 
+  // V4: which side a preparation call changes (Player 2 = 'boss' side, PvP only; the service enforces that).
+  const sideParam = (req: Request): Side => (req.query.side === 'boss' ? 'boss' : 'player');
+  // V4: a Learning Boss run can only be changed by the holder of its profile key (header X-Profile-Key).
+  const profileKey = (req: Request) => req.header('x-profile-key');
+  const guardRun = (req: Request) => assertRunAccess(getPool(), idParam(req), profileKey(req));
+  const guardRound = async (req: Request) => {
+    const r = await getPool().query('SELECT run_id FROM rounds WHERE id = $1', [idParam(req)]);
+    if (r.rows[0]) await assertRunAccess(getPool(), Number(r.rows[0].run_id), profileKey(req));
+  };
+
+  // ---------- learning profiles (V4) ----------
+  app.post('/api/profiles', h(async (req) => createProfile(getPool(), schemas.profile.parse(req.body ?? {}).name)));
+  app.get('/api/profiles/me', h(async (req) => profileSummary(getPool(), await profileByKey(getPool(), profileKey(req)))));
+  app.post('/api/profiles/me/fresh', h(async (req) => withTransaction((c) => startFresh(c, profileKey(req), schemas.profile.parse(req.body ?? {}).name))));
+
   // ---------- runs + preparation ----------
   app.get('/api/runs', h(async (req) => listRuns(getPool(), {
     source: typeof req.query.source === 'string' && ['manual', 'simulation'].includes(req.query.source) ? req.query.source : undefined,
@@ -113,47 +134,62 @@ export function createApp() {
     offset: Number(req.query.offset) || undefined,
   })));
   app.post('/api/runs', h(async (req) => {
-    const body = schemas.createRun.parse(req.body ?? {});
-    const id = await withTransaction((c) => createRun(c, { source: 'manual', ...body }));
+    const { names, ...body } = schemas.createRun.parse(req.body ?? {});
+    const id = await withTransaction(async (c) => createRun(c, {
+      source: 'manual', ...body,
+      profileId: body.mode === 'learning' ? (await activeProfileByKey(c, profileKey(req))).id : null,
+      config: body.mode === 'pvp' ? { names: names ?? ['Player 1', 'Player 2'] } : undefined,
+    }));
     return getRunView(getPool(), id);
   }));
   app.get('/api/runs/:id', h(async (req) => getRunView(getPool(), idParam(req))));
   app.post('/api/runs/:id/end', h(async (req) => {
+    await guardRun(req);
     await endRun(idParam(req));
     return getRunView(getPool(), idParam(req));
   }));
   app.post('/api/runs/:id/allocate', h(async (req) => {
     const b = schemas.allocate.parse(req.body);
-    await allocate(idParam(req), b.stat as (typeof STAT_KEYS)[number], b.points);
+    await guardRun(req);
+    await allocate(idParam(req), b.stat as (typeof STAT_KEYS)[number], b.points, 'player', undefined, sideParam(req));
     return getRunView(getPool(), idParam(req));
   }));
   app.post('/api/runs/:id/buy', h(async (req) => {
     const b = schemas.buy.parse(req.body);
-    if (b.loadout) await buyAndEquip(idParam(req), b.itemId, b.loadout);
-    else await buy(idParam(req), b.itemId);
+    await guardRun(req);
+    if (b.loadout) await buyAndEquip(idParam(req), b.itemId, b.loadout, 'player', sideParam(req));
+    else await buy(idParam(req), b.itemId, 'player', undefined, sideParam(req));
     return getRunView(getPool(), idParam(req));
   }));
   app.post('/api/runs/:id/supplies', h(async (req) => {
-    await buySupplies(idParam(req), schemas.supplies.parse(req.body).action);
+    const b = schemas.supplies.parse(req.body);
+    await guardRun(req);
+    await buySupplies(idParam(req), b.action, 'player', undefined, sideParam(req));
     return getRunView(getPool(), idParam(req));
   }));
   app.post('/api/runs/:id/loadout', h(async (req) => {
-    await setLoadout(idParam(req), schemas.loadout.parse(req.body));
+    const b = schemas.loadout.parse(req.body);
+    await guardRun(req);
+    await setLoadout(idParam(req), b, 'player', undefined, sideParam(req));
     return getRunView(getPool(), idParam(req));
   }));
   // Pure preview for the Armory: derived numbers for a hypothetical allocation/loadout. Writes nothing.
-  app.post('/api/runs/:id/preview', h(async (req) => previewBuild(getPool(), idParam(req), schemas.preview.parse(req.body ?? {}))));
+  app.post('/api/runs/:id/preview', h(async (req) => previewBuild(getPool(), idParam(req), schemas.preview.parse(req.body ?? {}), sideParam(req))));
   app.get('/api/runs/:id/progression', h(async (req) => {
     const r = await getPool().query('SELECT * FROM progression_events WHERE run_id = $1 ORDER BY id', [idParam(req)]);
     return { events: r.rows };
   }));
 
   // ---------- rounds ----------
-  app.post('/api/runs/:id/rounds', h(async (req) => getRoundDetail(getPool(), await startRound(idParam(req)))));
+  app.post('/api/runs/:id/rounds', h(async (req) => {
+    await guardRun(req);
+    return getRoundDetail(getPool(), await startRound(idParam(req)));
+  }));
   app.get('/api/rounds/:id', h(async (req) => getRoundDetail(getPool(), idParam(req))));
   app.post('/api/rounds/:id/choice', h(async (req) => {
-    const b = schemas.choice.parse(req.body);
-    await submitChoice(idParam(req), b);
+    const { side, ...b } = schemas.choice.parse(req.body);
+    await guardRound(req);
+    await submitChoice(idParam(req), b, false, side ?? 'player');
     return getRoundDetail(getPool(), idParam(req));
   }));
 

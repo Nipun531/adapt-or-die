@@ -24,7 +24,8 @@ export async function useTestDatabase(): Promise<void> {
 
 export async function resetTables(): Promise<void> {
   await getPool().query(`TRUNCATE runs, combatants, rounds, combat_events, progression_events, boss_analyses, boss_decisions,
-    simulation_batches, training_examples, dataset_snapshots, model_versions RESTART IDENTITY CASCADE`);
+    simulation_batches, training_examples, dataset_snapshots, model_versions, learning_profiles, profile_observations, build_examples
+    RESTART IDENTITY CASCADE`);
 }
 
 /**

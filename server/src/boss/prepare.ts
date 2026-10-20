@@ -15,7 +15,7 @@ import { initialCombatant } from '../game/progression.js';
 import { deriveSeed } from '../game/rng.js';
 import type { CombatantState } from '../game/types.js';
 import type { Db } from '../db/pool.js';
-import { baselineProbability, buildFeatures, rangedFeasibility } from '../ml/features.js';
+import { baselineProbability, buildFeatures, FEATURE_SCHEMA_VERSION, rangedFeasibility } from '../ml/features.js';
 import { predictPlayerStyle, type Prediction } from '../ml/predictor.js';
 import { loadCompletedRounds } from '../services/history.js';
 import { loadCombatant, logProgression, saveCombatant, SUPPLY_LEDGER_KIND } from '../services/runs.js';
@@ -34,13 +34,27 @@ const WEAKNESS_METRICS: Record<string, ('effDex' | 'netDef' | 'netAtk' | 'maxHp'
   narrow_loss: ['netAtk', 'netDef', 'effDex', 'maxHp'],
 };
 
+/** Learning Boss P(ranged) before the profile forecaster: rules only (0 when ranged is impossible, else no evidence). */
+function learningPrediction(feas: { rangedFeasible: boolean; reason: string }): Prediction {
+  return {
+    kind: 'fallback', basis: feas.rangedFeasible ? 'unknown' : 'rule', probabilityRanged: feas.rangedFeasible ? null : 0,
+    baselineProbability: null, feasibility: feas, modelVersion: null,
+    fallbackReason: 'learning boss: no global model (rules + this profile only)', featureSchemaVersion: FEATURE_SCHEMA_VERSION, features: null,
+  };
+}
+
 export interface BossPrepResult {
   decisionId: number;
   boss: CombatantState;
   prediction: Prediction;
 }
 
-export async function bossPrepare(db: Db, runId: number, runSeed: string, roundNumber: number): Promise<BossPrepResult> {
+/** Which boss prepares: the Prepared Boss (global, simulation-informed) or the Learning Boss of one profile. */
+export interface BossPrepMode { mode?: 'prepared' | 'learning' | 'pvp'; profileId?: number | null }
+
+export async function bossPrepare(db: Db, runId: number, runSeed: string, roundNumber: number, who: BossPrepMode = {}): Promise<BossPrepResult> {
+  const mode = who.mode ?? 'prepared';
+  if (mode === 'pvp') throw new Error('PvP has no boss: both sides are human');
   const history = await loadCompletedRounds(db, runId, roundNumber - 1);
   const records = history.map((h) => h.record);
   const features = records.length ? buildFeatures(records) : null;
@@ -48,7 +62,10 @@ export async function bossPrepare(db: Db, runId: number, runSeed: string, roundN
   // see how the player spends those points (current-round preparation), just as it never sees later-round prep; the
   // policy therefore considers every way they could spend them (reachable scenarios).
   const observed = records.length ? records[records.length - 1].playerPost : initialCombatant('player');
-  const prediction = await predictPlayerStyle(db, features, baselineProbability(records), rangedFeasibility(observed));
+  // Learning Boss: no global (simulation-trained) model — its forecasts come from rules and this profile only.
+  const prediction = mode === 'learning'
+    ? learningPrediction(rangedFeasibility(observed))
+    : await predictPlayerStyle(db, features, baselineProbability(records), rangedFeasibility(observed));
 
   const before = await loadCombatant(db, runId, 'boss', true);
   const prev = roundNumber > 1

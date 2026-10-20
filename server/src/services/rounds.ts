@@ -23,6 +23,7 @@ import { deriveSeed } from '../game/rng.js';
 import type { AttackMode, CombatantState, Side } from '../game/types.js';
 import { withTransaction, type Db } from '../db/pool.js';
 import { appendExample } from '../ml/examples.js';
+import { recordObservation } from './learning.js';
 import { loadEvents } from './history.js';
 import { assertCurrentEngine, loadCombatant, lockRunForPrep, logProgression, NotFoundError, saveCombatant } from './runs.js';
 
@@ -44,6 +45,16 @@ export interface PlayerChoosers {
   /** V3: stim use before the player's action. Default: pause and wait for the human. */
   playerStim?: StimChooser;
 }
+
+/** V4 PvP: both sides are humans — every decision of either side pauses for its player. No boss policy is used. */
+function pvpOptions(rules: RuleSet): Omit<AdvanceOptions, 'provided'> {
+  if (!rules.v3) return {};
+  return {
+    defense: { player: waitForHumanDefense, boss: waitForHumanDefense },
+    stim: { player: waitForHumanStim, boss: waitForHumanStim },
+  };
+}
+const PVP_CHOOSERS = { player: waitForHuman, boss: waitForHuman };
 
 function combatOptions(rules: RuleSet, p: PlayerChoosers): Omit<AdvanceOptions, 'provided'> {
   if (!rules.v3) return {};
@@ -73,7 +84,8 @@ export async function startRound(runId: number, opts: StartRoundOptions = {}): P
       throw new RuleError(`Allocate your ${player.statPoints} initial stat point(s) before round 1`);
     }
 
-    const prep = await bossPrepare(c, runId, run.seed, roundNumber);
+    if (run.mode === 'pvp') return startPvpRound(c, run, roundNumber, player);
+    const prep = await bossPrepare(c, runId, run.seed, roundNumber, { mode: run.mode, profileId: run.profile_id });
     // The boss policy always spends every available point; guard the round-1 invariant explicitly anyway.
     if (roundNumber === 1 && prep.boss.statPoints > 0) throw new Error('Boss entered round 1 with unallocated initial stat points');
     const seed = deriveSeed(run.seed, `round:${roundNumber}`);
@@ -98,10 +110,35 @@ export async function startRound(runId: number, opts: StartRoundOptions = {}): P
   return opts.db ? fn(opts.db) : withTransaction(fn);
 }
 
+/**
+ * V4 local PvP round: Player 2 (side 'boss') prepared through the same validated actions as Player 1; nobody's policy
+ * runs. Both fighters are snapshotted and combat pauses for whichever human must decide.
+ */
+async function startPvpRound(c: Db, run: any, roundNumber: number, p1: CombatantState): Promise<number> {
+  const p2 = await loadCombatant(c, run.id, 'boss', true);
+  const problem = loadoutProblem(p2.loadout, p2.inventory);
+  if (problem) throw new RuleError(`Player 2 loadout is illegal: ${problem}`);
+  if (roundNumber === 1 && p2.statPoints > 0) throw new RuleError(`Player 2 must allocate ${p2.statPoints} initial stat point(s) before round 1`);
+  const seed = deriveSeed(run.seed, `round:${roundNumber}`);
+  const s1 = snapshotOf(p1);
+  const s2 = snapshotOf(p2);
+  const rules = rulesForEngine(run.engine_version);
+  const state = startCombat(s1, s2, seed, rules);
+  const ins = await c.query(
+    `INSERT INTO rounds (run_id, round_number, status, seed, engine_version, player_pre, boss_pre, player_snapshot, boss_snapshot, initiative)
+     VALUES ($1,$2,'in_progress',$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+    [run.id, roundNumber, seed, ENGINE_VERSION, JSON.stringify(p1), JSON.stringify(p2), JSON.stringify(s1), JSON.stringify(s2), JSON.stringify(state.initiative)],
+  );
+  const roundId = ins.rows[0].id as number;
+  const res = advanceCombat(state, PVP_CHOOSERS, pvpOptions(rules));
+  await persistProgress(c, run, roundId, roundNumber, res.state, res.events, res.notes);
+  return roundId;
+}
+
 /** The player's answer to a paused round (exactly one of mode / defense / stim, matching the pending decision). */
 export interface PlayerAnswer { mode?: AttackMode; repeat?: boolean; defense?: DefenseAction; stim?: boolean }
 
-export async function submitChoice(roundId: number, answer: PlayerAnswer | AttackMode, repeat = false): Promise<void> {
+export async function submitChoice(roundId: number, answer: PlayerAnswer | AttackMode, repeat = false, side: Side = 'player'): Promise<void> {
   const a: PlayerAnswer = typeof answer === 'string' ? { mode: answer, repeat } : answer;
   await withTransaction(async (c) => {
     const r = await c.query('SELECT * FROM rounds WHERE id = $1 FOR UPDATE', [roundId]);
@@ -110,12 +147,16 @@ export async function submitChoice(roundId: number, answer: PlayerAnswer | Attac
     if (round.status !== 'in_progress' || !round.pending_choice) throw new RuleError('This round is not waiting for a choice');
     const run = (await c.query('SELECT * FROM runs WHERE id = $1 FOR UPDATE', [round.run_id])).rows[0];
     assertCurrentEngine(run); // a paused round of an older-engine run cannot resume under the live rules
+    const pvp = run.mode === 'pvp';
+    if (!pvp && side !== 'player') throw new RuleError('Only the player answers in a boss run');
+    // Turn ownership: the answer must come from the side whose decision is pending (the engine checks it again).
+    if (round.pending_choice.side !== side) throw new RuleError(`It is ${round.pending_choice.side === 'boss' ? 'Player 2' : 'Player 1'}'s decision`);
     let res;
     try {
       const rules = rulesForEngine(run.engine_version);
-      res = advanceCombat(round.combat_state as CombatState, { player: waitForHuman, boss: bossChooser }, {
-        ...combatOptions(rules, {}),
-        provided: { side: 'player', ...a },
+      res = advanceCombat(round.combat_state as CombatState, pvp ? PVP_CHOOSERS : { player: waitForHuman, boss: bossChooser }, {
+        ...(pvp ? pvpOptions(rules) : combatOptions(rules, {})),
+        provided: { side, ...a },
       });
     } catch (e) {
       throw new RuleError((e as Error).message);
@@ -175,7 +216,8 @@ async function completeRound(c: Db, run: any, roundId: number, roundNumber: numb
     }
   }
   const events = await loadEvents(c, roundId);
-  const analysis = analyzeRound({
+  const isPvp = run.mode === 'pvp';
+  const analysis = isPvp ? null : analyzeRound({
     roundNumber, winner, player: state.fighters.player, boss: state.fighters.boss, events,
     playerHpEnd: state.hp.player, bossHpEnd: state.hp.boss, initiative: state.initiative,
   });
@@ -188,8 +230,10 @@ async function completeRound(c: Db, run: any, roundId: number, roundNumber: numb
       JSON.stringify(results.player.entries), JSON.stringify(results.boss.entries),
       JSON.stringify(results.player.state), JSON.stringify(results.boss.state), state.endReason ?? null],
   );
-  await c.query('INSERT INTO boss_analyses (run_id, round_id, analysis) VALUES ($1,$2,$3)', [runId, roundId, JSON.stringify(analysis)]);
-  await appendExample(c, runId, roundNumber);
+  if (analysis) await c.query('INSERT INTO boss_analyses (run_id, round_id, analysis) VALUES ($1,$2,$3)', [runId, roundId, JSON.stringify(analysis)]);
+  if (run.mode === 'learning') await recordObservation(c, run, roundId, roundNumber);
+  // V4 data isolation: only Prepared Boss runs feed the GLOBAL training data; Learning runs feed only their profile.
+  if ((run.mode ?? 'prepared') === 'prepared') await appendExample(c, runId, roundNumber);
   if (roundNumber >= run.max_rounds) {
     await c.query(`UPDATE runs SET status='completed', end_reason='max_rounds', ended_at=now(), updated_at=now() WHERE id=$1`, [runId]);
   } else {

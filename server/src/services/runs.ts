@@ -26,7 +26,15 @@ export interface CreateRunOptions {
   simulationBatchId?: number | null;
   playerStrategy?: string | null;
   config?: Record<string, unknown>;
+  /** V4 game mode (default 'prepared' = the simulation-informed boss). */
+  mode?: GameMode;
+  /** Learning mode only: the profile whose boss learns (must be active). */
+  profileId?: number | null;
 }
+
+/** V4 game modes (docs/V4_IMPLEMENTATION_PLAN.md §3). PvP: side 'player' = Player 1, side 'boss' = Player 2. */
+export type GameMode = 'prepared' | 'learning' | 'pvp';
+export const GAME_MODES: GameMode[] = ['prepared', 'learning', 'pvp'];
 
 /**
  * Create a run with both combatants in their initial state — including the INITIAL_STAT_POINTS (2) unallocated
@@ -37,11 +45,20 @@ export interface CreateRunOptions {
 export async function createRun(db: Db, opts: CreateRunOptions = {}): Promise<number> {
   const maxRounds = opts.maxRounds ?? env.defaultMaxRounds;
   if (!Number.isInteger(maxRounds) || maxRounds < 1 || maxRounds > 100) throw new RuleError('maxRounds must be an integer 1..100');
+  const mode = opts.mode ?? 'prepared';
+  if (!GAME_MODES.includes(mode)) throw new RuleError(`Unknown mode "${mode}"`);
+  if (mode === 'learning') {
+    if (!opts.profileId) throw new RuleError('A Learning Boss run needs a learning profile');
+    const p = await db.query('SELECT status FROM learning_profiles WHERE id = $1', [opts.profileId]);
+    if (!p.rows[0]) throw new NotFoundError('Learning profile not found');
+    if (p.rows[0].status !== 'active') throw new RuleError('This learning profile was archived; start a fresh one');
+  } else if (opts.profileId) throw new RuleError('Only Learning Boss runs belong to a learning profile');
+  if (mode === 'pvp' && (opts.source ?? 'manual') !== 'manual') throw new RuleError('PvP runs are played by two humans');
   const r = await db.query(
-    `INSERT INTO runs (source, max_rounds, seed, engine_version, simulator_version, simulation_batch_id, player_strategy, config)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+    `INSERT INTO runs (source, max_rounds, seed, engine_version, simulator_version, simulation_batch_id, player_strategy, config, mode, profile_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
     [opts.source ?? 'manual', maxRounds, opts.seed ?? freshSeed(), ENGINE_VERSION, opts.simulatorVersion ?? null,
-      opts.simulationBatchId ?? null, opts.playerStrategy ?? null, { ...opts.config, initialStatPoints: INITIAL_STAT_POINTS }],
+      opts.simulationBatchId ?? null, opts.playerStrategy ?? null, { ...opts.config, initialStatPoints: INITIAL_STAT_POINTS }, mode, opts.profileId ?? null],
   );
   const runId = r.rows[0].id as number;
   for (const side of ['player', 'boss'] as Side[]) {
@@ -109,23 +126,28 @@ export async function lockRunForPrep(db: Db, runId: number, opts: { allowLegacy?
 
 type Actor = 'player' | 'agent';
 
-export async function allocate(runId: number, stat: StatKey, points: number, actor: Actor = 'player', db?: Db) {
+/** Who may change a side between rounds: always the player side; side 'boss' only in PvP (it is Player 2). */
+function assertPrepSide(run: { mode?: string }, side: Side) {
+  if (side === 'boss' && run.mode !== 'pvp') throw new RuleError('Only the boss prepares its own side (PvP excepted)');
+}
+
+export async function allocate(runId: number, stat: StatKey, points: number, actor: Actor = 'player', db?: Db, side: Side = 'player') {
   const fn = async (c: Db) => {
-    await lockRunForPrep(c, runId);
-    const s = allocateStat(await loadCombatant(c, runId, 'player', true), stat, points);
+    assertPrepSide(await lockRunForPrep(c, runId), side);
+    const s = allocateStat(await loadCombatant(c, runId, side, true), stat, points);
     await saveCombatant(c, runId, s);
-    await logProgression(c, { runId, side: 'player', kind: 'stat_allocation', actor, payload: { stat, points }, stateAfter: s });
+    await logProgression(c, { runId, side, kind: 'stat_allocation', actor, payload: { stat, points }, stateAfter: s });
     return s;
   };
   return db ? fn(db) : withTransaction(fn);
 }
 
-export async function buy(runId: number, itemId: string, actor: Actor = 'player', db?: Db) {
+export async function buy(runId: number, itemId: string, actor: Actor = 'player', db?: Db, side: Side = 'player') {
   const fn = async (c: Db) => {
-    await lockRunForPrep(c, runId);
-    const s = purchase(await loadCombatant(c, runId, 'player', true), itemId);
+    assertPrepSide(await lockRunForPrep(c, runId), side);
+    const s = purchase(await loadCombatant(c, runId, side, true), itemId);
     await saveCombatant(c, runId, s);
-    await logProgression(c, { runId, side: 'player', kind: 'purchase', actor, payload: { itemId, cost: requireItem(itemId).cost }, stateAfter: s });
+    await logProgression(c, { runId, side, kind: 'purchase', actor, payload: { itemId, cost: requireItem(itemId).cost }, stateAfter: s });
     return s;
   };
   return db ? fn(db) : withTransaction(fn);
@@ -135,14 +157,14 @@ export async function buy(runId: number, itemId: string, actor: Actor = 'player'
  * Buy an item and equip a loadout that uses it, in ONE transaction (the Armory's "buy & equip").
  * Both steps go through the same rules as separate calls; if the loadout is illegal nothing is bought.
  */
-export async function buyAndEquip(runId: number, itemId: string, loadout: Loadout, actor: Actor = 'player') {
+export async function buyAndEquip(runId: number, itemId: string, loadout: Loadout, actor: Actor = 'player', side: Side = 'player') {
   return withTransaction(async (c) => {
-    await lockRunForPrep(c, runId);
-    const bought = purchase(await loadCombatant(c, runId, 'player', true), itemId);
+    assertPrepSide(await lockRunForPrep(c, runId), side);
+    const bought = purchase(await loadCombatant(c, runId, side, true), itemId);
     const s = equip(bought, loadout);
     await saveCombatant(c, runId, s);
-    await logProgression(c, { runId, side: 'player', kind: 'purchase', actor, payload: { itemId, cost: requireItem(itemId).cost }, stateAfter: bought });
-    await logProgression(c, { runId, side: 'player', kind: 'equip', actor, payload: { loadout }, stateAfter: s });
+    await logProgression(c, { runId, side, kind: 'purchase', actor, payload: { itemId, cost: requireItem(itemId).cost }, stateAfter: bought });
+    await logProgression(c, { runId, side, kind: 'equip', actor, payload: { loadout }, stateAfter: s });
     return s;
   });
 }
@@ -152,8 +174,9 @@ export async function buyAndEquip(runId: number, itemId: string, loadout: Loadou
  * loadout, so the client can show "Net ATK 40.3 → 49.5" without computing any rule itself. Items not owned yet are
  * treated as bought; the result says what that would cost, whether it is affordable and whether the loadout is legal.
  */
-export async function previewBuild(db: Db, runId: number, req: { allocation?: Partial<Record<StatKey, number>>; loadout?: Loadout }) {
-  const now = await loadCombatant(db, runId, 'player');
+export async function previewBuild(db: Db, runId: number, req: { allocation?: Partial<Record<StatKey, number>>; loadout?: Loadout }, side: Side = 'player') {
+  if (side === 'boss') assertPrepSide((await db.query('SELECT mode FROM runs WHERE id = $1', [runId])).rows[0] ?? {}, side);
+  const now = await loadCombatant(db, runId, side);
   let s = now;
   for (const [stat, n] of Object.entries(req.allocation ?? {})) if (n) s = allocateStat(s, stat as StatKey, n);
   const loadout = req.loadout ?? s.loadout;
@@ -177,25 +200,25 @@ export const SUPPLY_LEDGER_KIND: Record<SupplyAction, string> = {
 };
 
 /** Buy a healing stim or a stim upgrade (V3; docs/V3_DEMANDS.md §6). Between rounds only, like every purchase. */
-export async function buySupplies(runId: number, action: SupplyAction, actor: Actor = 'player', db?: Db) {
+export async function buySupplies(runId: number, action: SupplyAction, actor: Actor = 'player', db?: Db, side: Side = 'player') {
   const fn = async (c: Db) => {
-    await lockRunForPrep(c, runId);
-    const before = await loadCombatant(c, runId, 'player', true);
+    assertPrepSide(await lockRunForPrep(c, runId), side);
+    const before = await loadCombatant(c, runId, side, true);
     const cost = supplyCost(before, action);
     const s = buySupply(before, action);
     await saveCombatant(c, runId, s);
-    await logProgression(c, { runId, side: 'player', kind: SUPPLY_LEDGER_KIND[action], actor, payload: { action, cost }, stateAfter: s });
+    await logProgression(c, { runId, side, kind: SUPPLY_LEDGER_KIND[action], actor, payload: { action, cost }, stateAfter: s });
     return s;
   };
   return db ? fn(db) : withTransaction(fn);
 }
 
-export async function setLoadout(runId: number, loadout: Loadout, actor: Actor = 'player', db?: Db) {
+export async function setLoadout(runId: number, loadout: Loadout, actor: Actor = 'player', db?: Db, side: Side = 'player') {
   const fn = async (c: Db) => {
-    await lockRunForPrep(c, runId);
-    const s = equip(await loadCombatant(c, runId, 'player', true), loadout);
+    assertPrepSide(await lockRunForPrep(c, runId), side);
+    const s = equip(await loadCombatant(c, runId, side, true), loadout);
     await saveCombatant(c, runId, s);
-    await logProgression(c, { runId, side: 'player', kind: 'equip', actor, payload: { loadout }, stateAfter: s });
+    await logProgression(c, { runId, side, kind: 'equip', actor, payload: { loadout }, stateAfter: s });
     return s;
   };
   return db ? fn(db) : withTransaction(fn);

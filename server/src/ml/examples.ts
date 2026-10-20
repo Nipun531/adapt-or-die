@@ -21,7 +21,8 @@ export async function appendExample(db: Db, runId: number, labelRoundNumber: num
   const prior = rows.filter((r) => r.record.roundNumber < labelRoundNumber);
   if (!labelRow || prior.length === 0) return 0;
   const history = prior.map((r) => r.record); // ← rounds 1..N only: the leakage boundary
-  const run = (await db.query('SELECT source, engine_version, simulator_version, seed FROM runs WHERE id = $1', [runId])).rows[0];
+  const run = (await db.query('SELECT source, engine_version, simulator_version, seed, mode FROM runs WHERE id = $1', [runId])).rows[0];
+  if (run.mode !== 'prepared') return 0; // V4: Learning and PvP runs never enter the global training data
   const features = buildFeatures(history, run.engine_version);
   const feas = rangedFeasibility(history[history.length - 1].playerPost, run.engine_version);
   const l = labelStyle(labelRow.record);
@@ -51,7 +52,7 @@ export async function appendExample(db: Db, runId: number, labelRoundNumber: num
 export async function buildMissingExamples(db: Db, opts: { allEngines?: boolean } = {}): Promise<{ inserted: number; scanned: number }> {
   const missing = await db.query(
     `SELECT r.run_id, r.round_number FROM rounds r JOIN runs u ON u.id = r.run_id
-     WHERE r.status = 'completed' AND r.round_number >= 2 AND ($2 OR u.engine_version = $3)
+     WHERE r.status = 'completed' AND r.round_number >= 2 AND ($2 OR u.engine_version = $3) AND u.mode = 'prepared'
        AND NOT EXISTS (SELECT 1 FROM training_examples t WHERE t.label_round_id = r.id AND t.feature_schema_version = $1)
      ORDER BY r.run_id, r.round_number`, [FEATURE_SCHEMA_VERSION, opts.allEngines ?? false, ENGINE_VERSION]);
   let inserted = 0;
