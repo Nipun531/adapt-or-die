@@ -20,7 +20,12 @@ import { predictPlayerStyle, type Prediction } from '../ml/predictor.js';
 import { loadCompletedRounds } from '../services/history.js';
 import { loadCombatant, logProgression, saveCombatant, SUPPLY_LEDGER_KIND } from '../services/runs.js';
 import type { Weakness } from './analysis.js';
-import { applyPlan, choosePlan, type Archetype } from './policy.js';
+import { applyPlan, choosePlan, forecastScenarios, type Archetype, type Scenario } from './policy.js';
+import { profileHeads, type HeadProbs, type ProfileEvidence } from './forecast.js';
+import { loadObservations } from '../services/learning.js';
+
+/** Which scenario builds the Learning Boss weighs with its profile forecast (V4 plan §4; chosen from the oracle run). */
+export const LEARNING_SCENARIO_BASE: 'v4' | 'v3' = 'v3';
 
 /** Which derived metric each weakness is most directly addressed by (used only for explanation). */
 const WEAKNESS_METRICS: Record<string, ('effDex' | 'netDef' | 'netAtk' | 'maxHp')[]> = {
@@ -67,6 +72,22 @@ export async function bossPrepare(db: Db, runId: number, runSeed: string, roundN
     ? learningPrediction(rangedFeasibility(observed))
     : await predictPlayerStyle(db, features, baselineProbability(records), rangedFeasibility(observed));
 
+  // Learning Boss (V4): its ONLY learned knowledge is this profile's observations → a next-build forecast over the
+  // player's legal builds. With no observations the forecast is uniform (rules only). Nothing global is read.
+  let forecast: { kind: 'profile'; heads: HeadProbs; observations: number; base: string } | null = null;
+  let opponents: Scenario[] | undefined;
+  if (mode === 'learning' && who.profileId) {
+    const obs = await loadObservations(db, who.profileId);
+    const evidence: ProfileEvidence[] = obs.map((o) => ({ heads: o.heads, previousWinner: o.context.previousWinner }));
+    const thisRun = obs.filter((o) => o.runId === runId);
+    const heads = profileHeads(evidence, {
+      previousWinner: records.length ? records[records.length - 1].winner : null,
+      lastHeads: thisRun.length ? thisRun[thisRun.length - 1].heads : null,
+    });
+    opponents = forecastScenarios(observed, heads, undefined, LEARNING_SCENARIO_BASE).scenarios;
+    forecast = { kind: 'profile', heads, observations: obs.length, base: LEARNING_SCENARIO_BASE };
+  }
+
   const before = await loadCombatant(db, runId, 'boss', true);
   const prev = roundNumber > 1
     ? (await db.query(`SELECT selected->'plan'->>'archetype' AS a FROM boss_decisions WHERE run_id = $1 AND for_round_number = $2`, [runId, roundNumber - 1])).rows[0]?.a ?? null
@@ -78,6 +99,7 @@ export async function bossPrepare(db: Db, runId: number, runSeed: string, roundN
     seed: String(deriveSeed(runSeed, `boss:${roundNumber}`)),
     previousArchetype: prev as Archetype | null,
     rules: LIVE_RULES,
+    opponents,
   });
   const plan = policy.selected;
   const geared = applyPlan(before, plan); // re-validated by the rules (throws on anything illegal)
@@ -127,7 +149,7 @@ export async function bossPrepare(db: Db, runId: number, runSeed: string, roundN
   const ins = await db.query(
     `INSERT INTO boss_decisions (run_id, for_round_number, predictor, evidence, options, selected, actions, gold_spent, state_before, state_after)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-    [runId, roundNumber, JSON.stringify(prediction), JSON.stringify(evidence),
+    [runId, roundNumber, JSON.stringify(forecast ? { ...prediction, forecast } : prediction), JSON.stringify(evidence),
       JSON.stringify({ candidatesEvaluated: policy.candidatesEvaluated, current: policy.current, alternatives: policy.alternatives }),
       JSON.stringify({ plan, rationale: policy.rationale, policyVersion: policy.version, band: policy.band ?? null, draw: policy.draw ?? null }), JSON.stringify(actions), plan.cost + supplies.actions.reduce((g, a) => g + a.cost, 0),
       JSON.stringify(before), JSON.stringify(after)],

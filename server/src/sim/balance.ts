@@ -20,10 +20,12 @@ import { deriveStats, snapshotOf } from '../game/derive.js';
 import { allocateStat, equip, purchase } from '../game/equipment.js';
 import { applyRoundRewards, initialCombatant } from '../game/progression.js';
 import { deriveSeed, Rng } from '../game/rng.js';
+import { headsOf, type Heads } from '../boss/build-heads.js';
+import { oneHotHeads, type HeadProbs } from '../boss/forecast.js';
 import { summarizeCombat } from '../game/summary.js';
 import type { CombatantState, FighterSnapshot, Item, Loadout, PierceSpec, Side, StatKey, Stats } from '../game/types.js';
 import { BASE_STATS, INITIAL_STAT_POINTS, LEVEL_UP_INCREASE, STAT_ALLOCATION_INCREASE } from '../game/constants.js';
-import { analyticScore, applyPlan, bossChooser, bossDefense, bossStim, choosePlan, type Archetype as BossArchetype, type PolicyVersion, type Scenario } from '../boss/policy.js';
+import { analyticScore, applyPlan, bossChooser, forecastScenarios, bossDefense, bossStim, choosePlan, type Archetype as BossArchetype, type PolicyVersion, type Scenario } from '../boss/policy.js';
 import { baselineProbability, rangedFeasibility, type RoundRecord } from '../ml/features.js';
 import { requireAgent, type RoundOutcome } from './agents.js';
 
@@ -47,6 +49,10 @@ export interface RoundResult {
   events: CombatEvent[];
   /** V3: lost turns, stims, turn limit (empty under v2). */
   notes: CombatNote[];
+  /** V4: the heads the player actually chose this round, the forecast the boss planned with (null = V3 planner) and the observed state it used. */
+  truthHeads: Heads;
+  forecast: HeadProbs | null;
+  observed: CombatantState;
 }
 
 export interface RunResult {
@@ -86,9 +92,18 @@ function swapRecord(r: RoundRecord, bossPost: CombatantState): RoundRecord {
 }
 
 /** What the boss's predictor is asked before each round (decision-time information only). */
-export interface PredictionRequest { records: RoundRecord[]; observed: CombatantState }
-/** Returns P(player mostly ranged) or null (no evidence). */
-export type InMemoryPredictor = (req: PredictionRequest) => Promise<number | null>;
+export interface PredictionRequest {
+  records: RoundRecord[];
+  observed: CombatantState;
+  /** V4: the heads (boss/build-heads.ts) of this run's earlier rounds, oldest first — what the player chose before. */
+  historyHeads: Heads[];
+}
+/**
+ * Returns P(player mostly ranged) or null (no evidence) — the V3 planner — or, V4, a next-build forecast: the planner
+ * then weighs the most likely LEGAL candidate builds (policy.ts forecastScenarios).
+ */
+export type PredictorAnswer = number | null | { heads: HeadProbs };
+export type InMemoryPredictor = (req: PredictionRequest) => Promise<PredictorAnswer>;
 
 /** Same as boss/prepare.ts with the baseline predictor: rule-level feasibility first, then the baseline. */
 export function baselinePredict({ records, observed }: PredictionRequest): number | null {
@@ -99,7 +114,7 @@ export function baselinePredict({ records, observed }: PredictionRequest): numbe
  * The run loop as a generator: it yields a PredictionRequest before every boss preparation and expects
  * P(ranged) back, so the same loop serves the synchronous baseline driver and the async model driver.
  */
-function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: RunOptions): Generator<PredictionRequest, RunResult, number | null> {
+function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: RunOptions): Generator<PredictionRequest, RunResult, PredictorAnswer> {
   const rules = opts.rules ?? RULES_V2;
   let previousArchetype: BossArchetype | null = null;
   const agent = isMirror(strategy) ? requireAgent('hybrid') /* chooser only */ : requireAgent(strategy);
@@ -110,6 +125,7 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
   const history: RoundOutcome[] = [];
   const records: RoundRecord[] = [];
   const rounds: RoundResult[] = [];
+  const historyHeads: Heads[] = [];
 
   for (let n = 1; n <= maxRounds; n++) {
     if (strategy === MIRROR) {
@@ -121,7 +137,7 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
     } else if (strategy === MIRROR_SYM) {
       const seen: CombatantState = { ...boss, side: 'player' };
       const plan = choosePlan({
-        boss: player, observedPlayer: seen, pRanged: baselinePredict({ records: swapped, observed: seen }),
+        boss: player, observedPlayer: seen, pRanged: baselinePredict({ records: swapped, observed: seen, historyHeads: [] }),
         seed: String(deriveSeed(runSeed, `mirror:${n}`)), previousArchetype: playerPrevArchetype, version: opts.policyVersion, rules: opts.rules,
       });
       playerPrevArchetype = plan.selected.archetype;
@@ -135,7 +151,12 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
     if (rules.v3) player = autoSupplies(player, isMirror(strategy) ? SIM_SAVINGS_RESERVE : agentSupplyReserve(strategy)).state;
 
     const observed = records.length ? records[records.length - 1].playerPost : initialCombatant('player');
-    let pRanged = yield { records: [...records], observed };
+    const answer = yield { records: [...records], observed, historyHeads: [...historyHeads] };
+    // What the player actually brought (labels/oracle only — never shown to a predictor).
+    const truth = headsOf(observed, snapshotOf(player));
+    let pRanged = typeof answer === 'number' || answer === null ? answer : null;
+    let heads = answer !== null && typeof answer === 'object' ? answer.heads : null;
+    if (opts.oracle?.heads) heads = oneHotHeads(truth);
     // Harness-only ORACLE (upper bound for any predictor; never used live): the boss plans against the player's real
     // prepared build (style from its loadout), only its real style (`style`: P(ranged) 0/1 from the prepared loadout,
     // hybrids keep the prediction), and/or the player's real defence habit.
@@ -146,6 +167,7 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
     }
     const policy = choosePlan({
       boss, observedPlayer: o?.build ? player : observed, pRanged, seed: String(deriveSeed(runSeed, `boss:${n}`)), previousArchetype, version: opts.policyVersion, rules: opts.rules,
+      opponents: heads && !o?.build ? forecastScenarios(observed, heads, undefined, opts.scenarioBase ?? 'v4').scenarios : undefined,
       playerDefense: o?.defense && rules.v3 && !isMirror(strategy)
         ? defenseChooserFor(AGENT_DEFENSE[strategy] ?? 'smart', new Rng(deriveSeed(runSeed, `oracle-defense:${n}`)), rules) : undefined,
     });
@@ -178,11 +200,13 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
       playerHpEnd: state.hp.player, bossHpEnd: state.hp.boss, summary: summarizeCombat(events, notes),
     });
     if (strategy === MIRROR_SYM) swapped.push(swapRecord(records[records.length - 1], boss));
+    historyHeads.push(truth);
     history.push({ roundNumber: n, winner, bossLoadout: bSnap.loadout, playerHpEndFrac: Math.max(0, state.hp.player) / pSnap.derived.maxHp });
     const bossMargin = winner === 'boss' ? Math.max(0, state.hp.boss) / bSnap.derived.maxHp : -Math.max(0, state.hp.player) / pSnap.derived.maxHp;
     rounds.push({
       roundNumber: n, winner, playerLoadout: pSnap.loadout, bossLoadout: bSnap.loadout, bossAllocation: policy.selected.allocation,
       bossArchetype: policy.selected.archetype, bossBandSize: policy.band?.length ?? 1, bossMargin, pRanged, events, notes,
+      truthHeads: truth, forecast: heads, observed,
     });
   }
   return { strategy, seed: runSeed, rounds, player, boss };
@@ -190,7 +214,9 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
 
 /** One complete run without the database. Mirrors sim/runner.ts → services/rounds.ts (baseline predictor). */
 /** Harness run options: boss policy version and combat rules (default v2 = engine 2.0.0). */
-export interface RunOptions { policyVersion?: PolicyVersion; rules?: RuleSet; oracle?: { build?: boolean; style?: boolean; defense?: boolean } }
+export interface RunOptions { policyVersion?: PolicyVersion; rules?: RuleSet; oracle?: { build?: boolean; style?: boolean; defense?: boolean; heads?: boolean };
+  /** V4: build forecast scenarios from legal candidates ('v4') or reweight the V3 reachable scenarios ('v3'). */
+  scenarioBase?: 'v4' | 'v3' }
 
 export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 10, opts: RunOptions = {}): RunResult {
   const it = runSteps(strategy, runSeed, maxRounds, opts);

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { ITEMS, ITEMS_V1 } from '../../src/game/catalog.js';
 
 const ROOTS = [path.resolve(__dirname, '../../src'), path.resolve(__dirname, '../../../client/src')];
-const ALLOWED = [/[\\/]catalogs[\\/]/, /\.test\.tsx?$/, /[\\/]sim[\\/]agents\.ts$/, /[\\/]sim[\\/]balance(-cli)?\.ts$/, /[\\/]sim[\\/]v3-lab(-cli)?\.ts$/];
+const ALLOWED = [/[\\/]catalogs[\\/]/, /\.test\.tsx?$/, /[\\/]sim[\\/]agents\.ts$/, /[\\/]sim[\\/]balance(-cli)?\.ts$/, /[\\/]sim[\\/]v3-lab(-cli)?\.ts$/, /[\\/]sim[\\/]agents(-v4)?\.ts$/];
 const V1_ROLLBACK = /[\\/]boss[\\/]policy\.ts$/;
 const FAMILY_WORDS = new Set(['bow', 'shield', 'armour']); // also family names, allowed as such
 

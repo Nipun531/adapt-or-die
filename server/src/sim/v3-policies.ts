@@ -62,6 +62,11 @@ export const AGENT_DEFENSE: Record<string, DefenseStyle> = {
   stunner: 'smart',
   healer: 'smart',
   counter_puncher: 'block',
+  saver: 'smart',
+  armourer: 'block',
+  counter_builder: 'smart',
+  explorer: 'random',
+  splitter: 'greedy',
 };
 
 /** Gold a simulated player never spends on stims (its savings for gear). The healer spends everything on supplies. */

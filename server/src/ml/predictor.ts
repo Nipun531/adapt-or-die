@@ -66,7 +66,7 @@ class Worker {
     pending.forEach((cb) => cb(JSON.stringify({ ok: false, error: 'python worker exited' })));
   }
 
-  async send(msg: object): Promise<{ ok: boolean; error?: string; probability?: number; xgboost?: string }> {
+  async send(msg: object): Promise<{ ok: boolean; error?: string; probability?: number; probabilities?: number[]; xgboost?: string }> {
     if (!this.proc) this.start();
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
@@ -101,6 +101,8 @@ const worker = new Worker();
 export function stopInferenceWorker() {
   worker.stop();
 }
+/** V4: raw access to the shared worker for named (multi-class) models — see ml/build-predictor.ts. */
+export const sendToWorker = (msg: object) => worker.send(msg);
 
 export interface ActiveModel {
   version: string;

@@ -31,6 +31,7 @@ import { bestMode } from '../game/expected.js';
 import { hashSeed, Rng } from '../game/rng.js';
 import type { AttackMode, CombatantState, ItemCategory, Loadout, Side, StatKey } from '../game/types.js';
 import { STAT_KEYS } from '../game/types.js';
+import { V4_AGENTS } from './agents-v4.js';
 
 /**
  * Bump when agent behaviour or the meaning of simulated records changes, so data can be traced to the code that produced it.
@@ -43,8 +44,10 @@ import { STAT_KEYS } from '../game/types.js';
  *              automatic stim rule and spend leftover gold on stims (game/supply-plan.ts). Build logic unchanged.
  *  sim-3.1.0 — V3 Phase D: adds one champion per V3 mechanic — `blocker`, `dodger`, `stunner`, `healer`,
  *              `counter_puncher` (existing agents unchanged).
+ *  sim-4.0.0 — V4 next-build data: five varied, reactive families with per-run personas in sim/agents-v4.ts —
+ *              `saver`, `armourer`, `counter_builder`, `explorer`, `splitter` (existing agents unchanged).
  */
-export const SIMULATOR_VERSION = 'sim-3.1.0';
+export const SIMULATOR_VERSION = 'sim-4.0.0';
 
 /** What the player saw of a finished round (all visible in the round view: result, the boss's gear, own HP left). */
 export interface RoundOutcome {
@@ -516,9 +519,16 @@ export const randomAgent: Agent = {
   chooser: (rng) => (ctx) => ({ mode: rng.pick(ctx.options), source: 'agent', reason: 'Random choice' }),
 };
 
+/** Helpers shared with the V4 agent families (sim/agents-v4.ts). */
+export type Chooserish = Chooser;
+export const agentKit = { buyInOrder, bestOwned, loadoutFrom, allocateByPattern, preferChooser, expectedDamageChooser, after };
+
+/** The pre-V4 agents (sim-3.1.0), kept as a named family for comparisons. */
+export const V3_AGENT_NAMES = ['melee_bruiser', 'archer', 'shield_turtle', 'hybrid', 'adaptive', 'piercer', 'duelist', 'opportunist', 'switcher', 'reactive', 'random', 'blocker', 'dodger', 'stunner', 'healer', 'counter_puncher'];
+
 export const AGENTS: Record<string, Agent> = Object.fromEntries(
   [meleeBruiser, archer, shieldTurtle, hybrid, adaptive, piercer, duelist, opportunist, switcher, reactive, randomAgent,
-    blocker, dodger, stunner, healer, counterPuncher].map((a) => [a.name, a]),
+    blocker, dodger, stunner, healer, counterPuncher, ...V4_AGENTS].map((a) => [a.name, a]),
 );
 
 export const STRATEGY_NAMES = Object.keys(AGENTS);

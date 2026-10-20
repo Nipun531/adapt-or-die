@@ -35,6 +35,8 @@ import { deriveSeed, Rng } from '../game/rng.js';
 import type { AttackMode, CombatantState, FighterSnapshot, Item, ItemFamily, Loadout, StatKey } from '../game/types.js';
 import { STAT_KEYS } from '../game/types.js';
 import { rangedFeasibility } from '../ml/features.js';
+import { PROB_FLOOR, topCandidates, type HeadProbs } from './forecast.js';
+import { headsOf, HEAD_NAMES } from './build-heads.js';
 
 export type PolicyVersion = 'v2-diverse' | 'v1-deterministic';
 export const POLICY_VERSION: PolicyVersion = 'v2-diverse';
@@ -85,6 +87,48 @@ export interface Scenario {
   weight?: number;
   label?: string;
   allocation?: Allocation;
+  /** V4 hybrid (bow + melee) candidates: the player picks the better mode each attack instead of a fixed one. */
+  flexible?: boolean;
+}
+
+/**
+ * V4: opponent scenarios from a next-build forecast (boss/forecast.ts) — the `k` most likely LEGAL candidate builds,
+ * weighted by their renormalised probability. Replaces `reachableScenarios` when a forecast is given.
+ */
+export const FORECAST_CONFIG = {
+  /** Keep the most likely candidates until this much probability is covered ... */
+  massTarget: 0.95,
+  /** ... but drop any below this weight (they would only dilute the Monte-Carlo budget). */
+  minWeight: 0.01,
+};
+
+export function forecastScenarios(observed: CombatantState, heads: HeadProbs, k = POLICY_CONFIG.maxScenarios, base: 'v4' | 'v3' = 'v4'): { scenarios: Scenario[]; massCovered: number; legal: number } {
+  if (base === 'v3') return reweightReachable(observed, heads);
+  const { picked: all, legal } = topCandidates(observed, heads, k);
+  const picked: typeof all = [];
+  let acc = 0;
+  for (const p of all) {
+    if (picked.length && (acc >= FORECAST_CONFIG.massTarget || p.weight < FORECAST_CONFIG.minWeight)) break;
+    picked.push(p);
+    acc += p.weight;
+  }
+  const massCovered = acc;
+  for (const p of picked) p.weight /= acc;
+  const scenarios = picked.map(({ candidate: c, weight }): Scenario => {
+    const h = c.heads.hands;
+    const ranged = h === 'ranged' || h === 'ranged_shield' || h === 'ranged_melee';
+    const melee = h === 'melee' || h === 'melee_shield' || h === 'ranged_melee';
+    return {
+      kind: ranged && !melee ? 'ranged' : 'melee',
+      snapshot: c.snapshot,
+      preferredMode: ranged && !melee ? 'ranged' : melee ? 'melee' : 'unarmed',
+      flexible: h === 'ranged_melee',
+      hypotheticalItems: c.purchases,
+      weight,
+      label: c.label,
+    };
+  });
+  return { scenarios, massCovered, legal };
 }
 
 export interface BandEntry { label: string; archetype: Archetype; weighted: number; cost: number; probability: number }
@@ -242,6 +286,18 @@ export function reachableScenarios(observed: CombatantState, pRanged: number | n
   return [...ranged, ...melee].filter((s) => (s.weight ?? 0) > 0).slice(0, POLICY_CONFIG.maxScenarios);
 }
 
+/**
+ * V4 variant: keep the V3 reachable scenarios (their builds), but weight each by the forecast probability of its
+ * heads instead of by P(ranged) alone. Tests whether head knowledge helps when the scenario builds stay the same.
+ */
+export function reweightReachable(observed: CombatantState, heads: HeadProbs): { scenarios: Scenario[]; massCovered: number; legal: number } {
+  const sc = reachableScenarios(observed, null);
+  const raw = sc.map((s) => HEAD_NAMES.reduce((p, h) => p * Math.max(PROB_FLOOR, heads[h][headsOf(observed, s.snapshot)[h]] ?? 0), 1));
+  const z = raw.reduce((a, b) => a + b, 0);
+  sc.forEach((s, i) => { s.weight = raw[i] / z; });
+  return { scenarios: sc.filter((s) => (s.weight ?? 0) >= FORECAST_CONFIG.minWeight), massCovered: 1, legal: sc.length };
+}
+
 /** Analytic expected-duel score in (−1, 1): positive = boss expected to kill first. */
 export function analyticScore(boss: FighterSnapshot, sc: Scenario): number {
   const p = sc.snapshot;
@@ -289,7 +345,7 @@ export function simulatedOutcome(boss: FighterSnapshot, sc: Scenario, seedBase: 
   const key = sc.label ?? sc.kind;
   for (let i = 0; i < fights; i++) {
     const { state } = runFullCombat(sc.snapshot, boss, deriveSeed(seedBase, `${key}:${i}`), {
-      player: scenarioChooser(sc.preferredMode),
+      player: sc.flexible ? bossChooser : scenarioChooser(sc.preferredMode),
       boss: bossChooser,
     }, v3Options(rules, playerDefense));
     if (state.winner === 'boss') {
@@ -371,6 +427,8 @@ export function choosePlan(input: {
   rules?: RuleSet;
   /** V3: how the player is assumed to defend in the Monte-Carlo (default: a smart, expected-value defender). */
   playerDefense?: DefenseChooser;
+  /** V4: opponent scenarios from a next-build forecast (forecastScenarios). Default: reachableScenarios(pRanged). */
+  opponents?: Scenario[];
 }): PolicyResult {
   const version = input.version ?? POLICY_VERSION;
   const { boss, observedPlayer } = input;
@@ -378,7 +436,7 @@ export function choosePlan(input: {
   const pForV1 = input.pRanged ?? 0.5;
   const scenarios: Scenario[] = v1
     ? buildScenarios(observedPlayer).map((s) => ({ ...s, weight: s.kind === 'ranged' ? pForV1 : 1 - pForV1 }))
-    : reachableScenarios(observedPlayer, input.pRanged);
+    : input.opponents ?? reachableScenarios(observedPlayer, input.pRanged);
 
   const byStyle = (vals: number[]): StyleScores => {
     const agg = (kind: 'ranged' | 'melee') => {
@@ -412,7 +470,12 @@ export function choosePlan(input: {
       const wr = scenarios.map((sc) => simulatedWinRate(snap, sc, `${input.seed}:mc`, fights, input.rules));
       return { ...p, winRate: byStyle(wr), weighted: weigh(wr) };
     }
-    const out = scenarios.map((sc) => simulatedOutcome(snap, sc, `${input.seed}:mc`, fights, input.rules, input.playerDefense));
+    // V4 forecast scenarios: the fight budget follows the probability (a likely build gets most fights, an unlikely one
+    // keeps the minimum), instead of an equal split that would starve the build that matters.
+    const fightsFor = (sc: Scenario) => (input.opponents
+      ? Math.max(POLICY_CONFIG.minFightsPerScenario, Math.round(POLICY_CONFIG.fightBudgetPerPlan * (sc.weight ?? 0)))
+      : fights);
+    const out = scenarios.map((sc) => simulatedOutcome(snap, sc, `${input.seed}:mc`, fightsFor(sc), input.rules, input.playerDefense));
     return { ...p, winRate: byStyle(out.map((o) => o.winRate)), margin: byStyle(out.map((o) => o.margin)), weighted: weigh(out.map((o) => o.margin)) };
   };
 

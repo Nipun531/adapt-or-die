@@ -58,7 +58,7 @@ export interface CompletedRoundRow {
 }
 
 /** Completed rounds 1..upTo (inclusive) of a run, oldest first, as RoundRecords. */
-export async function loadCompletedRounds(db: Db, runId: number, upTo = Number.MAX_SAFE_INTEGER): Promise<CompletedRoundRow[]> {
+export async function loadCompletedRounds(db: Db, runId: number, upTo = 2_147_483_647): Promise<CompletedRoundRow[]> {
   const rounds = await db.query(
     `SELECT * FROM rounds WHERE run_id = $1 AND status = 'completed' AND round_number <= $2 ORDER BY round_number`,
     [runId, upTo],

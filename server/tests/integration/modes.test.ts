@@ -14,6 +14,9 @@ import { loadObservations } from '../../src/services/learning.js';
 import { startRound, submitChoice } from '../../src/services/rounds.js';
 import { allocate, createRun } from '../../src/services/runs.js';
 import { autoAnswer, createReadyRun, playRound, resetTables, useTestDatabase } from '../helpers/db.js';
+import { headsOf } from '../../src/boss/build-heads.js';
+import { initialCombatant } from '../../src/game/progression.js';
+import { buildMissingBuildExamples } from '../../src/ml/build-examples.js';
 
 const app = createApp();
 beforeAll(useTestDatabase);
@@ -34,6 +37,25 @@ describe('Prepared Boss (default mode)', () => {
     await playRound(runId);
     expect(await count('training_examples')).toBe(1);
     expect(await count('profile_observations')).toBe(0);
+  });
+  it('next-build rows: features from rounds 1..N, label = round N+1 heads; Learning/PvP runs never produce rows', async () => {
+    const runId = await createReadyRun({ maxRounds: 3 });
+    for (let i = 0; i < 3; i++) await playRound(runId);
+    const p = await createProfile(getPool(), 'L');
+    const lr = await createReadyRun({ maxRounds: 2, mode: 'learning', profileId: p.id });
+    await playRound(lr);
+    await playRound(lr);
+    const r = await buildMissingBuildExamples(getPool());
+    expect(r.inserted).toBe(2);
+    const rows = (await getPool().query('SELECT b.*, r.round_number FROM build_examples b JOIN rounds r ON r.id = b.label_round_id ORDER BY r.round_number')).rows;
+    expect(rows.map((x) => x.round_number)).toEqual([2, 3]);
+    expect(rows.every((x) => Number(x.run_id) === runId)).toBe(true);
+    const rounds = (await getPool().query('SELECT round_number, player_post, player_snapshot FROM rounds WHERE run_id = $1 ORDER BY round_number', [runId])).rows;
+    expect(rows[0].heads).toEqual(headsOf(rounds[0].player_post, rounds[1].player_snapshot));
+    // The features of the round-2 label know round 1's choice, never round 2's.
+    const h1 = headsOf(initialCombatant('player'), rounds[0].player_snapshot);
+    expect(rows[0].features[`last_hands_${h1.hands}`]).toBe(1);
+    expect(rows[0].features.next_round_number).toBe(2);
   });
   it('the player cannot prepare the boss side outside PvP', async () => {
     const runId = await createReadyRun({ maxRounds: 1 });
@@ -58,6 +80,27 @@ describe('Learning Boss', () => {
     // No global (simulation-trained) model is consulted for a Learning Boss decision.
     const d = (await getPool().query('SELECT predictor FROM boss_decisions WHERE run_id = $1 ORDER BY for_round_number', [runId])).rows;
     for (const x of d) expect(x.predictor.fallbackReason).toMatch(/learning boss/);
+  });
+  it('the boss plans with a profile forecast: uniform at first, then from this profile’s observations, across runs', async () => {
+    const p = await createProfile(getPool(), 'Ada');
+    const run1 = await createReadyRun({ maxRounds: 2, mode: 'learning', profileId: p.id });
+    await playRound(run1);
+    await playRound(run1);
+    const d1 = (await getPool().query('SELECT predictor FROM boss_decisions WHERE run_id = $1 ORDER BY for_round_number', [run1])).rows.map((x) => x.predictor.forecast);
+    expect(d1.map((f) => f.kind)).toEqual(['profile', 'profile']);
+    expect(d1.map((f) => f.observations)).toEqual([0, 1]);
+    const u = 1 / 7;
+    for (const v of Object.values(d1[0].heads.hands)) expect(v).toBeCloseTo(u, 9); // cold start: rules only
+    const run2 = await createReadyRun({ maxRounds: 1, mode: 'learning', profileId: p.id });
+    await playRound(run2);
+    const f2 = (await getPool().query('SELECT predictor FROM boss_decisions WHERE run_id = $1', [run2])).rows[0].predictor.forecast;
+    expect(f2.observations).toBe(2); // the profile remembers the earlier run
+    expect(f2.heads.alloc.str).toBeGreaterThan(f2.heads.alloc.dex); // both earlier rounds put points into STR
+    // A different profile starts cold again.
+    const q = await createProfile(getPool(), 'Bob');
+    const run3 = await createReadyRun({ maxRounds: 1, mode: 'learning', profileId: q.id });
+    await playRound(run3);
+    expect((await getPool().query('SELECT predictor FROM boss_decisions WHERE run_id = $1', [run3])).rows[0].predictor.forecast.observations).toBe(0);
   });
   it('a learning run needs an active profile; start fresh archives (nothing deleted) and starts empty', async () => {
     await expect(withTransaction((c) => createRun(c, { mode: 'learning' }))).rejects.toThrow(/profile/);

@@ -14,6 +14,7 @@ import type { CombatantState, FighterSnapshot } from '../game/types.js';
 import type { ProfileRow } from './profiles.js';
 
 export interface Observation {
+  runId?: number;
   roundNumber: number;
   context: { previousWinner: 'player' | 'boss' | null; gold: number; statPoints: number; previousHeads: Heads | null };
   heads: Heads;
@@ -52,8 +53,8 @@ export async function recordObservation(c: Db, run: any, roundId: number, roundN
 
 /** All observations of a profile, oldest first. */
 export async function loadObservations(db: Db, profileId: number): Promise<Observation[]> {
-  const r = await db.query('SELECT round_number, context, heads, outcome FROM profile_observations WHERE profile_id = $1 ORDER BY created_at, id', [profileId]);
-  return r.rows.map((x) => ({ roundNumber: x.round_number, context: x.context, heads: x.heads, outcome: x.outcome }));
+  const r = await db.query('SELECT run_id, round_number, context, heads, outcome FROM profile_observations WHERE profile_id = $1 ORDER BY created_at, id', [profileId]);
+  return r.rows.map((x) => ({ runId: Number(x.run_id), roundNumber: x.round_number, context: x.context, heads: x.heads, outcome: x.outcome }));
 }
 
 const LABELS: { [K in HeadName]: Record<string, string> } = {
