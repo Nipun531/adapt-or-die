@@ -5,7 +5,7 @@
  * The server re-validates every action; its message is shown if refused.
  */
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { api, type BuildPreview, type Item, type RunView, type StatKey } from '../api';
+import { api, type BuildPreview, type Item, type RunView, type Side, type StatKey } from '../api';
 import { GlyphIcon, StatPip } from '../ui/Icon';
 import { Hint } from '../ui/Hint';
 import { itemTraits, Roundel } from './Fight';
@@ -59,10 +59,10 @@ function Delta({ label, from, to }: { label: string; from: number; to: number })
   );
 }
 
-export function Armory({ view, onChange, begin, onShowAftermath, bossNote }: { view: RunView; onChange: (v: RunView) => void; begin?: PhaseAction; onShowAftermath?: () => void; bossNote?: string }) {
+export function Armory({ view, onChange, begin, onShowAftermath, bossNote, side = 'player', pvp = false }: { view: RunView; onChange: (v: RunView) => void; begin?: PhaseAction; onShowAftermath?: () => void; bossNote?: string ; side?: Side; pvp?: boolean }) {
   const catalog = useCatalog();
   const toast = useToast();
-  const p = view.player;
+  const p = side === 'boss' ? view.boss : view.player;
   const runId = view.run.id;
   const act = useAction();
   const [filter, setFilter] = useState<'all' | 'affordable' | 'owned' | Item['family']>('all');
@@ -77,7 +77,7 @@ export function Armory({ view, onChange, begin, onShowAftermath, bossNote }: { v
   useEffect(() => {
     if (!proposal) { setPreview(null); return; }
     let live = true;
-    api.preview(runId, { loadout: proposal.loadout }).then((r) => { if (live) setPreview(r); }).catch(() => { if (live) setPreview(null); });
+    api.preview(runId, { loadout: proposal.loadout }, side).then((r) => { if (live) setPreview(r); }).catch(() => { if (live) setPreview(null); });
     return () => { live = false; };
   }, [runId, JSON.stringify(proposal?.loadout)]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -141,15 +141,15 @@ export function Armory({ view, onChange, begin, onShowAftermath, bossNote }: { v
                   )}
                   <div className="pick-actions">
                     {ownsPicked ? (
-                      <button className="btn btn-primary" disabled={act.busy || !!preview?.problem} onClick={() => apply(() => api.setLoadout(runId, proposal!.loadout), `${pickedItem.name} equipped`)}>Equip</button>
+                      <button className="btn btn-primary" disabled={act.busy || !!preview?.problem} onClick={() => apply(() => api.setLoadout(runId, proposal!.loadout, side), `${pickedItem.name} equipped`)}>Equip</button>
                     ) : (
                       <>
                         <button className="btn btn-primary" disabled={act.busy || pickedItem.cost > p.gold || !!preview?.problem}
                           title={pickedItem.cost > p.gold ? `Need ${pickedItem.cost - p.gold} more gold` : undefined}
-                          onClick={() => apply(() => api.buy(runId, pickedItem.id, proposal!.loadout), `Bought and equipped ${pickedItem.name}`)}>
+                          onClick={() => apply(() => api.buy(runId, pickedItem.id, proposal!.loadout, side), `Bought and equipped ${pickedItem.name}`)}>
                           Buy &amp; equip · {pickedItem.cost}g
                         </button>
-                        <button className="btn btn-quiet" disabled={act.busy || pickedItem.cost > p.gold} onClick={() => apply(() => api.buy(runId, pickedItem.id), `Bought ${pickedItem.name}`)}>Buy only</button>
+                        <button className="btn btn-quiet" disabled={act.busy || pickedItem.cost > p.gold} onClick={() => apply(() => api.buy(runId, pickedItem.id, undefined, side), `Bought ${pickedItem.name}`)}>Buy only</button>
                       </>
                     )}
                     <button className="btn btn-quiet" onClick={() => { setPicked(null); setSlot(undefined); }}>Cancel</button>
@@ -186,7 +186,7 @@ export function Armory({ view, onChange, begin, onShowAftermath, bossNote }: { v
                   <button className="slot-put" onClick={() => setSlot(s)} aria-pressed={target}>Put here</button>
                 )}
                 {it && !pickedItem && (
-                  <button className="slot-put" disabled={act.busy} onClick={() => apply(() => api.setLoadout(runId, removeFromSlot(p.loadout, s)), `${it.name} unequipped`)}>Remove</button>
+                  <button className="slot-put" disabled={act.busy} onClick={() => apply(() => api.setLoadout(runId, removeFromSlot(p.loadout, s), side), `${it.name} unequipped`)}>Remove</button>
                 )}
               </div>
             );
@@ -201,7 +201,7 @@ export function Armory({ view, onChange, begin, onShowAftermath, bossNote }: { v
           {firstRound && p.statPoints > 0 && <p className="points-hint">Spend your {catalog.rules.initialStatPoints} starting points before round 1.</p>}
           <div className="points-grid">
             {STATS.map((s) => (
-              <button key={s} className="point-btn" disabled={!p.statPoints || act.busy} onClick={() => apply(() => api.allocate(runId, s, 1), `+${inc[s]} ${s.toUpperCase()}`)}>
+              <button key={s} className="point-btn" disabled={!p.statPoints || act.busy} onClick={() => apply(() => api.allocate(runId, s, 1, side), `+${inc[s]} ${s.toUpperCase()}`)}>
                 <StatPip stat={s} size={16} /><span className="point-now">{p.stats[s]}</span><span className="point-add">+{inc[s]}</span>
               </button>
             ))}
@@ -219,7 +219,7 @@ export function Armory({ view, onChange, begin, onShowAftermath, bossNote }: { v
                 const info = p.supplyInfo!.actions[a];
                 return (
                   <button key={a} className="btn btn-quiet btn-small" disabled={act.busy || !!info.problem} title={info.problem ?? undefined}
-                    onClick={() => apply(() => api.supplies(runId, a), `${label} (${info.cost}g)`)}>
+                    onClick={() => apply(() => api.supplies(runId, a, side), `${label} (${info.cost}g)`)}>
                     {label} · {info.cost}g
                   </button>
                 );
@@ -227,7 +227,7 @@ export function Armory({ view, onChange, begin, onShowAftermath, bossNote }: { v
             </div>
           </div>
         )}
-        <div className="boss-plate" aria-label="The boss right now">
+        {pvp ? <p className="muted">Your opponent’s build stays hidden until the fight starts.</p> : <div className="boss-plate" aria-label="The boss right now">
           <h4>The boss now</h4>
           <p>Level {view.boss.level} · {view.boss.gold} gold{view.boss.supplies ? ` · ${view.boss.supplies.stims} stim${view.boss.supplies.stims === 1 ? '' : 's'}` : ''}</p>
           <ul className="roundels roundels-compact">
@@ -237,8 +237,8 @@ export function Armory({ view, onChange, begin, onShowAftermath, bossNote }: { v
           </ul>
           {bossNote && <p className="muted">{bossNote}</p>}
           <p className="muted">It prepares after you press Begin, from your last round only.</p>
-        </div>
-        {view.lastDecision && (
+        </div>}
+        {!pvp && view.lastDecision && (
           <div className="last-hand">
             <h4>The boss’s last hand</h4>
             <BossHand d={view.lastDecision} compact onMore={onShowAftermath} />

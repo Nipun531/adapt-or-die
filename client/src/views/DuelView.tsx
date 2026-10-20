@@ -9,6 +9,7 @@ import { Aftermath } from '../duel/Aftermath';
 import { Armory } from '../duel/Armory';
 import { Fight } from '../duel/Fight';
 import { Icon } from '../ui/Icon';
+import { LearnedPanel } from './LearningView';
 import { Empty, ErrorBox, Skeleton, useConfirm, useToast } from '../ui/states';
 import { useAction, useCatalog, useLoad } from '../util';
 
@@ -21,7 +22,7 @@ function StartScreen({ go }: { go: (hash: string) => void }) {
   const [maxRounds, setMaxRounds] = useState(10);
   useEffect(() => { if (catalog) setMaxRounds(catalog.rules.defaultMaxRounds); }, [catalog]);
   const act = useAction();
-  const runs = useLoad(() => api.listRuns('manual'), []);
+  const runs = useLoad(() => api.listRuns('manual', 0, 'prepared'), []);
   const start = async () => {
     const v = await act.run(() => api.createRun(maxRounds));
     if (v) go(`#/duel/${v.run.id}`);
@@ -31,8 +32,8 @@ function StartScreen({ go }: { go: (hash: string) => void }) {
   return (
     <div className="start">
       <section className="start-hero">
-        <h1>The Boss Remembers</h1>
-        <p className="start-lede">Duel a boss over several rounds. Before each round you arm yourself; in the fight you answer every blow it throws with a block or a dodge. The boss studies every fight and comes back ready for you, under exactly the same rules.</p>
+        <h1>Prepared Boss</h1>
+        <p className="start-lede">Duel a boss over several rounds. Before each round you arm yourself; in the fight you answer every blow it throws with a block or a dodge. This boss already knows the common strategies from the first round, studies how you fought, and comes back ready for you under exactly the same rules.</p>
         <ol className="start-steps">
           <li><b>Prepare.</b> Spend your two starting points, buy a weapon, maybe a healing stim.</li>
           <li><b>Fight.</b> When the boss attacks, choose Block or Dodge. A good defence can strike back.</li>
@@ -70,6 +71,12 @@ function StartScreen({ go }: { go: (hash: string) => void }) {
 
 type Phase = 'prepare' | 'fight' | 'aftermath';
 
+/** Learning Boss runs: what the boss has recorded about this profile so far (server evidence only). */
+function LearnedNow({ observedKey }: { observedKey: number }) {
+  const s = useLoad(() => api.profile(), [observedKey]);
+  return s.data ? <LearnedPanel summary={s.data} /> : null;
+}
+
 function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void }) {
   const catalog = useCatalog();
   const toast = useToast();
@@ -92,6 +99,7 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
 
   if (run.loading && !view) return <div className="run-loading"><Skeleton lines={6} label="Loading run" /></div>;
   if (!view) return <ErrorBox error={run.error ?? 'Run not found'} onRetry={run.reload} />;
+  if (view.run.mode === 'pvp') return <Empty title="This is a PvP match"><a className="btn btn-primary" href={`#/pvp/${runId}`}>Open the match</a></Empty>;
 
   const setView = (v: RunView) => run.setData(v);
   const simulated = view.run.source === 'simulation';
@@ -122,6 +130,7 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
       if (d.round.status === 'completed') await run.reload();
     }
   };
+  const learning = view.run.mode === 'learning';
   const end = async () => {
     if (!(await ask('End this run?', 'You will not be able to play more rounds in it. Its history stays in Runs.', 'End run'))) return;
     const v = await act.run(() => api.endRun(runId));
@@ -152,6 +161,7 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
         <h2>Round <span className="num">{Math.max(1, Math.min(view.rounds.length + (canPrepare ? 1 : 0), view.run.max_rounds))}</span> <small>of {view.run.max_rounds}</small></h2>
         <span className="run-record" aria-label={`Record: you ${view.record.wins}, boss ${view.record.losses}`}><span>You</span><b className="tone-player">{view.record.wins}</b><span>–</span><b className="tone-boss">{view.record.losses}</b><span>Boss</span></span>
         <span className="run-meta">Run #{view.run.id}</span>
+        <span className={`chip mode-chip mode-chip-${view.run.mode ?? 'prepared'}`}>{learning ? 'Learning Boss' : 'Prepared Boss'}</span>
         {simulated && <span className="chip chip-dark">simulation · {view.run.player_strategy}</span>}
         {legacy && <span className="chip chip-dark">engine {view.run.engine_version} · view only</span>}
         {!active && <span className="chip chip-dark">{view.run.status}{view.run.end_reason ? ` · ${view.run.end_reason.replace(/_/g, ' ')}` : ''}</span>}
@@ -182,11 +192,12 @@ function RunScreen({ runId, go }: { runId: number; go: (hash: string) => void })
       </div>
 
       <div className="phase-body" role="tabpanel">
+        {learning && current !== 'fight' && <LearnedNow observedKey={view.rounds.length} />}
         {current === 'prepare' && (canPrepare
           ? <Armory view={view} onChange={setView} begin={primary ?? undefined} onShowAftermath={round ? () => setPhase('aftermath') : undefined} bossNote={bossNote} />
           : <Empty title={inProgress ? 'A round is in progress' : readOnly ? 'This run is view-only' : 'This run is over'}>
               {inProgress ? <button className="btn btn-primary" onClick={() => setPhase('fight')}>Back to the fight</button>
-                : !readOnly ? <button className="btn btn-primary" onClick={() => go('#/duel')}>Deal a new run</button> : null}
+                : !readOnly ? <button className="btn btn-primary" onClick={() => go(learning ? '#/learning' : '#/prepared')}>Deal a new run</button> : null}
             </Empty>)}
         {current === 'fight' && round && <Fight detail={round} onChoose={!readOnly ? choose : undefined} busy={act.busy} deal={deal} next={primary ?? undefined} rounds={view.rounds} onOpenRound={viewRound} />}
         {current === 'aftermath' && round && <Aftermath detail={round} next={primary ?? undefined} />}

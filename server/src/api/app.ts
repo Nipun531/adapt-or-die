@@ -130,6 +130,7 @@ export function createApp() {
   // ---------- runs + preparation ----------
   app.get('/api/runs', h(async (req) => listRuns(getPool(), {
     source: typeof req.query.source === 'string' && ['manual', 'simulation'].includes(req.query.source) ? req.query.source : undefined,
+    mode: typeof req.query.mode === 'string' && ['prepared', 'learning', 'pvp'].includes(req.query.mode) ? req.query.mode : undefined,
     limit: Number(req.query.limit) || undefined,
     offset: Number(req.query.offset) || undefined,
   })));

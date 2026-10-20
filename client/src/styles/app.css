@@ -498,3 +498,32 @@ button.exchange-line:hover { background: var(--stone-2); }
   .hand .begin { display: none; }
   .run-end { margin-left: 0; }
 }
+
+/* ---------- V4: mode select, Learning Boss, PvP ---------- */
+.modes { display: grid; gap: var(--s5); padding-top: var(--s4); }
+.modes-head { display: grid; gap: var(--s3); }
+.modes-head h1 { font-size: clamp(2.4rem, 5vw, 4rem); }
+.mode-grid { list-style: none; margin: 0; padding: 3px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; background: var(--lead); border-radius: var(--r); }
+.mode-card { display: grid; grid-template-rows: auto 1fr auto auto; gap: var(--s3); padding: var(--s5); background: var(--stone); border-radius: 1px; }
+.mode-card::before { content: ''; display: block; height: 4px; margin: calc(-1 * var(--s5)) calc(-1 * var(--s5)) var(--s2); background: var(--gules); }
+.mode-pvp::before { background: linear-gradient(90deg, var(--azure) 50%, var(--gules) 50%); }
+.mode-learning::before { background: repeating-linear-gradient(90deg, var(--gules) 0 18px, var(--lead) 18px 21px); }
+.mode-card h2 { font-size: var(--fs-2xl); }
+.mode-card p { color: var(--text-2); max-width: 46ch; }
+.mode-facts { margin: 0; padding-left: 1.1rem; display: grid; gap: 4px; font-size: var(--fs-sm); color: var(--text-2); }
+.mode-card .btn { justify-self: start; }
+.mode-chip-learning { border-color: var(--gules-glass); color: var(--gules-text); }
+.learned { display: grid; gap: var(--s2); }
+.learned .panel-head { margin-bottom: 0; }
+.learned-list { margin: 0; padding-left: 1.1rem; display: grid; gap: 4px; color: var(--text); }
+.learning-side { display: grid; gap: var(--s4); align-content: start; }
+.field-inline input { width: 12rem; }
+.pvp-names { display: flex; flex-wrap: wrap; gap: var(--s3); }
+.pvp-names .field-inline { margin-left: 0; }
+.pvp-names input[type="number"] { width: 5rem; }
+.handoff { display: grid; justify-items: center; gap: var(--s3); text-align: center; padding: var(--s7) var(--s5); background: var(--stone); border: var(--seam); border-radius: var(--r); }
+.handoff h2 { font-size: var(--fs-3xl); }
+.turn-owner { display: flex; align-items: baseline; gap: var(--s2); padding: var(--s2) var(--s4); border-left: 4px solid currentColor; background: var(--stone); font-size: var(--fs-lg); }
+.turn-owner b { font-family: var(--font-inscription); font-weight: 400; font-size: 1.4rem; }
+@media (max-width: 1080px) { .mode-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) { .pvp .hand .begin { display: grid; } .field-inline input { width: 100%; } }

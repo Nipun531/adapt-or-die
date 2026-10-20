@@ -272,21 +272,21 @@ export async function getRunView(db: Db, runId: number) {
   };
 }
 
-export async function listRuns(db: Db, opts: { source?: string; limit?: number; offset?: number }) {
+export async function listRuns(db: Db, opts: { source?: string; mode?: string; limit?: number; offset?: number }) {
   const limit = Math.min(Math.max(opts.limit ?? 25, 1), 200);
   const offset = Math.max(opts.offset ?? 0, 0);
-  const params: unknown[] = [limit, offset];
-  let where = '';
-  if (opts.source) {
-    params.push(opts.source);
-    where = 'WHERE r.source = $3';
-  }
+  const conds: string[] = [];
+  const filters: unknown[] = [];
+  if (opts.source) { filters.push(opts.source); conds.push(`r.source = $${filters.length + 2}`); }
+  if (opts.mode) { filters.push(opts.mode); conds.push(`r.mode = $${filters.length + 2}`); }
+  const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
   const res = await db.query(
-    `SELECT r.id, r.source, r.status, r.end_reason, r.max_rounds, r.engine_version, r.player_strategy, r.simulation_batch_id, r.created_at,
+    `SELECT r.id, r.source, r.mode, r.profile_id, r.status, r.end_reason, r.max_rounds, r.engine_version, r.player_strategy, r.simulation_batch_id, r.created_at,
+       r.config->'names' AS names,
        (SELECT count(*)::int FROM rounds x WHERE x.run_id = r.id AND x.status='completed') AS rounds_completed,
        (SELECT count(*)::int FROM rounds x WHERE x.run_id = r.id AND x.winner='player') AS player_wins,
        (SELECT count(*)::int FROM rounds x WHERE x.run_id = r.id AND x.winner='boss') AS boss_wins
-     FROM runs r ${where} ORDER BY r.id DESC LIMIT $1 OFFSET $2`, params);
-  const total = await db.query(`SELECT count(*)::int AS n FROM runs r ${opts.source ? 'WHERE r.source = $1' : ''}`, opts.source ? [opts.source] : []);
+     FROM runs r ${where} ORDER BY r.id DESC LIMIT $1 OFFSET $2`, [limit, offset, ...filters]);
+  const total = await db.query(`SELECT count(*)::int AS n FROM runs r ${where.replace(/\$(\d+)/g, (_, n) => `$${Number(n) - 2}`)}`, filters);
   return { runs: res.rows, total: total.rows[0].n };
 }

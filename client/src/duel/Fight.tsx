@@ -18,12 +18,19 @@ import { Hint } from '../ui/Hint';
 import type { PhaseAction } from './actions';
 import { findItem, itemName, n2, pct, useCatalog } from '../util';
 
-const whoName = (s: Side) => (s === 'player' ? 'You' : 'The boss');
-const whoObj = (s: Side) => (s === 'player' ? 'you' : 'the boss');
+/**
+ * Who the two sides are on screen. Boss modes: "You" and "The boss". PvP (V4): the two player names, set by the Fight
+ * at render (one Fight is on screen at a time), so every sentence below names the right human.
+ */
+let NAMES: { player: string; boss: string } | null = null;
+const whoName = (s: Side) => (NAMES ? NAMES[s] : s === 'player' ? 'You' : 'The boss');
+const whoObj = (s: Side) => (NAMES ? NAMES[s] : s === 'player' ? 'you' : 'the boss');
+const isAre = (s: Side) => (!NAMES && s === 'player' ? 'are' : 'is');
+const its = () => (NAMES ? 'their' : 'its');
 const int = (x: number) => Math.max(0, Math.round(x));
 
 export function openingText(i: RoundDetail['round']['initiative']): string {
-  const who = i.openingOrder.map((s) => (s === 'player' ? 'You' : 'The boss')).join(' → ');
+  const who = i.openingOrder.map(whoName).join(' → ');
   switch (i.openingRule) {
     case 'none': return 'No First Shot: nobody held a bow.';
     case 'single': return `${who} took the First Shot as the only fighter with a bow.`;
@@ -83,15 +90,15 @@ export function exchangeText(e: CombatEvent, catalog: ReturnType<typeof useCatal
   let tail = `${int(e.damage)} damage`;
   if (d?.success) tail = d.action === 'block' ? `${whoObj(e.defender)} blocked it` : `${whoObj(e.defender)} dodged it`;
   else if (d?.action === 'none') tail = `${whoObj(e.defender)} could not defend (stunned): ${int(e.damage)} damage`;
-  const stun = e.stun?.triggered ? ` ${whoName(e.stun.triggered.target)} ${e.stun.triggered.target === 'player' ? 'are' : 'is'} stunned!` : '';
+  const stun = e.stun?.triggered ? ` ${whoName(e.stun.triggered.target)} ${isAre(e.stun.triggered.target)} stunned!` : '';
   return `${whoName(e.attacker)} ${verb} with ${w}${e.phase === 'opening' ? ' (First Shot)' : ''}: ${tail}.${stun}`;
 }
 
 function noteText(n: CombatNote): string {
-  const you = n.side === 'player';
-  if (n.kind === 'skip') return you ? 'You are stunned and lose this turn.' : 'The boss is stunned and loses this turn.';
-  if (n.kind === 'stim') return `${you ? 'You use' : 'The boss uses'} a healing stim: +${int(n.detail.heal ?? 0)} HP.`;
-  return `Turn limit reached: ${you ? 'you win' : 'the boss wins'} on the higher share of health.`;
+  const you = !NAMES && n.side === 'player';
+  if (n.kind === 'skip') return `${whoName(n.side)} ${isAre(n.side)} stunned and lose${you ? '' : 's'} this turn.`;
+  if (n.kind === 'stim') return `${whoName(n.side)} use${you ? '' : 's'} a healing stim: +${int(n.detail.heal ?? 0)} HP.`;
+  return `Turn limit reached: ${whoObj(n.side)} win${you ? '' : 's'} on the higher share of health.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -145,7 +152,7 @@ function Window({ side, snap, live, fx, stimsLeft, slots, turnNote }: {
     <section className={`window window-${side}`} aria-label={`${whoName(side)}: ${int(hp)} of ${max} HP, stun ${int(stun)} of 100`}>
       {fx && <span key={fx.key} className={`fx fx-${fx.fx} ${fx.tint ? `fx-from-${fx.tint}` : ''}`} aria-hidden="true" />}
       <header className="window-head">
-        <h2>{side === 'player' ? 'You' : 'The Boss'}</h2>
+        <h2>{NAMES ? NAMES[side] : side === 'player' ? 'You' : 'The Boss'}</h2>
         <span className="window-level">level {snap.level}</span>
       </header>
       {turnNote && <p className="window-turn">{turnNote}</p>}
@@ -201,12 +208,12 @@ function DefenseChoice({ p, onAnswer, busy }: { p: PendingChoice; onAnswer: (a: 
   const tags = [inc.mode === 'ranged' ? 'ranged' : 'melee', odds.block.heavy ? 'heavy' : null, wItem?.combat?.canStun ? 'can stun' : null, inc.mode === 'ranged' ? 'cannot be countered' : null].filter(Boolean) as string[];
   return (
     <div className="incoming is-now" role="group" aria-labelledby="incoming-h">
-      <h3 id="incoming-h">{inc.phase === 'opening' ? 'First Shot: the boss' : 'The boss'} {inc.mode === 'ranged' ? 'shoots its' : 'swings its'} {weapon}</h3>
+      <h3 id="incoming-h">{inc.phase === 'opening' ? 'First Shot: ' : ''}{whoName(p.side === 'player' ? 'boss' : 'player')} {inc.mode === 'ranged' ? 'shoots' : 'swings'} {its()} {weapon}{NAMES ? ` at ${NAMES[p.side]}` : ''}</h3>
       <p className="incoming-sub">{inc.phase === 'opening' ? '' : `Turn ${inc.turn} · `}About <b>{int(odds.expectedDamage)}</b> damage if it lands · {tags.join(' · ')}{inc.phase === 'dex_bonus' ? ' · speed bonus attack' : ''}</p>
       <div className="answers">
         <button className="answer" disabled={busy} onClick={() => onAnswer({ defense: 'block' })}>
           <span className="answer-head"><b>Block</b><kbd>B</kbd><em>{pct(odds.block.chance)}</em></span>
-          <small>{odds.block.counterPossible ? `If it holds: no damage, and a chance to counter ×1.5 (+20 boss stun).` : 'If it holds: no damage. No counter possible.'}{odds.block.heavy ? ' A hit this heavy still builds your stun.' : ''}</small>
+          <small>{odds.block.counterPossible ? `If it holds: no damage, and a chance to counter ×1.5 (+20 stun to ${whoObj(p.side === 'player' ? 'boss' : 'player')}).` : 'If it holds: no damage. No counter possible.'}{odds.block.heavy ? ' A hit this heavy still builds your stun.' : ''}</small>
         </button>
         <button className="answer" disabled={busy} onClick={() => onAnswer({ defense: 'dodge' })}>
           <span className="answer-head"><b>Dodge</b><kbd>D</kbd><em>{pct(odds.dodge.chance)}</em></span>
@@ -214,7 +221,7 @@ function DefenseChoice({ p, onAnswer, busy }: { p: PendingChoice; onAnswer: (a: 
         </button>
       </div>
       <p className="incoming-hint">Block uses your defence, shields and armour. Dodge grows with your speed lead over the attacker.</p>
-      <Hint id="defend-1">The boss is attacking. Pick Block or Dodge (or press B / D). The odds above are exact; a good defence can hit back.</Hint>
+      <Hint id="defend-1">{NAMES ? 'You are being attacked.' : 'The boss is attacking.'} Pick Block or Dodge (or press B / D). The odds above are exact; a good defence can hit back.</Hint>
     </div>
   );
 }
@@ -304,10 +311,13 @@ function RoundLog({ items }: { items: Item_[] }) {
 // ---------------------------------------------------------------------------------------------------------------
 // The stage
 // ---------------------------------------------------------------------------------------------------------------
-export function Fight({ detail, onChoose, busy, deal, next, rounds, onOpenRound }: {
+export function Fight({ detail, onChoose, busy, deal, next, rounds, onOpenRound, names }: {
   detail: RoundDetail; onChoose?: (a: PlayerAnswer) => void; busy?: boolean; deal?: boolean; next?: PhaseAction;
   rounds?: RoundRow[]; onOpenRound?: (id: number) => void;
+  /** V4 PvP: the two players' names (side 'player' = Player 1, 'boss' = Player 2). Absent in boss modes. */
+  names?: { player: string; boss: string };
 }) {
+  NAMES = names ?? null;
   const catalog = useCatalog();
   const r = detail.round;
   const items = useMemo(() => timeline(detail), [detail]);
@@ -345,10 +355,11 @@ export function Fight({ detail, onChoose, busy, deal, next, rounds, onOpenRound 
   else if (p && onChoose) centre = <ModeChoice p={p} onAnswer={onChoose} busy={busy} />;
   else if (done) {
     const won = r.winner === 'player';
+    const w = r.winner as Side;
     centre = (
       <div className={`incoming is-result ${won ? 'is-win' : 'is-loss'}`}>
-        <h3>{won ? 'Victory' : 'Defeat'}</h3>
-        <p className="incoming-sub">Round {r.round_number} · {won ? `you finished with ${int(r.player_hp_end ?? 0)} HP` : `the boss finished with ${int(r.boss_hp_end ?? 0)} HP`}{r.end_reason === 'turn_limit' ? ' · decided by the turn limit' : ''}.</p>
+        <h3>{names ? `${names[w]} wins` : won ? 'Victory' : 'Defeat'}</h3>
+        <p className="incoming-sub">Round {r.round_number} · {names ? `${names[w]} finished with ${int((w === 'player' ? r.player_hp_end : r.boss_hp_end) ?? 0)} HP` : won ? `you finished with ${int(r.player_hp_end ?? 0)} HP` : `the boss finished with ${int(r.boss_hp_end ?? 0)} HP`}{r.end_reason === 'turn_limit' ? ' · decided by the turn limit' : ''}.</p>
         {next && <button className="btn btn-primary btn-big" onClick={next.onClick}>{next.label} <Icon name="arrow" /></button>}
       </div>
     );
@@ -371,7 +382,7 @@ export function Fight({ detail, onChoose, busy, deal, next, rounds, onOpenRound 
       <section className="history" aria-labelledby="history-h">
         <header className="history-head"><h3 id="history-h">Rounds</h3><span className="muted">newest first · open an exchange for the full calculation</span></header>
         <details className="history-round is-current" open>
-          <summary><b>Round {r.round_number}</b><span>{done ? (r.winner === 'player' ? 'won' : 'lost') : 'in progress'}</span><span>{items.slice(0, shown).filter((x) => x.t === 'e').length} exchanges</span><span className="muted">{openingText(r.initiative)}</span></summary>
+          <summary><b>Round {r.round_number}</b><span>{done ? (names ? `${names[r.winner as Side]} won` : r.winner === 'player' ? 'won' : 'lost') : 'in progress'}</span><span>{items.slice(0, shown).filter((x) => x.t === 'e').length} exchanges</span><span className="muted">{openingText(r.initiative)}</span></summary>
           <RoundLog items={items.slice(0, shown)} />
           <p className="history-seed">Seed {r.seed} · engine {r.engine_version}: the seed and the stored snapshots reproduce this round.</p>
         </details>
@@ -379,8 +390,8 @@ export function Fight({ detail, onChoose, busy, deal, next, rounds, onOpenRound 
           <div key={x.id} className="history-round is-past">
             <button className="history-open" onClick={() => onOpenRound?.(x.id)} disabled={!onOpenRound}>
               <b>Round {x.round_number}</b>
-              <span className={x.winner === 'player' ? 'tone-player' : 'tone-boss'}>{x.status !== 'completed' ? x.status : x.winner === 'player' ? 'won' : 'lost'}</span>
-              <span>you {int(x.player_hp_end ?? 0)} HP · boss {int(x.boss_hp_end ?? 0)} HP</span>
+              <span className={x.winner === 'player' ? 'tone-player' : 'tone-boss'}>{x.status !== 'completed' ? x.status : names && x.winner ? `${names[x.winner]} won` : x.winner === 'player' ? 'won' : 'lost'}</span>
+              <span>{whoObj('player')} {int(x.player_hp_end ?? 0)} HP · {names ? names.boss : 'boss'} {int(x.boss_hp_end ?? 0)} HP</span>
               <span className="muted">{x.attack_count} actions</span>
               <Icon name="arrow" size={14} />
             </button>

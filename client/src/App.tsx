@@ -1,5 +1,5 @@
 /**
- * App shell: nave top bar (brand, Duel, Rules drawer, Workshop menu) + hash routing (#/duel, #/duel/:runId, #/runs, #/sim, #/ml).
+ * App shell: nave top bar (brand, Duel, Rules drawer, Workshop menu) + hash routing (#/ mode select, #/prepared (alias #/duel), #/learning, #/duel/:runId, #/pvp, #/pvp/:runId, #/runs, #/sim, #/ml).
  * The Duel is the product; Runs, Simulations and ML Lab are the developer's Workshop.
  * Loads the equipment catalogue once and shares it via context.
  */
@@ -9,16 +9,20 @@ import { Icon } from './ui/Icon';
 import { RulesButton } from './ui/Rules';
 import { ErrorBox, ToastHost } from './ui/states';
 import { CatalogContext } from './util';
+import { parseRoute } from './routes';
 import { DuelView } from './views/DuelView';
+import { LearningView } from './views/LearningView';
+import { ModeSelect } from './views/ModeSelect';
+import { PvpMatch, PvpSetup } from './views/PvpView';
 import { MlView } from './views/MlView';
 import { RunsView } from './views/RunsView';
 import { SimView } from './views/SimView';
 import { ApiError } from './api';
 
 function useHash(): string {
-  const [hash, setHash] = useState(window.location.hash || '#/duel');
+  const [hash, setHash] = useState(window.location.hash || '#/');
   useEffect(() => {
-    const on = () => setHash(window.location.hash || '#/duel');
+    const on = () => setHash(window.location.hash || '#/');
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
@@ -71,31 +75,35 @@ export function App() {
   useEffect(() => { void load(); }, []);
 
   const go = (h: string) => { window.location.hash = h; };
-  const [, section, arg] = hash.split('/');
-  const runId = section === 'duel' && arg ? Number(arg) : null;
-  const inDuel = !['runs', 'sim', 'ml'].includes(section);
+  const route = parseRoute(hash);
+  const inDuel = !['runs', 'sim', 'ml'].includes(route.screen);
 
   return (
     <CatalogContext.Provider value={catalog}>
       <ToastHost>
         <a className="skip" href="#main">Skip to content</a>
         <header className="topbar">
-          <a className="brand" href="#/duel" aria-label="The Boss Remembers — start">
+          <a className="brand" href="#/" aria-label="The Boss Remembers — main menu">
             <span className="brand-mark" aria-hidden="true"><Icon name="lancet" size={18} /></span>
             The Boss Remembers
           </a>
           <nav aria-label="Main">
-            <a className={`nav-link ${inDuel ? 'is-current' : ''}`} href="#/duel" aria-current={inDuel ? 'page' : undefined}>Duel</a>
+            <a className={`nav-link ${inDuel ? 'is-current' : ''}`} href="#/" aria-current={inDuel ? 'page' : undefined}>Play</a>
             <RulesButton />
             <WorkshopMenu hash={hash} />
           </nav>
         </header>
         <main id="main" className="page">
           <ErrorBox error={error} onRetry={load} />
-          {section === 'runs' ? <RunsView go={go} />
-            : section === 'sim' ? <SimView go={go} />
-              : section === 'ml' ? <MlView />
-                : <DuelView runId={runId && Number.isInteger(runId) ? runId : null} go={go} />}
+          {route.screen === 'runs' ? <RunsView go={go} />
+            : route.screen === 'sim' ? <SimView go={go} />
+              : route.screen === 'ml' ? <MlView />
+                : route.screen === 'learning' ? <LearningView go={go} />
+                  : route.screen === 'pvp-setup' ? <PvpSetup go={go} />
+                    : route.screen === 'pvp-match' ? <PvpMatch runId={route.runId} go={go} />
+                      : route.screen === 'run' ? <DuelView runId={route.runId} go={go} />
+                        : route.screen === 'prepared' ? <DuelView runId={null} go={go} />
+                          : <ModeSelect />}
         </main>
       </ToastHost>
     </CatalogContext.Provider>

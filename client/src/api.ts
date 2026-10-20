@@ -62,6 +62,8 @@ export interface RoundRow {
 export interface RunRow {
   id: number; engine_version: string; source: 'manual' | 'simulation'; status: string; end_reason: string | null; max_rounds: number;
   seed: string; player_strategy: string | null; simulation_batch_id: number | null; created_at: string;
+  /** V4 game mode and (Learning Boss) profile; PvP config carries the two player names. */
+  mode?: GameMode; profile_id?: number | null; config?: { names?: [string, string] };
 }
 export interface RunView {
   run: RunRow;
@@ -239,7 +241,7 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
   try {
     res = await fetch(`/api${url}`, {
       method,
-      headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+      headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...profileHeader() },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
@@ -256,6 +258,30 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
   return data as T;
 }
 
+/** V4 Learning Boss profile key (no accounts: the key in this browser is the only way to the profile). */
+const PROFILE_KEY = 'tbr-profile-key';
+export function getProfileKey(): string | null {
+  try { return window.localStorage.getItem(PROFILE_KEY); } catch { return null; }
+}
+export function setProfileKey(key: string | null) {
+  try { if (key) window.localStorage.setItem(PROFILE_KEY, key); else window.localStorage.removeItem(PROFILE_KEY); } catch { /* not stored: the profile lasts this tab only */ }
+}
+function profileHeader(): Record<string, string> {
+  const k = getProfileKey();
+  return k ? { 'X-Profile-Key': k } : {};
+}
+const sideQ = (side?: Side) => (side === 'boss' ? '?side=boss' : '');
+
+export type GameMode = 'prepared' | 'learning' | 'pvp';
+export interface ProfileInfo { id: number; key: string; name: string; status: 'active' | 'archived' }
+export interface ProfileSummary {
+  profile: { id: number; name: string; status: 'active' | 'archived'; createdAt: string };
+  observations: number;
+  sources: string;
+  insights: { head: string; text: string; count: number; of: number }[];
+  runs: { id: number; status: string; max_rounds: number; created_at: string; player_wins: number; boss_wins: number }[];
+}
+
 export interface BuildPreview {
   current: Derived;
   /** null when the loadout is illegal (see `problem`). */
@@ -266,20 +292,23 @@ export interface BuildPreview {
 export const api = {
   health: () => call<{ ok: boolean; database: string; engineVersion: string }>('GET', '/health'),
   catalog: () => call<Catalog>('GET', '/catalog'),
-  listRuns: (source?: string, offset = 0) => call<{ runs: (RunRow & { rounds_completed: number; player_wins: number; boss_wins: number })[]; total: number }>(
-    'GET', `/runs?limit=25&offset=${offset}${source ? `&source=${source}` : ''}`),
-  createRun: (maxRounds: number) => call<RunView>('POST', '/runs', { maxRounds }),
+  listRuns: (source?: string, offset = 0, mode?: GameMode) => call<{ runs: (RunRow & { rounds_completed: number; player_wins: number; boss_wins: number; names?: [string, string] | null })[]; total: number }>(
+    'GET', `/runs?limit=25&offset=${offset}${source ? `&source=${source}` : ''}${mode ? `&mode=${mode}` : ''}`),
+  createRun: (maxRounds: number, mode: GameMode = 'prepared', names?: [string, string]) => call<RunView>('POST', '/runs', names ? { maxRounds, mode, names } : { maxRounds, mode }),
+  createProfile: (name?: string) => call<ProfileInfo>('POST', '/profiles', name ? { name } : {}),
+  profile: () => call<ProfileSummary>('GET', '/profiles/me'),
+  freshProfile: (name?: string) => call<ProfileInfo>('POST', '/profiles/me/fresh', name ? { name } : {}),
   getRun: (id: number) => call<RunView>('GET', `/runs/${id}`),
   endRun: (id: number) => call<RunView>('POST', `/runs/${id}/end`),
-  allocate: (id: number, stat: StatKey, points: number) => call<RunView>('POST', `/runs/${id}/allocate`, { stat, points }),
-  buy: (id: number, itemId: string, loadout?: Loadout) => call<RunView>('POST', `/runs/${id}/buy`, loadout ? { itemId, loadout } : { itemId }),
-  preview: (id: number, req: { loadout?: Loadout; allocation?: Partial<Stats> }) => call<BuildPreview>('POST', `/runs/${id}/preview`, req),
-  setLoadout: (id: number, loadout: Loadout) => call<RunView>('POST', `/runs/${id}/loadout`, loadout),
+  allocate: (id: number, stat: StatKey, points: number, side?: Side) => call<RunView>('POST', `/runs/${id}/allocate${sideQ(side)}`, { stat, points }),
+  buy: (id: number, itemId: string, loadout?: Loadout, side?: Side) => call<RunView>('POST', `/runs/${id}/buy${sideQ(side)}`, loadout ? { itemId, loadout } : { itemId }),
+  preview: (id: number, req: { loadout?: Loadout; allocation?: Partial<Stats> }, side?: Side) => call<BuildPreview>('POST', `/runs/${id}/preview${sideQ(side)}`, req),
+  setLoadout: (id: number, loadout: Loadout, side?: Side) => call<RunView>('POST', `/runs/${id}/loadout${sideQ(side)}`, loadout),
   startRound: (id: number) => call<RoundDetail>('POST', `/runs/${id}/rounds`),
   getRound: (id: number) => call<RoundDetail>('GET', `/rounds/${id}`),
   choose: (id: number, mode: AttackMode, repeat: boolean) => call<RoundDetail>('POST', `/rounds/${id}/choice`, { mode, repeat }),
-  answer: (id: number, a: PlayerAnswer) => call<RoundDetail>('POST', `/rounds/${id}/choice`, a),
-  supplies: (id: number, action: SupplyAction) => call<RunView>('POST', `/runs/${id}/supplies`, { action }),
+  answer: (id: number, a: PlayerAnswer, side?: Side) => call<RoundDetail>('POST', `/rounds/${id}/choice`, side ? { ...a, side } : a),
+  supplies: (id: number, action: SupplyAction, side?: Side) => call<RunView>('POST', `/runs/${id}/supplies${sideQ(side)}`, { action }),
   strategies: () => call<{ strategies: { name: string; description: string }[]; limits: { maxRuns: number; maxRounds: number }; running: number | null }>('GET', '/simulations/strategies'),
   listBatches: () => call<{ batches: Batch[]; running: number | null }>('GET', '/simulations'),
   getBatch: (id: number) => call<Batch>('GET', `/simulations/${id}`),
