@@ -135,9 +135,19 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
     if (rules.v3) player = autoSupplies(player, isMirror(strategy) ? SIM_SAVINGS_RESERVE : agentSupplyReserve(strategy)).state;
 
     const observed = records.length ? records[records.length - 1].playerPost : initialCombatant('player');
-    const pRanged = yield { records: [...records], observed };
+    let pRanged = yield { records: [...records], observed };
+    // Harness-only ORACLE (upper bound for any predictor; never used live): the boss plans against the player's real
+    // prepared build (style from its loadout), only its real style (`style`: P(ranged) 0/1 from the prepared loadout,
+    // hybrids keep the prediction), and/or the player's real defence habit.
+    const o = opts.oracle;
+    if (o?.build || o?.style) {
+      const modes = snapshotOf(player).derived.attackModes;
+      pRanged = !modes.includes('ranged') ? 0 : modes.length === 1 ? 1 : pRanged;
+    }
     const policy = choosePlan({
-      boss, observedPlayer: observed, pRanged, seed: String(deriveSeed(runSeed, `boss:${n}`)), previousArchetype, version: opts.policyVersion, rules: opts.rules,
+      boss, observedPlayer: o?.build ? player : observed, pRanged, seed: String(deriveSeed(runSeed, `boss:${n}`)), previousArchetype, version: opts.policyVersion, rules: opts.rules,
+      playerDefense: o?.defense && rules.v3 && !isMirror(strategy)
+        ? defenseChooserFor(AGENT_DEFENSE[strategy] ?? 'smart', new Rng(deriveSeed(runSeed, `oracle-defense:${n}`)), rules) : undefined,
     });
     previousArchetype = policy.selected.archetype;
     boss = applyPlan(boss, policy.selected);
@@ -165,7 +175,7 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
 
     records.push({
       roundNumber: n, winner, playerSnapshot: pSnap, bossSnapshot: bSnap, playerPost: player,
-      playerHpEnd: state.hp.player, bossHpEnd: state.hp.boss, summary: summarizeCombat(events),
+      playerHpEnd: state.hp.player, bossHpEnd: state.hp.boss, summary: summarizeCombat(events, notes),
     });
     if (strategy === MIRROR_SYM) swapped.push(swapRecord(records[records.length - 1], boss));
     history.push({ roundNumber: n, winner, bossLoadout: bSnap.loadout, playerHpEndFrac: Math.max(0, state.hp.player) / pSnap.derived.maxHp });
@@ -180,7 +190,7 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
 
 /** One complete run without the database. Mirrors sim/runner.ts → services/rounds.ts (baseline predictor). */
 /** Harness run options: boss policy version and combat rules (default v2 = engine 2.0.0). */
-export interface RunOptions { policyVersion?: PolicyVersion; rules?: RuleSet }
+export interface RunOptions { policyVersion?: PolicyVersion; rules?: RuleSet; oracle?: { build?: boolean; style?: boolean; defense?: boolean } }
 
 export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 10, opts: RunOptions = {}): RunResult {
   const it = runSteps(strategy, runSeed, maxRounds, opts);

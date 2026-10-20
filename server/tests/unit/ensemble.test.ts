@@ -20,7 +20,7 @@ describe('ensemble blend', () => {
 
 describe('decision-outcome verdict', () => {
   const o = (pooled: number, mirror: number): Outcomes[string] => ({
-    pooledMargin: pooled, pooledWinRate: 0.9, byStrategy: [{ strategy: 'mirror', rounds: 60, meanMargin: mirror, bossWinRate: 0.5 }],
+    pooledMargin: pooled, pooledWinRate: 0.9, runMargins: [pooled, pooled], byStrategy: [{ strategy: 'mirror', rounds: 60, meanMargin: mirror, bossWinRate: 0.5 }],
   });
   it('passes when the boss decides at least as well as with the baseline (within the allowed drop)', () => {
     expect(decisionVerdict({ baseline: o(0.5, 0.1), ensemble: o(0.5 - DECISION_RULE.maxPooledDrop, 0.1 - DECISION_RULE.maxUnseenDrop) }, 'ensemble').ok).toBe(true);

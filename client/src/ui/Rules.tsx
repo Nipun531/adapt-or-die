@@ -44,7 +44,7 @@ function RulesDrawer({ dref, onClose }: { dref: React.RefObject<HTMLDialogElemen
           <p>You and the boss start equal: level 1, {r?.startingGold ?? 10} gold, two stat points each. Every round both of you earn XP and gold (win {r?.rewards.xpWin} XP / {r?.rewards.goldWin} gold, loss {r?.rewards.xpLoss} XP / {r?.rewards.goldLoss} gold), level up and re-arm. The boss only sees how you fought last round, never your new build.</p>
         </section>
         <section>
-          <h3><GlyphIcon glyph="sword" size={16} /> Attacking</h3>
+          <h3><GlyphIcon glyph="strike" size={16} /> Attacking</h3>
           <p>Each turn the faster fighter acts first. A strike uses your <b>attack</b> (strength plus weapon bonuses); a shot uses your <b>speed</b>. With a bow and a melee weapon you choose each time (R / M). A big speed lead gives extra attacks. Bows also get a First Shot before the first turn. Damage falls with the defender's <b>defence</b>; pierce weapons sometimes ignore part of it.</p>
         </section>
         <section>

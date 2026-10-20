@@ -300,7 +300,76 @@ The safeguards are unchanged and keep rollback:
 2. **Human play data.** Manual rounds are tracked separately (`source = 'manual'`). Unseen-style evaluation on real players is the real test.
 3. Re-run `npm run ml:train`, which gives both candidates, the weight sweep and the decision outcomes. Activate only an eligible candidate.
 
-## 11. Debugging
+## 11. V3 (engine 3.1.0, schema v4, 2026-10-20)
+
+Question from the owner: under V2 the model proved nothing and the boss used the baseline. Is that fixed under V3? Answer: **no, and the evidence says no model of this task can fix it under the current rules.** Nothing was activated and no rule was changed.
+
+### Data
+
+| Batch | Runs | Agents | Rows (schema v4) |
+|---|---:|---|---:|
+| 8 `v3-ml-0` (sim-3.1.0) | 16 | all 16 agents | 144 |
+| 9 `v3-ml-1` (sim-3.1.0) | 960 | all 16 agents, 60 runs each (incl. blocker, dodger, stunner, healer, counter_puncher) | 8,640 |
+
+8,640 valid rows from 976 runs (labels: 1,362 ranged / 7,278 melee). After rule-determined rows are excluded, snapshot 7 has **5,693 rows**. The dev DB was backed up first (`artifacts/backups/pre-v3-ml-2026-10-20.sql`). Older-engine rows are untouched.
+
+### Schema v4 (19 new features, 63 in total)
+
+- The combat summary now records each side **as defender** under V3 (`SideCombatSummary.v3`):
+  - blocks and dodges, and their successes;
+  - undefended (stunned) attacks;
+  - counters dealt and received;
+  - stun gained and stuns suffered;
+  - stims used and HP healed (from the round's notes).
+- Features:
+  - defence choices and their success: `last_block_share`, `hist_block_share`, `last_block_success`, `last_dodge_success`, `hist_block_success`, `hist_dodge_success`, `last_undefended`;
+  - counters: `last_counters_dealt`, `last_counters_received`, `hist_counters_dealt_per_round`;
+  - stun: `last_stun_gained`, `last_stuns_suffered`, `last_boss_stuns_suffered`;
+  - stims: `last_stims_used`, `hist_stims_used`, `last_heal_frac`, `p_stims`, `p_stim_slots`, `p_stim_effectiveness`.
+- All of them are `null` on v2 rounds (missing ≠ zero). The leakage boundary is unchanged: features come only from rounds 1..N.
+
+### Fix to the decision check
+
+`decisionOutcomes` used to play its seeded games under the default **V2** rules. It now plays the **live** rules (`LIVE_RULES`, engine 3.1.0). The verdict also prints a paired per-run Δ margin with a 95% CI. This line is informational; the pass/fail rule is unchanged.
+
+### Results (`m20261020-133625-s7`, unchanged eligibility rules)
+
+| Check | Model | Baseline | Result |
+|---|---|---|---|
+| Held-out runs: log loss / accuracy | **0.215** / 0.899 | 0.312 / 0.898 | PASS |
+| Leave-one-strategy-out (unseen styles) | better on 4 / 16 | — | **FAIL** |
+| Ensemble weight chosen on training runs | 0.0 (the model adds nothing on unseen styles) | — | **FAIL** (needs ≥ 0.1) |
+| Unseen styles pooled, model only | 0.453 log loss | 0.294 | worse |
+| Boss decisions, paired seeded games (102 runs) | margin 0.632, Δ −0.001 [−0.005, +0.004] | 0.632 | no measurable change |
+
+Verdict:
+- **Pure model:** not eligible.
+- **Ensemble:** not eligible (its weight is 0, so it is the baseline).
+- The model again learns the training personalities (strong on held-out runs) but does not generalise to unseen styles. Its plan changes alter the outcome in 26 of 102 runs, which net out to zero.
+
+### Oracle upper bound (`npm run ml:oracle`, `artifacts/ml/oracle-oracle-v3.json`)
+
+The oracle answers *could any predictor help?* The boss is told the truth before it prepares, on the same seeds (8 runs × 17 strategies × 10 rounds; the 95% CI is over runs):
+
+| What the boss is told | Pooled margin | Δ vs baseline [95% CI] |
+|---|---:|---|
+| nothing (baseline) | 0.636 | — |
+| the player's real **style** (exact P(ranged); the bound of this model) | 0.638 | +0.002 [−0.019, +0.023] |
+| the player's real **defence habit** (in the boss's Monte-Carlo) | 0.623 | −0.013 [−0.030, +0.005] |
+| the player's whole real **build** (stats, gear, style) | 0.679 | +0.044 [+0.005, +0.082] |
+
+What this shows:
+- **Even perfect knowledge of the player's style does not measurably help the boss.** The boss's plan is already robust to style: its builds answer both melee and ranged, so V2_BALANCE #9 still holds under V3.
+- **A defence-style task (block-leaning vs dodge-leaning) has nothing to act on either.** Telling the boss the true defence habit does not improve it. The plan's suggested second task was therefore not built.
+- **Only knowing the exact build helps,** and most of that gain is the mirror player (+0.43) and counter_puncher (+0.26). Those players' *stats and gear*, not their style, decide the fight.
+
+### What would make a model genuinely useful
+
+1. **A different target:** the player's next *build*, i.e. stat allocation and key gear (shield vs no shield, armour), not their style. The oracle shows this is where the leverage is (+0.044). It is a much harder, multi-output prediction. Any candidate faces the same strict rules plus the paired decision check with a CI above 0.
+2. **Human play data.** All rows so far are simulated. Agents' styles are near-deterministic per persona, which is why held-out runs look good and unseen styles do not.
+3. Until then the boss correctly uses the transparent baseline. `ml:status` reports this, and every decision records its fallback reason.
+
+## 12. Debugging
 
 - `npm run ml:status` — dataset counts, active model, Python availability, latest decision model-vs-fallback with reason.
 - Round detail → "Boss pre-round decision" shows the prediction source, probability and fallback reason.
@@ -308,7 +377,7 @@ The safeguards are unchanged and keep rollback:
 - `artifacts/models/<version>/metadata.json` — metrics, eligibility reasons, split sizes, feature importance.
 - Python problems: set `PYTHON_BIN` in `.env` to an interpreter with `pip install -r ml/requirements.txt`.
 
-## 12. Where to tweak
+## 13. Where to tweak
 
 | What | Where |
 |---|---|

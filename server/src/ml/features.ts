@@ -19,12 +19,15 @@
  * lasted, and what they did in rounds where a ranged weapon was within reach. They separate "a melee player who never
  * switches" from "one who switches when they can", which fixed-style history alone cannot (model s3 failed
  * leave-one-strategy-out for exactly that reason).
+ * Schema v4 vs v3 (engine 3.x, V3 plan §F.5): the player's DEFENCE and V3 economy — block share and success, dodge
+ * success, counters dealt/received, stun gained/suffered, stims used, HP healed (last round and pooled history), and
+ * the stims carried into the next round. All null on v2 rounds (no defence phase there): missing ≠ zero.
  */
 import { catalogFor, cheapestCost, getItem, itemForHistory } from '../game/catalog.js';
 import type { CombatSummary } from '../game/summary.js';
 import type { CombatantState, FighterSnapshot, Item, Side } from '../game/types.js';
 
-export const FEATURE_SCHEMA_VERSION = 'v3';
+export const FEATURE_SCHEMA_VERSION = 'v4';
 export const ML_TASK = 'predict_next_round_player_mostly_ranged';
 /** Label threshold: player's ranged share of (non-opening) attacks in the label round. */
 export const RANGED_LABEL_THRESHOLD = 0.5;
@@ -56,6 +59,10 @@ export const FEATURE_NAMES = [
   'p_eff_dex_last', 'p_net_atk_last',
   'boss_eff_dex_last', 'boss_net_def_last', 'boss_net_atk_last', 'boss_has_ranged_last', 'boss_has_shield_last',
   'hist_style_switches', 'last_style_streak', 'hist_feasible_rounds', 'hist_feasible_melee_rounds', 'hist_ranged_when_feasible',
+  'last_block_share', 'hist_block_share', 'last_block_success', 'last_dodge_success', 'hist_block_success', 'hist_dodge_success',
+  'last_undefended', 'last_counters_dealt', 'last_counters_received', 'hist_counters_dealt_per_round',
+  'last_stun_gained', 'last_stuns_suffered', 'last_boss_stuns_suffered',
+  'last_stims_used', 'hist_stims_used', 'last_heal_frac', 'p_stims', 'p_stim_slots', 'p_stim_effectiveness',
 ] as const;
 export type FeatureName = (typeof FEATURE_NAMES)[number];
 /** null = missing (no evidence), never silently 0. Exported as an empty CSV cell → NaN for XGBoost. */
@@ -137,6 +144,12 @@ export function buildFeatures(history: RoundRecord[], engineVersion?: string | n
   const bossDmg = last.summary.boss.damageDealt;
   const armour = last.playerSnapshot.loadout.armour;
   const b = last.bossSnapshot;
+  // V3 (schema v4): the player's defence, counters, stun and stims; v2 rounds have no v3 block → null.
+  const v3 = history.map((h) => h.summary.player.v3).filter((x): x is NonNullable<typeof x> => !!x);
+  const lv = last.summary.player.v3;
+  const ratio = (a: number, n: number) => (n > 0 ? a / n : null);
+  const sum = (f: (x: (typeof v3)[number]) => number) => v3.reduce((a, x) => a + f(x), 0);
+  const sup = post.supplies;
 
   return {
     next_round_number: last.roundNumber + 1,
@@ -183,6 +196,25 @@ export function buildFeatures(history: RoundRecord[], engineVersion?: string | n
     hist_feasible_rounds: feasibleRounds,
     hist_feasible_melee_rounds: feasibleMelee,
     hist_ranged_when_feasible: feasibleRounds ? feasibleRanged / feasibleRounds : null,
+    last_block_share: lv ? ratio(lv.blocks, lv.blocks + lv.dodges) : null,
+    hist_block_share: v3.length ? ratio(sum((x) => x.blocks), sum((x) => x.blocks + x.dodges)) : null,
+    last_block_success: lv ? ratio(lv.blockSuccesses, lv.blocks) : null,
+    last_dodge_success: lv ? ratio(lv.dodgeSuccesses, lv.dodges) : null,
+    hist_block_success: v3.length ? ratio(sum((x) => x.blockSuccesses), sum((x) => x.blocks)) : null,
+    hist_dodge_success: v3.length ? ratio(sum((x) => x.dodgeSuccesses), sum((x) => x.dodges)) : null,
+    last_undefended: lv ? lv.undefended : null,
+    last_counters_dealt: lv ? lv.countersDealt : null,
+    last_counters_received: lv ? lv.countersReceived : null,
+    hist_counters_dealt_per_round: v3.length ? sum((x) => x.countersDealt) / v3.length : null,
+    last_stun_gained: lv ? lv.stunGained : null,
+    last_stuns_suffered: lv ? lv.stunsSuffered : null,
+    last_boss_stuns_suffered: last.summary.boss.v3 ? last.summary.boss.v3.stunsSuffered : null,
+    last_stims_used: lv ? lv.stimsUsed : null,
+    hist_stims_used: v3.length ? sum((x) => x.stimsUsed) : null,
+    last_heal_frac: lv ? lv.healed / last.playerSnapshot.derived.maxHp : null,
+    p_stims: sup ? sup.stims : null,
+    p_stim_slots: sup ? sup.slots : null,
+    p_stim_effectiveness: sup ? sup.effectiveness : null,
   };
 }
 

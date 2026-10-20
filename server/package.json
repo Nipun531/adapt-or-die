@@ -18,6 +18,7 @@
     "ml:train": "tsx src/ml/cli.ts train",
     "ml:activate": "tsx src/ml/cli.ts activate",
     "ml:status": "tsx src/ml/cli.ts status",
+    "ml:oracle": "tsx src/sim/oracle-cli.ts",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "typecheck": "tsc --noEmit",

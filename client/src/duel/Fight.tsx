@@ -118,7 +118,7 @@ export function itemTraits(it: Item): string[] {
   return t;
 }
 
-const SLOT_GLYPH = { melee: 'sword', ranged: 'bow', shield: 'shield', armour: 'armour' } as const;
+const SLOT_GLYPH = { melee: 'strike', ranged: 'archery', shield: 'shield', armour: 'armour' } as const;
 
 export function Roundel({ id, slot }: { id: string | null; slot: string }) {
   const catalog = useCatalog();

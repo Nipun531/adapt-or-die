@@ -168,7 +168,7 @@ export function Armory({ view, onChange, begin, onShowAftermath, bossNote }: { v
         {firstRound && <Hint id="prepare-1">Spend your two starting points, then pick a weapon from the armory. Each item says what it does; picking it shows how your numbers change before you buy.</Hint>}
         <dl className="build-stats">
           <div><dt><GlyphIcon glyph="heart" size={14} />Health</dt><dd>{p.derived.maxHp}</dd></div>
-          <div title="Melee damage (strength with weapon bonuses)"><dt><GlyphIcon glyph="sword" size={14} />Attack</dt><dd>{Math.round(p.derived.netAtk)}</dd></div>
+          <div title="Melee damage (strength with weapon bonuses)"><dt><GlyphIcon glyph="strike" size={14} />Attack</dt><dd>{Math.round(p.derived.netAtk)}</dd></div>
           <div title="Less damage taken; your DEF stat also improves blocks"><dt><GlyphIcon glyph="shield" size={14} />Defence</dt><dd>{Math.round(p.derived.netDef)}</dd></div>
           <div title="Acts first, dodges, ranged damage"><dt><GlyphIcon glyph="feather" size={14} />Speed</dt><dd>{Math.round(p.derived.effDex)}</dd></div>
         </dl>

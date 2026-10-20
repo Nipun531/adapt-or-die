@@ -82,7 +82,7 @@ export async function loadCompletedRounds(db: Db, runId: number, upTo = Number.M
       playerPost: r.player_post,
       playerHpEnd: r.player_hp_end,
       bossHpEnd: r.boss_hp_end,
-      summary: summarizeCombat(byRound.get(r.id) ?? []),
+      summary: summarizeCombat(byRound.get(r.id) ?? [], r.combat_notes ?? []),
     },
   }));
 }

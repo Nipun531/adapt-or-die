@@ -277,13 +277,13 @@ export const bossDefense = (rules: RuleSet): DefenseChooser => smartDefense(rule
 export const bossStim: StimChooser = autoStim;
 
 /** Extra combat options for a rule set: v3 adds both fighters' defence/stim policies (a competent opponent is assumed). */
-function v3Options(rules: RuleSet) {
+function v3Options(rules: RuleSet, playerDefense?: DefenseChooser) {
   return rules.v3
-    ? { rules, defense: { player: smartDefense(rules), boss: bossDefense(rules) }, stim: { player: autoStim, boss: bossStim } }
+    ? { rules, defense: { player: playerDefense ?? smartDefense(rules), boss: bossDefense(rules) }, stim: { player: autoStim, boss: bossStim } }
     : { rules };
 }
 
-export function simulatedOutcome(boss: FighterSnapshot, sc: Scenario, seedBase: string, fights: number, rules: RuleSet = RULES_V2): { winRate: number; margin: number } {
+export function simulatedOutcome(boss: FighterSnapshot, sc: Scenario, seedBase: string, fights: number, rules: RuleSet = RULES_V2, playerDefense?: DefenseChooser): { winRate: number; margin: number } {
   let wins = 0;
   let margin = 0;
   const key = sc.label ?? sc.kind;
@@ -291,7 +291,7 @@ export function simulatedOutcome(boss: FighterSnapshot, sc: Scenario, seedBase: 
     const { state } = runFullCombat(sc.snapshot, boss, deriveSeed(seedBase, `${key}:${i}`), {
       player: scenarioChooser(sc.preferredMode),
       boss: bossChooser,
-    }, v3Options(rules));
+    }, v3Options(rules, playerDefense));
     if (state.winner === 'boss') {
       wins++;
       margin += Math.max(0, state.hp.boss) / boss.derived.maxHp;
@@ -369,6 +369,8 @@ export function choosePlan(input: {
   version?: PolicyVersion;
   /** Combat rules the Monte-Carlo verification uses (default v2 = live engine 2.0.0). */
   rules?: RuleSet;
+  /** V3: how the player is assumed to defend in the Monte-Carlo (default: a smart, expected-value defender). */
+  playerDefense?: DefenseChooser;
 }): PolicyResult {
   const version = input.version ?? POLICY_VERSION;
   const { boss, observedPlayer } = input;
@@ -410,7 +412,7 @@ export function choosePlan(input: {
       const wr = scenarios.map((sc) => simulatedWinRate(snap, sc, `${input.seed}:mc`, fights, input.rules));
       return { ...p, winRate: byStyle(wr), weighted: weigh(wr) };
     }
-    const out = scenarios.map((sc) => simulatedOutcome(snap, sc, `${input.seed}:mc`, fights, input.rules));
+    const out = scenarios.map((sc) => simulatedOutcome(snap, sc, `${input.seed}:mc`, fights, input.rules, input.playerDefense));
     return { ...p, winRate: byStyle(out.map((o) => o.winRate)), margin: byStyle(out.map((o) => o.margin)), weighted: weigh(out.map((o) => o.margin)) };
   };
 

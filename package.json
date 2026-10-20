@@ -25,6 +25,7 @@
     "ml:train": "npm run ml:train -w server --",
     "ml:activate": "npm run ml:activate -w server --",
     "ml:status": "npm run ml:status -w server --",
+    "ml:oracle": "npm run ml:oracle -w server --",
     "test": "npm run test -w server && npm run test -w client",
     "test:unit": "npm run test:unit -w server",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client",

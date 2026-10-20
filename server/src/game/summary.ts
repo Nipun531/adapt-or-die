@@ -3,7 +3,7 @@
  * Used by the boss's post-round analysis AND by ML feature construction, so both read the
  * same numbers. Pure function of the event list → can be recomputed from raw DB rows at any time.
  */
-import type { CombatEvent } from './combat.js';
+import type { CombatEvent, CombatNote } from './combat.js';
 import type { Side } from './types.js';
 
 type ModeCounts = { melee: number; ranged: number; unarmed: number };
@@ -31,6 +31,26 @@ export interface SideCombatSummary {
   /** Attacks outside the forced opening phase (regular + DEX bonus) — the ones that reflect a style choice. */
   nonOpeningAttacks: number;
   nonOpeningRanged: number;
+  /** V3 only (absent for v2 rounds): this side as DEFENDER, its counters, stun and stims. */
+  v3?: SideV3Summary;
+}
+
+export interface SideV3Summary {
+  /** Attacks aimed at this side and how it answered ('none' = stunned, could not defend). */
+  defended: number;
+  blocks: number;
+  dodges: number;
+  undefended: number;
+  blockSuccesses: number;
+  dodgeSuccesses: number;
+  /** Counter mini moves this side made / suffered. */
+  countersDealt: number;
+  countersReceived: number;
+  /** Stun meter points this side gained, and stuns triggered on it. */
+  stunGained: number;
+  stunsSuffered: number;
+  stimsUsed: number;
+  healed: number;
 }
 
 export interface CombatSummary {
@@ -60,8 +80,31 @@ function emptySide(): SideCombatSummary {
   };
 }
 
-export function summarizeCombat(events: CombatEvent[]): CombatSummary {
+const emptyV3 = (): SideV3Summary => ({
+  defended: 0, blocks: 0, dodges: 0, undefended: 0, blockSuccesses: 0, dodgeSuccesses: 0,
+  countersDealt: 0, countersReceived: 0, stunGained: 0, stunsSuffered: 0, stimsUsed: 0, healed: 0,
+});
+
+/** `notes` (v3 stims, skips) are optional; a round is V3 when any event carries a defence/counter or a note exists. */
+export function summarizeCombat(events: CombatEvent[], notes: CombatNote[] = []): CombatSummary {
   const out: Record<Side, SideCombatSummary> = { player: emptySide(), boss: emptySide() };
+  const isV3 = notes.length > 0 || events.some((e) => e.defense || e.kind === 'counter');
+  if (isV3) { out.player.v3 = emptyV3(); out.boss.v3 = emptyV3(); }
+  for (const e of isV3 ? events : []) {
+    const d = out[e.defender].v3!;
+    if (e.kind === 'counter') { out[e.attacker].v3!.countersDealt++; d.countersReceived++; }
+    else if (e.defense) {
+      d.defended++;
+      if (e.defense.action === 'block') { d.blocks++; if (e.defense.success) d.blockSuccesses++; }
+      else if (e.defense.action === 'dodge') { d.dodges++; if (e.defense.success) d.dodgeSuccesses++; }
+      else d.undefended++;
+    }
+    for (const g of e.stun?.gains ?? []) out[g.side].v3!.stunGained += g.amount;
+    if (e.stun?.triggered) out[e.stun.triggered.target].v3!.stunsSuffered++;
+  }
+  for (const n of isV3 ? notes : []) {
+    if (n.kind === 'stim') { out[n.side].v3!.stimsUsed++; out[n.side].v3!.healed += n.detail.heal ?? 0; }
+  }
   const mitSum: Record<Side, number> = { player: 0, boss: 0 };
   let lastTurn = 0;
   for (const e of events) {

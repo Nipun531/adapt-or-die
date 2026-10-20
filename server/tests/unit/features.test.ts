@@ -3,7 +3,8 @@
  * opening shot, missing values as null (not 0), catalogue-agnostic feasibility features, weapon family/pierce EV.
  */
 import { describe, expect, it } from 'vitest';
-import { runFullCombat, type Chooser } from '../../src/game/combat.js';
+import { autoDefense, runFullCombat, type Chooser, type DefenseChooser } from '../../src/game/combat.js';
+import { RULES_V3 } from '../../src/game/rules.js';
 import { snapshotOf } from '../../src/game/derive.js';
 import { initialCombatant } from '../../src/game/progression.js';
 import { summarizeCombat } from '../../src/game/summary.js';
@@ -44,8 +45,8 @@ describe('label v2: intended style', () => {
 });
 
 describe('feature schema v3', () => {
-  it('is v3 and every feature name is produced', () => {
-    expect(FEATURE_SCHEMA_VERSION).toBe('v3');
+  it('is v4 and every feature name is produced', () => {
+    expect(FEATURE_SCHEMA_VERSION).toBe('v4');
     expect(Object.keys(buildFeatures([round({ hand1: 'pike' })])).sort()).toEqual([...FEATURE_NAMES].sort());
   });
   it('weapon family one-hot and pierce EV of the last weapon', () => {
@@ -73,5 +74,35 @@ describe('feature schema v3', () => {
     const r2 = { ...round({ hand1: 'sword' }, { gold: 30, inventory: ['sword'] }), roundNumber: 2 };
     const f = buildFeatures([r1, r2]);
     expect(f).toMatchObject({ hist_style_switches: 0, last_style_streak: 2, hist_feasible_rounds: 1, hist_feasible_melee_rounds: 1, hist_ranged_when_feasible: 0 });
+  });
+});
+
+describe('feature schema v4: V3 defence, counters, stun and stims', () => {
+  const alwaysBlock: DefenseChooser = () => ({ action: 'block', source: 'agent' });
+  function v3Round(seed: number): RoundRecord {
+    const r = round({ hand1: 'sword' });
+    const { state, events, notes } = runFullCombat(r.playerSnapshot, r.bossSnapshot, seed, { player: meleeFirst, boss: meleeFirst },
+      { rules: RULES_V3, defense: { player: alwaysBlock, boss: autoDefense } });
+    return { ...r, winner: state.winner!, playerHpEnd: state.hp.player, bossHpEnd: state.hp.boss, summary: summarizeCombat(events, notes) };
+  }
+  it('summarizes the player as defender and fills the v4 features', () => {
+    const r = v3Round(7);
+    const v = r.summary.player.v3!;
+    expect(v.defended).toBeGreaterThan(0);
+    expect(v.blocks + v.undefended).toBe(v.defended); // always blocks unless stunned
+    expect(v.dodges).toBe(0);
+    const f = buildFeatures([r]);
+    expect(f.last_block_share).toBe(1);
+    expect(f.hist_block_share).toBe(1);
+    expect(f.last_dodge_success).toBeNull(); // never dodged → no evidence, not 0
+    expect(f.last_counters_dealt).toBe(v.countersDealt);
+  });
+  it('v2 rounds have no V3 block: every v4 feature is null, never 0', () => {
+    const r = round({ hand1: 'sword' });
+    expect(r.summary.player.v3).toBeUndefined();
+    const f = buildFeatures([r]);
+    expect(f.last_block_share).toBeNull();
+    expect(f.last_stims_used).toBeNull();
+    expect(f.hist_counters_dealt_per_round).toBeNull();
   });
 });

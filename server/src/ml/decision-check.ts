@@ -12,8 +12,9 @@
  * Fresh seeds (`decision-check:*`) = held-out runs. `mirror` (a player using the boss's own policy) never appears in
  * any training data = an unseen, adaptive style.
  */
+import { LIVE_RULES } from '../game/rules.js';
 import { STRATEGY_NAMES } from '../sim/agents.js';
-import { baselinePredict, MIRROR, playInMemoryRunWith, type InMemoryPredictor } from '../sim/balance.js';
+import { baselinePredict, MIRROR, playInMemoryRunWith, type InMemoryPredictor, type RunOptions } from '../sim/balance.js';
 import { baselineProbability, buildFeatures, rangedFeasibility } from './features.js';
 import { blendProbability, scoreWithModel } from './predictor.js';
 
@@ -36,14 +37,16 @@ export function modelPredictor(modelPath: string, weight: number): InMemoryPredi
 }
 
 export interface OutcomeRow { strategy: string; rounds: number; meanMargin: number; bossWinRate: number }
-export type Outcomes = Record<string, { byStrategy: OutcomeRow[]; pooledMargin: number; pooledWinRate: number }>;
+/** `runMargins`: mean margin per run, in a fixed (strategy, run) order → paired across predictors. */
+export type Outcomes = Record<string, { byStrategy: OutcomeRow[]; pooledMargin: number; pooledWinRate: number; runMargins: number[] }>;
 
-export async function decisionOutcomes(predictors: Record<string, InMemoryPredictor>, opts: { runsPerStrategy?: number; seed?: string; maxRounds?: number } = {}): Promise<Outcomes> {
+export async function decisionOutcomes(predictors: Record<string, InMemoryPredictor>, opts: { runsPerStrategy?: number; seed?: string; maxRounds?: number; run?: RunOptions } = {}): Promise<Outcomes> {
   const runs = opts.runsPerStrategy ?? DECISION_RULE.runsPerStrategy;
   const strategies = [...STRATEGY_NAMES, MIRROR];
   const out: Outcomes = {};
   for (const [name, predict] of Object.entries(predictors)) {
     const byStrategy: OutcomeRow[] = [];
+    const runMargins: number[] = [];
     let m = 0;
     let w = 0;
     let n = 0;
@@ -52,7 +55,9 @@ export async function decisionOutcomes(predictors: Record<string, InMemoryPredic
       let sw = 0;
       let sn = 0;
       for (let i = 0; i < runs; i++) {
-        const r = await playInMemoryRunWith(s, `${opts.seed ?? 'decision-check'}:${s}:${i}`, predict, opts.maxRounds ?? 10);
+        // The games are played under the LIVE rules (engine 3.x) unless a caller passes other run options.
+        const r = await playInMemoryRunWith(s, `${opts.seed ?? 'decision-check'}:${s}:${i}`, predict, opts.maxRounds ?? 10, opts.run ?? { rules: LIVE_RULES });
+        runMargins.push(r.rounds.reduce((a, x) => a + x.bossMargin, 0) / r.rounds.length);
         for (const rd of r.rounds) {
           sm += rd.bossMargin;
           sw += rd.winner === 'boss' ? 1 : 0;
@@ -64,7 +69,7 @@ export async function decisionOutcomes(predictors: Record<string, InMemoryPredic
       w += sw;
       n += sn;
     }
-    out[name] = { byStrategy, pooledMargin: m / n, pooledWinRate: w / n };
+    out[name] = { byStrategy, pooledMargin: m / n, pooledWinRate: w / n, runMargins };
   }
   return out;
 }
@@ -78,7 +83,19 @@ export function decisionVerdict(o: Outcomes, candidate: string): { ok: boolean; 
   const um = (x: typeof base) => x.byStrategy.find((r) => r.strategy === MIRROR)!.meanMargin;
   const unseenOk = um(cand) >= um(base) - DECISION_RULE.maxUnseenDrop;
   reasons.push(`${unseenOk ? 'PASS' : 'FAIL'}: unseen adaptive style (mirror): HP margin ${um(cand).toFixed(3)} vs baseline ${um(base).toFixed(3)} (allowed drop ${DECISION_RULE.maxUnseenDrop})`);
+  const d = pairedDiff(cand.runMargins, base.runMargins);
+  reasons.push(`INFO: paired Δ HP margin vs baseline ${d.mean >= 0 ? '+' : ''}${d.mean.toFixed(3)}, 95% CI [${d.lo.toFixed(3)}, ${d.hi.toFixed(3)}] over ${cand.runMargins.length} runs — ${d.lo > 0 ? 'a measurable improvement' : 'no measurable improvement'}`);
   return { ok: pooledOk && unseenOk, reasons };
+}
+
+/** Mean of paired per-run differences with a normal 95% CI (used to call a decision improvement measurable). */
+export function pairedDiff(a: number[], b: number[]): { mean: number; lo: number; hi: number } {
+  const xs = a.map((x, i) => x - b[i]);
+  const n = xs.length;
+  const mean = xs.reduce((s, x) => s + x, 0) / n;
+  const sd = Math.sqrt(xs.reduce((s, x) => s + (x - mean) ** 2, 0) / Math.max(1, n - 1));
+  const h = (1.96 * sd) / Math.sqrt(n);
+  return { mean, lo: mean - h, hi: mean + h };
 }
 
 export const baselineInMemory: InMemoryPredictor = async (req) => baselinePredict(req);
