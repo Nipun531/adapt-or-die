@@ -21,11 +21,13 @@ import { loadCompletedRounds } from '../services/history.js';
 import { loadCombatant, logProgression, saveCombatant, SUPPLY_LEDGER_KIND } from '../services/runs.js';
 import type { Weakness } from './analysis.js';
 import { applyPlan, choosePlan, forecastScenarios, type Archetype, type Scenario } from './policy.js';
-import { profileHeads, type HeadProbs, type ProfileEvidence } from './forecast.js';
+import { profileHeads, temperHeads, type HeadProbs, type ProfileEvidence } from './forecast.js';
 import { loadObservations } from '../services/learning.js';
 
 /** Which scenario builds the Learning Boss weighs with its profile forecast (V4 plan §4; chosen from the oracle run). */
 export const LEARNING_SCENARIO_BASE: 'v4' | 'v3' = 'v3';
+/** Share of the learned forecast the planner uses (rest: uniform). Chosen on synthetic campaigns (§14). */
+export const LEARNING_TEMPER = 0.3;
 
 /** Which derived metric each weakness is most directly addressed by (used only for explanation). */
 const WEAKNESS_METRICS: Record<string, ('effDex' | 'netDef' | 'netAtk' | 'maxHp')[]> = {
@@ -74,18 +76,21 @@ export async function bossPrepare(db: Db, runId: number, runSeed: string, roundN
 
   // Learning Boss (V4): its ONLY learned knowledge is this profile's observations → a next-build forecast over the
   // player's legal builds. With no observations the forecast is uniform (rules only). Nothing global is read.
-  let forecast: { kind: 'profile'; heads: HeadProbs; observations: number; base: string } | null = null;
+  let forecast: { kind: 'profile'; heads: HeadProbs; learned: HeadProbs; temper: number; observations: number; base: string } | null = null;
   let opponents: Scenario[] | undefined;
   if (mode === 'learning' && who.profileId) {
     const obs = await loadObservations(db, who.profileId);
     const evidence: ProfileEvidence[] = obs.map((o) => ({ heads: o.heads, previousWinner: o.context.previousWinner }));
     const thisRun = obs.filter((o) => o.runId === runId);
-    const heads = profileHeads(evidence, {
+    const learned = profileHeads(evidence, {
       previousWinner: records.length ? records[records.length - 1].winner : null,
       lastHeads: thisRun.length ? thisRun[thisRun.length - 1].heads : null,
     });
+    // The planner uses a tempered forecast (docs/ML_WALKTHROUGH.md §14): the full one narrowed the plan and cost
+    // margin on synthetic campaigns; at 0.3 the decisions were no worse than a non-learning boss.
+    const heads = temperHeads(learned, LEARNING_TEMPER);
     opponents = forecastScenarios(observed, heads, undefined, LEARNING_SCENARIO_BASE).scenarios;
-    forecast = { kind: 'profile', heads, observations: obs.length, base: LEARNING_SCENARIO_BASE };
+    forecast = { kind: 'profile', heads, learned, temper: LEARNING_TEMPER, observations: obs.length, base: LEARNING_SCENARIO_BASE };
   }
 
   const before = await loadCombatant(db, runId, 'boss', true);

@@ -1,6 +1,6 @@
 # The Boss Remembers — V4 Implementation Plan
 
-Status (2026-10-20): **Phase 1 (audit + baseline) done.** The phases below are executed in order. Every claim in §1 was verified against the working tree (commit `22232b0`). Online PvP is **deferred** (scope amendment) and is not part of V4.
+Status (2026-10-20): **all phases done.** The results are in `docs/V4_REPORT.md` and `docs/ML_WALKTHROUGH.md` §14. Every claim in §1 was verified against the working tree (commit `22232b0`). Online PvP is **deferred** (scope amendment) and is not part of V4.
 
 ## 1. Verified current architecture
 

@@ -8,13 +8,14 @@ baseline) and picks legal, affordable adaptations under exactly the same rules a
 
 ## Features
 
+- **V4: three game modes** (`docs/GAME_MODES.md`). The *Prepared Boss* is the simulation-informed boss. The *Learning Boss* starts knowing only the rules and learns your builds from your own completed rounds; its profile is kept in this browser, and there are no accounts. *PvP Arena* is two players on one device with hand-over screens. Online PvP is deferred.
 - Full game loop from the game plan: stats, XP curve (×1.12), rewards (win 50 XP / 10 gold, loss 30 XP / 5 gold, level-up +20 gold), stat points, versioned 24-item catalogue (V2; V1 frozen for history), 2 hand slots + armour, damage formula, DEX mitigation (clamped at 0), DEX bonus attacks, one First Shot per round (only bow holder, or higher effective DEX; tie = none), melee and ranged pierce.
 - Authoritative, seeded, resumable combat engine; every attack's formula inputs and random rolls are stored and shown in the combat log.
 - Boss post-round analysis (evidence + weaknesses) and pre-round decisions (prediction, options, simulated win rates, rationale, cost, state change).
 - PostgreSQL persistence of runs, rounds, events, progression ledger, analyses, decisions, simulations, training rows, dataset snapshots and model versions.
 - Simulation runner (11 agent strategies, seeded, reproducible, append-only) via CLI or UI, plus a balance harness (`npm run balance`).
 - ML pipeline: leakage-safe features, dataset export (CSV/JSON), group-split training, held-out metrics vs baseline, documented eligibility rule, versioned artifacts, explicit activation, honest model-vs-fallback reporting on every decision.
-- Web UI ("Court Deck", see `client/DESIGN.md`): the Duel in three phases (Prepare / Fight / Aftermath) with the boss's hand of plans; Runs, Simulations and ML Lab under the Workshop menu.
+- Web UI (Cathedral Lead-Light, see `client/DESIGN.md`): the Duel in three phases (Prepare / Fight / Aftermath) with the boss's hand of plans; Runs, Simulations and ML Lab under the Workshop menu.
 
 ## Stack
 
@@ -62,7 +63,7 @@ Never commit `.env`.
 
 ## Playing
 
-1. **Duel** → choose rounds → *Start new run* (or resume an active run). Runs from older engine versions open view-only.
+1. The main menu (`#/`) offers **Prepared Boss**, **Learning Boss** or **PvP Arena**. Pick one, then start or resume a run. Runs from older engine versions open view-only.
 2. Before round 1 you must spend your 2 initial stat points (the boss spends its own 2 when the round begins — see its round-1 decision).
    Before each round: spend stat points (+5 HP / +3 STR / +2 DEF / +2 DEX), buy items, set your loadout, then *Begin round*.
 3. The boss prepares (you can inspect its decision and its hand of plans), combat resolves on the server. With Ranged + Melee equipped you choose the mode per attack (keys R / M; tick "use for the rest of this round" to repeat).
@@ -112,6 +113,8 @@ npm run typecheck   # server + client
 
 ## Documentation
 
+- `docs/GAME_MODES.md` — the three V4 modes, data isolation, Learning Boss profiles, local PvP
+- `docs/V4_IMPLEMENTATION_PLAN.md`, `docs/V4_REPORT.md` — Version 4 plan and final report
 - `docs/GAME_MECHANICS.md` — rules, tables, formulas, developer decisions, unresolved items
 - `docs/ARCHITECTURE.md` — components, data flow, round lifecycle, API
 - `docs/ML_WALKTHROUGH.md` — ML task, features, training, evaluation, inference, limitations
@@ -124,8 +127,9 @@ npm run typecheck   # server + client
 
 ## Known limitations
 
-- Game-rules version is `ENGINE_VERSION` 3.0.0 (V3 combat: block/dodge every incoming attack, counters, stun, healing stims, a 30-turn limit; 10 starting gold; `docs/GAME_MECHANICS.md` §0). Data and models from 1.x/2.x are kept as history but not used for training or inference; older runs are view-only — run `npm run db:migrate` after updating.
-- The UI shown is the V2 "Court Deck" with minimal V3 prompts (Block `B` / Dodge `D`, stims, supplies). The V3 redesign is Phase E of `docs/V3_IMPLEMENTATION_PLAN.md`.
+- V4: the Learning Boss has been evaluated on simulated agents only. Its prediction learns, but its decisions are not measurably better than a non-learning boss (`docs/ML_WALKTHROUGH.md` §14). Online PvP is not implemented.
+- Game-rules version is `ENGINE_VERSION` 3.1.0 (V3 combat: block/dodge every incoming attack, counters, stun, healing stims, a 30-turn limit; 10 starting gold; `docs/GAME_MECHANICS.md` §0). Data and models from 1.x/2.x are kept as history but not used for training or inference; older runs are view-only — run `npm run db:migrate` after updating.
+- The UI is Cathedral Lead-Light (`client/DESIGN.md`).
 - Known balance issues (DEX dominance and others) are measured in `docs/V2_BALANCE.md` §4 and deferred to the next version.
 - Skills and item upgrades are mentioned in the plan but not specified, so they are not implemented. Pierce values were tuned by simulation (`docs/V2_BALANCE.md`).
 - Training data is mostly simulated by scripted agents; model metrics on it overstate accuracy on human players (see ML walkthrough §10).

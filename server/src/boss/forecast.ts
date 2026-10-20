@@ -87,6 +87,12 @@ export function profileHeads(evidence: ProfileEvidence[], now: { previousWinner:
   })) as HeadProbs;
 }
 
+/** Blend a forecast with the uniform one: w·heads + (1−w)·uniform (w = 1 → unchanged, 0 → rules only). */
+export function temperHeads(heads: HeadProbs, w: number): HeadProbs {
+  const u = uniformHeads();
+  return Object.fromEntries(HEAD_NAMES.map((h) => [h, Object.fromEntries(HEAD_CLASSES[h].map((c) => [c, w * (heads[h][c] ?? 0) + (1 - w) * u[h][c]]))])) as HeadProbs;
+}
+
 /** Probability of each legal candidate under a forecast (renormalised over the legal set; floor applied per head). */
 export function candidateProbabilities(cands: Candidate[], heads: HeadProbs, floor = PROB_FLOOR): number[] {
   const raw = cands.map((c) => HEAD_NAMES.reduce((p, h) => p * Math.max(floor, heads[h][c.heads[h]] ?? 0), 1));

@@ -15,7 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { env } from '../config/env.js';
 import { legalCandidates } from '../boss/candidates.js';
-import { jointLogLoss, profileHeads, uniformHeads, type ProfileEvidence } from '../boss/forecast.js';
+import { jointLogLoss, profileHeads, temperHeads, uniformHeads, type ProfileEvidence } from '../boss/forecast.js';
 import { LIVE_RULES } from '../game/rules.js';
 import { STRATEGY_NAMES } from './agents.js';
 import { baselinePredict, playInMemoryRunWith, type InMemoryPredictor, type RunOptions, type RunResult } from './balance.js';
@@ -26,6 +26,8 @@ const CAMPAIGN = Number(args.campaign ?? 4);
 const ROUNDS = Number(args.rounds ?? 10);
 const SEED = args.seed ?? 'v4-learn';
 const BASE = (args.base ?? 'v3') as 'v3' | 'v4';
+/** How much of the profile forecast the planner uses (1 = all; mixed with uniform otherwise). */
+const TEMPER = Number(args.temper ?? 1);
 const AGENTS = args.only ? args.only.split(',') : STRATEGY_NAMES;
 
 const runEvidence = (r: RunResult): ProfileEvidence[] => r.rounds.map((rd, i) => ({ heads: rd.truthHeads, previousWinner: i ? r.rounds[i - 1].winner : null }));
@@ -34,10 +36,10 @@ function learningPredictor(campaign: ProfileEvidence[]): InMemoryPredictor {
   return async (q) => {
     const thisRun: ProfileEvidence[] = q.historyHeads.map((h, i) => ({ heads: h, previousWinner: i ? q.records[i - 1].winner : null }));
     return {
-      heads: profileHeads([...campaign, ...thisRun], {
+      heads: temperHeads(profileHeads([...campaign, ...thisRun], {
         previousWinner: q.records.length ? q.records[q.records.length - 1].winner : null,
         lastHeads: q.historyHeads[q.historyHeads.length - 1] ?? null,
-      }),
+      }), TEMPER),
     };
   };
 }
@@ -45,7 +47,7 @@ function learningPredictor(campaign: ProfileEvidence[]): InMemoryPredictor {
 async function main() {
   const opts: RunOptions = { rules: LIVE_RULES, scenarioBase: BASE };
   const margin = (r: RunResult) => r.rounds.reduce((a, x) => a + x.bossMargin, 0) / r.rounds.length;
-  const out: any = { synthetic: true, campaign: CAMPAIGN, rounds: ROUNDS, seed: SEED, base: BASE, agents: {} };
+  const out: any = { synthetic: true, campaign: CAMPAIGN, rounds: ROUNDS, seed: SEED, base: BASE, temper: TEMPER, agents: {} };
   const diffs: number[] = [];
   const diffByRun: number[][] = Array.from({ length: CAMPAIGN }, () => []);
   const llByRun: Record<'learning' | 'cold', number[][]> = { learning: Array.from({ length: CAMPAIGN }, () => []), cold: Array.from({ length: CAMPAIGN }, () => []) };
@@ -90,7 +92,7 @@ async function main() {
   console.log(`  reference prepared − cold: Δ ${s.preparedVsCold.mean.toFixed(3)} [${s.preparedVsCold.lo.toFixed(3)}, ${s.preparedVsCold.hi.toFixed(3)}]`);
   const dir = path.join(env.artifactsDir, 'ml', 'v4');
   fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, `learning-${SEED}-${BASE}.json`);
+  const file = path.join(dir, `learning-${SEED}-${BASE}${TEMPER !== 1 ? `-t${TEMPER}` : ''}.json`);
   fs.writeFileSync(file, JSON.stringify(out, null, 2));
   console.log(`[v4-learning] wrote ${file}`);
 }

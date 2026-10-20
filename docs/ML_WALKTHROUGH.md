@@ -391,3 +391,76 @@ What this shows:
 | Inference / fallback | `server/src/ml/predictor.ts`, `ml/infer_worker.py` |
 | Decision policy / legality | `server/src/boss/policy.ts` (`POLICY_CONFIG`), `server/src/game/equipment.ts` |
 | Versions / artifacts / activation | `server/src/ml/training.ts`, `model_versions` table, `artifacts/models/` |
+
+## 14. V4: next-build prediction (2026-10-20)
+
+V3 showed that predicting *style* cannot help: the oracle gave +0.002. V4 changes the target to the player's **next build** and tests whether the planner can use it, before trusting any model. All numbers come from simulated agents.
+
+### Target, data, pipeline
+
+- **Heads.** `boss/build-heads.ts` splits a build into four parts:
+  - `hands`: 7 legal hand combinations;
+  - `family`: melee family;
+  - `armour`: none / keep / upgrade;
+  - `alloc`: the dominant stat of the round's points.
+  Labels come from round N+1's actual snapshot; features only from rounds 1..N (`ml/build-features.ts`, schema `v4b1` = the 63 v4 features plus last-round and frequency columns per head).
+- **Legal candidates.** `boss/candidates.ts` builds every legal next build through the real rules (`equipment.ts`), so impossible builds are never predicted. The true build is a legal candidate in 92–95% of rounds; the rest are split stat points or weaker-than-strongest purchases.
+- **New agent families** (sim-4.0.0, `sim/agents-v4.ts`): `saver`, `armourer`, `counter_builder`, `explorer`, `splitter`. They are seeded per-run personas and react to results and to the boss's gear.
+- **Data.** DB batch 10 `v4-build-1` (320 runs) and the 976 V3 runs feed `build_examples`: **11,664 rows from 1,296 runs**, Prepared runs only. Snapshot: `artifacts/datasets/build-v4b1-b1_2026-10-20T09-00-41-933Z.csv`. Old datasets are untouched.
+- **Model.** `ml/train_build.py` trains one XGBoost multi-class model per head. It evaluates on held-out runs and leave-one-agent-out, never on random row splits, and writes out-of-fold predictions. `npm run ml:v4-data -- eval` scores whole builds among the legal candidates (joint log loss).
+
+### Prediction quality (joint log loss of the true build among legal candidates; lower is better)
+
+| Predictor | Held-out runs | Unseen agent families, pooled |
+|---|---:|---:|
+| uniform (rules only) | 2.822 | 2.828 |
+| persistence baseline (per head: 0.5·last + 0.5·Laplace frequency) | 1.750 | 1.741 |
+| XGBoost heads `build-2026-10-20T09-00-41` | **0.581** | 1.726 |
+
+- On unseen families the model beats persistence on 13 of 21. It is much worse on hybrid (+1.71), random (+0.99), splitter (+0.84) and armourer (+0.71).
+- **Eligibility** (declared in `sim/v4-data-cli.ts`; nothing was changed after seeing the results):
+  - rows: PASS;
+  - held-out runs: PASS;
+  - unseen families pooled: PASS;
+  - worst unseen family ≤ +0.10: **FAIL**.
+- **Not eligible, not activated.** Same story as V3: it is strong on familiar personas and does not generalise.
+
+### Mandatory oracle experiment (`npm run ml:v4-oracle`, `artifacts/ml/v4/oracle-v4-oracle*.json`)
+
+Paired seeds: 8 runs × 22 strategies (21 agents + mirror) × 10 rounds. Δ is the boss's mean HP margin vs today's planner, with a 95% CI over runs.
+
+| Condition | Δ margin [95% CI] |
+|---|---|
+| C0 V3 planner + P(ranged) baseline | — (margin 0.662, boss wins 90.0%) |
+| C1 V4 candidates, uniform (ablation) | −0.040 [−0.065, −0.014] |
+| C2 V4 candidates + persistence | −0.042 [−0.073, −0.010] |
+| C3 V4 candidates + model | −0.038 [−0.068, −0.009] |
+| C3′ V3 builds reweighted by model heads | −0.008 [−0.030, +0.014] |
+| V3 builds reweighted by persistence | −0.003 [−0.025, +0.020] |
+| **C4 oracle heads (true heads, evaluation only)** | −0.003 [−0.032, +0.026] |
+| V3 builds reweighted by oracle heads | −0.003 [−0.035, +0.028] |
+| C5 oracle exact build | +0.025 [−0.010, +0.061] (mirror +0.18) |
+
+The first run, with the equal Monte-Carlo split, starved the likely build. It gave oracle heads −0.063. Fights are now proportional to weight for forecast scenarios.
+
+**Reading.** Even *perfect* head knowledge does not change the boss's results, and exact-build knowledge helps only within noise, mainly against the mirror player. Per the brief, the bottleneck is **the planner and the mechanics**, not the predictor: the boss's builds already answer most builds, so knowing the next build has little to act on. The model improves the metrics but not the decisions, so **no gameplay improvement is claimed for the Prepared Boss.** It keeps the V3 planner. The fallback and the eligibility rule are unchanged.
+
+### Learning Boss on synthetic campaigns (`npm run ml:v4-learning`, `artifacts/ml/v4/learning-*.json`)
+
+Setup:
+- 21 agents, each in a 4-run campaign against one profile (observations carry over), on paired seeds against a boss that never learns (uniform).
+- **Synthetic fixtures, not humans.**
+- `profileHeads` is a Dirichlet with a uniform prior, decay 0.8, ×2 for observations after the same result, and a learned repeat rate.
+
+| | Full forecast | Tempered 0.3 (live) |
+|---|---|---|
+| Profile joint log loss by campaign run (cold ≈ 2.83–2.89) | 1.841 → 1.552 → 1.571 → 1.624 | 1.842 → 1.540 → 1.568 → 1.567 |
+| Δ margin learning − cold | **−0.041 [−0.070, −0.011]** | −0.016 [−0.035, +0.004] |
+
+What this shows:
+- The prediction really learns. It is better than persistence (1.85) and improves after the first run.
+- Acting on the full forecast narrowed the plan onto proxy builds and cost margin.
+- The live Learning Boss therefore plans with 30% of its forecast and 70% uniform (`LEARNING_TEMPER` in `boss/prepare.ts`). Its decisions are then no worse than a non-learning boss within noise, but **not measurably better either**. The UI says only what is recorded (insights with counts) and never claims that the boss is winning more because it learned.
+- **What would change this:**
+  - a planner that can exploit build knowledge, i.e. richer scenario builds that match real purchases, or an exact-build target;
+  - real human data, where personas are less rigid.

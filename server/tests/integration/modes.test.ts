@@ -95,7 +95,9 @@ describe('Learning Boss', () => {
     await playRound(run2);
     const f2 = (await getPool().query('SELECT predictor FROM boss_decisions WHERE run_id = $1', [run2])).rows[0].predictor.forecast;
     expect(f2.observations).toBe(2); // the profile remembers the earlier run
-    expect(f2.heads.alloc.str).toBeGreaterThan(f2.heads.alloc.dex); // both earlier rounds put points into STR
+    expect(f2.learned.alloc.str).toBeGreaterThan(f2.learned.alloc.dex); // both earlier rounds put points into STR
+    expect(f2.temper).toBe(0.3);
+    expect(f2.heads.alloc.str).toBeGreaterThan(f2.heads.alloc.dex);
     // A different profile starts cold again.
     const q = await createProfile(getPool(), 'Bob');
     const run3 = await createReadyRun({ maxRounds: 1, mode: 'learning', profileId: q.id });
