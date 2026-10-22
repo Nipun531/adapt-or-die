@@ -156,7 +156,7 @@ export async function bossPrepare(db: Db, runId: number, runSeed: string, roundN
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
     [runId, roundNumber, JSON.stringify(forecast ? { ...prediction, forecast } : prediction), JSON.stringify(evidence),
       JSON.stringify({ candidatesEvaluated: policy.candidatesEvaluated, current: policy.current, alternatives: policy.alternatives }),
-      JSON.stringify({ plan, rationale: policy.rationale, policyVersion: policy.version, band: policy.band ?? null, draw: policy.draw ?? null }), JSON.stringify(actions), plan.cost + supplies.actions.reduce((g, a) => g + a.cost, 0),
+      JSON.stringify({ plan, rationale: policy.rationale, policyVersion: policy.version, band: policy.band ?? null, draw: policy.draw ?? null, search: policy.search ?? null }), JSON.stringify(actions), plan.cost + supplies.actions.reduce((g, a) => g + a.cost, 0),
       JSON.stringify(before), JSON.stringify(after)],
   );
   return { decisionId: ins.rows[0].id, boss: after, prediction };

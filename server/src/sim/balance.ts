@@ -132,13 +132,13 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
       const bossSeen = boss; // the boss before its own prep = its last observed build + level-ups (what a player can see)
       const flags = records.map((r) => ((r.summary.boss.rangedShare ?? 0) >= 0.5 ? 1 : 0));
       const pBossRanged = flags.length ? 0.5 * flags[flags.length - 1] + 0.5 * (flags.reduce((a: number, c) => a + c, 0) + 1) / (flags.length + 2) : 0.5;
-      const plan = choosePlan({ boss: player, observedPlayer: { ...bossSeen, side: 'player' }, pRanged: pBossRanged, seed: String(deriveSeed(runSeed, `mirror:${n}`)), rules: opts.rules });
+      const plan = choosePlan({ boss: player, observedPlayer: { ...bossSeen, side: 'player' }, pRanged: pBossRanged, seed: String(deriveSeed(runSeed, `mirror:${n}`)), rules: opts.rules, planner: opts.mirrorPlanner });
       player = applyPlan(player, plan.selected);
     } else if (strategy === MIRROR_SYM) {
       const seen: CombatantState = { ...boss, side: 'player' };
       const plan = choosePlan({
         boss: player, observedPlayer: seen, pRanged: baselinePredict({ records: swapped, observed: seen, historyHeads: [] }),
-        seed: String(deriveSeed(runSeed, `mirror:${n}`)), previousArchetype: playerPrevArchetype, version: opts.policyVersion, rules: opts.rules,
+        seed: String(deriveSeed(runSeed, `mirror:${n}`)), previousArchetype: playerPrevArchetype, version: opts.policyVersion, rules: opts.rules, planner: opts.mirrorPlanner,
       });
       playerPrevArchetype = plan.selected.archetype;
       player = applyPlan(player, plan.selected);
@@ -243,6 +243,8 @@ export interface RunOptions { policyVersion?: PolicyVersion; rules?: RuleSet; or
   scenarioBase?: 'v4' | 'v3';
   /** Harness-only planner knobs (policy.ts PlannerOptions); omitted = the live planner. */
   planner?: PlannerOptions;
+  /** Planner knobs of the mirror players (they use the boss's own policy); omitted = the live planner. */
+  mirrorPlanner?: PlannerOptions;
   /** Called once per round after the boss's plan, before it is applied (diagnostics only; must not mutate). */
   diagnose?: (d: RoundDiagnostic) => void }
 

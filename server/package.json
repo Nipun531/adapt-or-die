@@ -13,6 +13,7 @@
     "balance": "tsx src/sim/balance-cli.ts",
     "sim": "tsx src/sim/cli.ts",
     "boss:bench": "tsx src/boss/bench.ts",
+    "boss:latency": "tsx src/sim/planner-latency-cli.ts",
     "ml:build-dataset": "tsx src/ml/cli.ts build-dataset",
     "ml:export": "tsx src/ml/cli.ts export",
     "ml:train": "tsx src/ml/cli.ts train",

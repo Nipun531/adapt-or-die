@@ -41,19 +41,27 @@ import { headsOf, HEAD_NAMES } from './build-heads.js';
 export type PolicyVersion = 'v2-diverse' | 'v1-deterministic';
 export const POLICY_VERSION: PolicyVersion = 'v2-diverse';
 
+/**
+ * Search settings. Planner lab (docs/ML_WALKTHROUGH.md §15): a 30-plan shortlist with 160 fights and no band gave
+ * +0.026 [+0.013, +0.038] HP margin over the V4 settings (V4_SEARCH) at ~0.5 s per decision instead of ~0.04 s, and
+ * is what lets exact build knowledge pay (+0.054 more). Keeping the 0.03 band halved the gain.
+ */
 export const POLICY_CONFIG = {
-  topK: 6,                   // best analytic plans verified by Monte-Carlo (v2 adds the best plan of each archetype)
+  topK: 30,                  // best analytic plans verified by Monte-Carlo (v2 adds the best plan of each archetype)
   fightsPerScenario: 16,     // v1: MC fights per scenario per plan
-  fightBudgetPerPlan: 40,    // v2: MC fights per plan, spread over the scenarios (fights are near-deterministic)
+  fightBudgetPerPlan: 160,   // v2: MC fights per plan, spread over the scenarios (fights are near-deterministic)
   minFightsPerScenario: 2,
   scoreTolerance: 0.02,      // v1: plans this close to best are "equivalent" → cheapest wins
-  band: 0.03,                // v2: plans within this expected-HP-margin of the best are equally strong
+  band: 0,                   // v2: plans within this expected-HP-margin of the best are equally strong (0: exact ties only)
   temperature: 0.02,         // v2: softmax temperature on the margin inside the band
   repeatArchetypePenalty: 0.5, // v2: weight factor for repeating last round's archetype
   maxScenarios: 18,
 };
 
 export type Allocation = Partial<Record<StatKey, number>>;
+
+/** The V4 search settings (top 6, 40 fights, band 0.03), kept for rollback and to reproduce earlier experiments. */
+export const V4_SEARCH = { topK: 6, fightBudget: 40, band: 0.03 } as const;
 
 export interface Plan {
   allocation: Allocation;
@@ -143,6 +151,8 @@ export interface PolicyResult {
   /** v2: the equally-strong plans the pick was drawn from, with their draw probabilities. */
   band?: BandEntry[];
   draw?: number;
+  /** v2: the search settings this decision used (stored with every decision; V4 decisions predate the field). */
+  search?: { topK: number; fightBudget: number; band: number };
   rationale: string[];
 }
 
@@ -415,8 +425,8 @@ export function archetypeOf(plan: Plan): Archetype {
 }
 
 /**
- * Harness-only planner knobs (docs/ML_WALKTHROUGH.md §15). Every field defaults to the live policy, so leaving this
- * out reproduces today's choices exactly. Not used by boss/prepare.ts.
+ * Harness-only planner knobs (docs/ML_WALKTHROUGH.md §15). Every field defaults to the live POLICY_CONFIG, so leaving this
+ * out gives the live choices (V4_SEARCH gives the V4 ones). Not used by boss/prepare.ts.
  *  objective  'expected' (live): weighted mean HP margin over the scenarios; 'worst': the margin vs the worst
  *             scenario; 'regret': minus the largest shortfall vs the best plan for any scenario (minimax regret).
  *  fightBudget  Monte-Carlo fights per plan (live: POLICY_CONFIG.fightBudgetPerPlan).
@@ -570,16 +580,17 @@ export function choosePlan(input: {
   return {
     version, selected, current, alternatives: top.filter((p) => p !== selected), candidatesEvaluated: plans.length,
     scenarios: scenarios.map(scenarioSummary),
+    search: { topK, fightBudget: budget, band: bandWidth },
     band: band.map((p, i) => ({ label: p.label, archetype: p.archetype, weighted: p.weighted, cost: p.cost, probability: probs[i] })),
     draw,
     rationale: [
       pText,
       scenText,
-      `Evaluated ${plans.length} legal plan(s) analytically; verified ${top.length} (top ${POLICY_CONFIG.topK} + best of each archetype) with ${fights} simulated fight(s) per scenario.`,
+      `Evaluated ${plans.length} legal plan(s) analytically; verified ${top.length} (top ${topK} + best of each archetype) with ${fights} simulated fight(s) per scenario.`,
       `Selected (${selected.archetype}): ${selected.label}.`,
       `Expected HP margin ${sign(selected.weighted)} (unchanged build: ${sign(current.weighted)}); simulated win rate vs ranged ${pct(selected.winRate!.ranged)}, vs melee ${pct(selected.winRate!.melee)}.`,
       band.length > 1
-        ? `${band.length} plans were equally strong (within ${POLICY_CONFIG.band} of the best margin; archetypes: ${archetypes.join(', ')}); picked one by a seeded draw (p = ${Math.round(probs[idx] * 100)}%)${input.previousArchetype ? `, favouring a change from last round's ${input.previousArchetype}` : ''}.`
+        ? `${band.length} plans were equally strong (within ${bandWidth} of the best margin; archetypes: ${archetypes.join(', ')}); picked one by a seeded draw (p = ${Math.round(probs[idx] * 100)}%)${input.previousArchetype ? `, favouring a change from last round's ${input.previousArchetype}` : ''}.`
         : 'Best plan was clearly ahead of alternatives.',
     ],
   };

@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { env } from '../config/env.js';
-import { applyPlan, choosePlan, simulatedOutcome, type PlannerOptions } from '../boss/policy.js';
+import { applyPlan, choosePlan, simulatedOutcome, V4_SEARCH, type PlannerOptions } from '../boss/policy.js';
 import { persistenceHeads, uniformHeads } from '../boss/forecast.js';
 import { snapshotOf } from '../game/derive.js';
 import { LIVE_RULES } from '../game/rules.js';
@@ -45,7 +45,9 @@ const pers: InMemoryPredictor = async (q) => ({ heads: persistenceHeads(q.histor
 const BIG: PlannerOptions = { fightBudget: 160 };
 const MAX: PlannerOptions = { fightBudget: 160, topK: 30, band: 0 };
 
-const CONDS: Record<string, { predict: InMemoryPredictor; opts: RunOptions }> = {
+// 'v3-baseline' and every knob below are relative to the V4 search settings (the live planner when §15 was run), so
+// these numbers stay reproducible after the live config changed; each condition's planner fields override V4_SEARCH.
+const RAW: Record<string, { predict: InMemoryPredictor; opts: RunOptions }> = {
   'v3-baseline': { predict: base, opts: live },
   // Information only (live knobs).
   'oracle-build': { predict: base, opts: { ...live, oracle: { build: true } } },
@@ -64,6 +66,8 @@ const CONDS: Record<string, { predict: InMemoryPredictor; opts: RunOptions }> = 
   // Knob ablation: only a wider Monte-Carlo shortlist (top 30 analytic plans instead of 6), live budget and band.
   'base-top30': { predict: base, opts: { ...live, planner: { topK: 30 } } },
   'exact-top30': { predict: base, opts: { ...live, oracle: { exact: true }, planner: { topK: 30 } } },
+  // Live candidate: shortlist 30 and 160 fights, but KEEP the diversity band (does the gain need band 0?).
+  'base-wide': { predict: base, opts: { ...live, planner: { topK: 30, fightBudget: 160 } } },
   // Objective: worst case / minimax regret instead of the expected margin.
   'base-worst': { predict: base, opts: { ...live, planner: { objective: 'worst' } } },
   'base-regret': { predict: base, opts: { ...live, planner: { objective: 'regret' } } },
@@ -73,6 +77,8 @@ const CONDS: Record<string, { predict: InMemoryPredictor; opts: RunOptions }> = 
   'heads-regret': { predict: uni, opts: { ...live, oracle: { heads: true }, planner: { objective: 'regret' } } },
 };
 
+const CONDS = Object.fromEntries(Object.entries(RAW).map(([k, c]) => [k, { ...c, opts: { ...c.opts, planner: { ...V4_SEARCH, ...c.opts.planner }, mirrorPlanner: V4_SEARCH } }]));
+
 /** Per-round headroom on the live planner's games (see the header). */
 function headroomProbe(rows: { strategy: string; same: boolean; gain: number; liveExactGain: number }[]) {
   return (d: RoundDiagnostic) => {
@@ -81,7 +87,7 @@ function headroomProbe(rows: { strategy: string; same: boolean; gain: number; li
       : defenseChooserFor(AGENT_DEFENSE[d.strategy] ?? 'smart', new Rng(deriveSeed(d.runSeed, `headroom-${tag}:${d.roundNumber}`)), d.rules);
     const seed = String(deriveSeed(d.runSeed, `boss:${d.roundNumber}`));
     const best = choosePlan({ boss: d.boss, observedPlayer: d.player, pRanged: null, seed, rules: d.rules, opponents: [sc], playerDefense: def('plan'), planner: { fightBudget: 200, topK: 40, band: 0 } }).selected;
-    const liveExact = choosePlan({ boss: d.boss, observedPlayer: d.player, pRanged: null, seed, rules: d.rules, opponents: [sc] }).selected;
+    const liveExact = choosePlan({ boss: d.boss, observedPlayer: d.player, pRanged: null, seed, rules: d.rules, opponents: [sc], planner: V4_SEARCH }).selected;
     const score = (p: typeof best) => simulatedOutcome(snapshotOf(applyPlan(d.boss, p)), sc, `${d.runSeed}:headroom:${d.roundNumber}`, 400, d.rules, def('eval')).margin;
     const chosen = score(d.policy.selected);
     rows.push({ strategy: d.strategy, same: best.label === d.policy.selected.label, gain: score(best) - chosen, liveExactGain: score(liveExact) - chosen });
