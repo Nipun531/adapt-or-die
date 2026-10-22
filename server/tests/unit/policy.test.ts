@@ -114,6 +114,18 @@ describe('choosePlan v2', () => {
     expect(b.selected).toEqual(a.selected);
     expect(b.draw).toBe(a.draw);
   });
+  it('harness planner knobs: explicit live defaults change nothing; other objectives still pick legal plans', () => {
+    for (const [i, st] of states().entries()) {
+      const a = choosePlan({ boss: st.boss, observedPlayer: st.observed, pRanged: 0.4, seed: `k${i}` });
+      const b = choosePlan({ boss: st.boss, observedPlayer: st.observed, pRanged: 0.4, seed: `k${i}`, planner: { objective: 'expected', fightBudget: POLICY_CONFIG.fightBudgetPerPlan, topK: POLICY_CONFIG.topK, band: POLICY_CONFIG.band } });
+      expect(b.selected).toEqual(a.selected);
+      for (const objective of ['worst', 'regret'] as const) {
+        const r = choosePlan({ boss: st.boss, observedPlayer: st.observed, pRanged: 0.4, seed: `k${i}`, planner: { objective, band: 0 } });
+        expect(applyPlan(st.boss, r.selected).gold).toBeGreaterThanOrEqual(0);
+        expect(r.selected.weighted).toBe(Math.max(...[r.selected, ...r.alternatives].map((p) => p.weighted)));
+      }
+    }
+  });
   it('round 1 (rule: melee only) considers the player spending their 2 points', () => {
     const r = choosePlan({ boss: initialCombatant('boss'), observedPlayer: initialCombatant('player'), pRanged: 0, seed: 'r1' });
     expect(new Set(r.scenarios.map((s) => JSON.stringify(s.allocation))).size).toBe(4);

@@ -464,3 +464,79 @@ What this shows:
 - **What would change this:**
   - a planner that can exploit build knowledge, i.e. richer scenario builds that match real purchases, or an exact-build target;
   - real human data, where personas are less rigid.
+
+## 15. Making build knowledge pay: planner lab (2026-10-23, harness only)
+
+Question: which planner change, if any, turns oracle build knowledge into a measurable gain? Nothing here changes live play. `choosePlan` gained an optional `planner` argument (`PlannerOptions`: objective, fight budget, top-K, band). It is omitted live and its defaults are the live values, and a unit test checks that. `balance.ts` gained an `exact` oracle and a per-round `diagnose` hook.
+
+Commands:
+- `npm run ml:planner-lab -- --runs 8 --offset <0|8|16|24> --seed v4-oracle --only <conds> [--headroom]`
+- `npm run ml:planner-lab-combine -- --pairs a:b,...`
+
+Outputs: `artifacts/ml/v4/planner-lab-*.json`. Setup is the same as §14: live rules, 21 agents + mirror, 10 rounds, paired seeds. Δ is the boss's mean HP margin, with a 95% CI over runs. The V4 baseline reproduces exactly: margin 0.662, oracle heads −0.003, oracle build +0.025.
+
+### Finding 0: the V4 "exact build" bound was not exact
+
+`oracle.build` passed the player's *prepared* state through `reachableScenarios`. So the boss still spread its plan over weapons the player could still buy, and over both styles. The new `exact` oracle uses one scenario, the real prepared build, with weight 1.
+
+### Screen (8 runs × 22 strategies, n = 176)
+
+| Condition | Δ vs live [95% CI] |
+|---|---|
+| exact build, live knobs | +0.007 [−0.032, +0.047] |
+| exact + real defence habit, live knobs | +0.001 [−0.040, +0.042] |
+| live, 160 fights per plan | −0.008 [−0.037, +0.021] |
+| live, band 0 (no diversity draw) | +0.003 [−0.014, +0.021] |
+| exact, 160 fights / band 0 | +0.028 [−0.008, +0.064] / +0.024 [−0.014, +0.061] |
+| worst-case objective (V3 scenarios / V4 uniform) | −0.035 [−0.066, −0.003] / −0.065 [−0.097, −0.032] |
+| minimax regret (V3 / uniform / persistence / oracle heads) | −0.005 / −0.031 / −0.023 / −0.040 (none > 0) |
+
+Worst-case and regret scoring are dead ends: they buy safety the boss does not need and lose margin. A bigger Monte-Carlo budget alone does nothing.
+
+### Headroom (live planner's own 1,760 rounds, in situ)
+
+For each live decision, the probe takes the best plan an exact-build planner finds (top 40, 200 fights, no band). It re-scores both that plan and the live pick with 400 fresh fights vs the real build and the agent's defence.
+- The best plan equals the live pick in only 39% of rounds.
+- Gain: **+0.035 [0.032, 0.038]** per round.
+- With the exact build but the live knobs, the gain is only +0.013 [0.010, 0.016].
+
+So the knowledge is worth something, but the live planner throws most of it away before Monte-Carlo ever sees it. It verifies only the top 6 analytic plans (plus one per archetype), and the analytic pre-score misranks plans against the real build.
+
+### Confirmation (32 runs × 22 strategies, n = 704 paired runs)
+
+`max` = top 30 analytic plans verified, 160 fights per plan, band 0.
+
+| Condition | Δ vs live [95% CI] | without mirror |
+|---|---|---|
+| base-top30 (live info, shortlist 30) | +0.000 [−0.011, +0.011] | +0.003 [−0.005, +0.012] |
+| **exact-top30** (exact build, shortlist 30) | **+0.057 [+0.038, +0.075]** | +0.049 [+0.035, +0.064] |
+| base-max (live info) | +0.026 [+0.013, +0.038] | +0.025 [+0.013, +0.037] |
+| pers-max (V4 candidates + persistence) | +0.025 [+0.012, +0.037] | +0.026 [+0.016, +0.037] |
+| heads-max (oracle heads) | +0.039 [+0.023, +0.055] | +0.035 [+0.023, +0.047] |
+| exact-max (exact build + real defence) | +0.080 [+0.061, +0.099] | +0.071 [+0.057, +0.085] |
+
+Value of the information at a fixed planner (paired on the same seeds):
+
+| Pair | Δ [95% CI] | without mirror |
+|---|---|---|
+| exact-top30 − base-top30 | **+0.057 [+0.038, +0.075]** | +0.046 [+0.030, +0.061] |
+| exact-max − base-max | **+0.054 [+0.037, +0.071]** | +0.046 [+0.034, +0.058] |
+| heads-max − base-max | +0.013 [−0.002, +0.029] | +0.010 [−0.001, +0.021] |
+| pers-max − base-max | −0.001 [−0.013, +0.011] | +0.001 [−0.009, +0.011] |
+| base-max − base-top30 | +0.026 [+0.011, +0.040] | +0.022 [+0.009, +0.034] |
+
+### Answer
+
+1. **Widening the Monte-Carlo shortlist (top-K 6 → 30) is the change that turns exact build knowledge into a gain: +0.057 [+0.038, +0.075].**
+   - With the live shortlist, the same knowledge gives +0.007 (in situ +0.013).
+   - The shortlist alone, without the knowledge, gives +0.000.
+   - The shortlist was the bottleneck for using information, not the MC budget, the objective or the band.
+2. **Build *type* (heads) is still not enough**, even with the strong planner: +0.013 [−0.002, +0.029] over base-max. The value sits in the details the V4 candidates approximate: split stat points, non-strongest items and the exact item mix. A next-build target must predict those (richer candidates), or it cannot reach the +0.05.
+3. **A stronger planner helps with no new information: base-max +0.026 [+0.013, +0.038].** This needs both the wide shortlist and the larger budget or band 0; neither alone does it. It costs about 15× compute per decision (≈ 0.5 s instead of ≈ 0.03 s in the harness). It is a live-behaviour change, so it is **not applied** and waits for the owner's OK.
+4. The persistence forecast adds nothing on top of base-max (−0.001). No current predictor captures the exact-build value.
+
+Caveats:
+- All of this is simulated agents.
+- The mirror reacts to the boss, so pooled numbers include its large swings; the no-mirror columns are the safer read.
+- exact-max also uses the agent's real defence habit; exact-top30 does not.
+- Richer *non-oracle* scenario builds (split points, cheaper items in the candidate set) were not built here. Point 2 bounds them at roughly +0.04 over base-max with perfect prediction.

@@ -414,6 +414,17 @@ export function archetypeOf(plan: Plan): Archetype {
   return 'bruiser';
 }
 
+/**
+ * Harness-only planner knobs (docs/ML_WALKTHROUGH.md §15). Every field defaults to the live policy, so leaving this
+ * out reproduces today's choices exactly. Not used by boss/prepare.ts.
+ *  objective  'expected' (live): weighted mean HP margin over the scenarios; 'worst': the margin vs the worst
+ *             scenario; 'regret': minus the largest shortfall vs the best plan for any scenario (minimax regret).
+ *  fightBudget  Monte-Carlo fights per plan (live: POLICY_CONFIG.fightBudgetPerPlan).
+ *  topK       analytic plans verified by Monte-Carlo (live: POLICY_CONFIG.topK).
+ *  band       diversity band (live: POLICY_CONFIG.band; 0 = always the best verified plan).
+ */
+export interface PlannerOptions { objective?: 'expected' | 'worst' | 'regret'; fightBudget?: number; topK?: number; band?: number }
+
 export function choosePlan(input: {
   boss: CombatantState;
   observedPlayer: CombatantState;
@@ -429,6 +440,8 @@ export function choosePlan(input: {
   playerDefense?: DefenseChooser;
   /** V4: opponent scenarios from a next-build forecast (forecastScenarios). Default: reachableScenarios(pRanged). */
   opponents?: Scenario[];
+  /** Harness only (see PlannerOptions). Omitted live. */
+  planner?: PlannerOptions;
 }): PolicyResult {
   const version = input.version ?? POLICY_VERSION;
   const { boss, observedPlayer } = input;
@@ -448,22 +461,41 @@ export function choosePlan(input: {
     return { ranged: agg('ranged'), melee: agg('melee') };
   };
   const weigh = (vals: number[]) => scenarios.reduce((sum, s, i) => sum + (s.weight ?? 0) * vals[i], 0);
+  const objective = input.planner?.objective ?? 'expected';
+  const budget = input.planner?.fightBudget ?? POLICY_CONFIG.fightBudgetPerPlan;
+  const topK = input.planner?.topK ?? POLICY_CONFIG.topK;
+  const bandWidth = input.planner?.band ?? POLICY_CONFIG.band;
+  /** Objective over per-scenario values; `best[i]` = the best value any compared plan reaches vs scenario i (regret). */
+  const objectiveOf = (vals: number[], best?: number[]) => objective === 'worst'
+    ? Math.min(...vals)
+    : objective === 'regret' && best
+      ? -Math.max(...vals.map((v, i) => best[i] - v))
+      : weigh(vals);
+  const bestPer = (rows: number[][]) => scenarios.map((_, i) => Math.max(...rows.map((r) => r[i])));
 
   const plans: Plan[] = [];
   for (const allocation of allocationOptions(boss.statPoints)) {
     for (const lo of loadoutOptions(boss)) plans.push({ allocation, purchases: lo.purchases, loadout: lo.loadout, cost: lo.cost });
   }
+  const analyticVals = new Map<Plan, number[]>();
   const scoreAnalytic = (plan: Plan): ScoredPlan => {
     const snap = snapshotOf(applyPlan(boss, plan));
     const vals = scenarios.map((sc) => analyticScore(snap, sc));
+    analyticVals.set(plan, vals);
     const w = weigh(vals);
     return { ...plan, analytic: byStyle(vals), analyticWeighted: w, weighted: w, label: planLabel(plan), archetype: archetypeOf(plan) };
   };
-  const scored = plans.map(scoreAnalytic).sort((a, b) => b.weighted - a.weighted);
+  const scored = plans.map(scoreAnalytic);
+  if (objective !== 'expected') {
+    const best = bestPer([...analyticVals.values()]);
+    scored.forEach((p, i) => { p.weighted = objectiveOf(analyticVals.get(plans[i])!, best); });
+  }
+  scored.sort((a, b) => b.weighted - a.weighted);
 
   const fights = v1
     ? POLICY_CONFIG.fightsPerScenario
-    : Math.max(POLICY_CONFIG.minFightsPerScenario, Math.floor(POLICY_CONFIG.fightBudgetPerPlan / Math.max(1, scenarios.length)));
+    : Math.max(POLICY_CONFIG.minFightsPerScenario, Math.floor(budget / Math.max(1, scenarios.length)));
+  const mcVals = new Map<ScoredPlan, number[]>();
   const verify = (p: ScoredPlan): ScoredPlan => {
     const snap = snapshotOf(applyPlan(boss, p));
     if (v1) {
@@ -473,19 +505,25 @@ export function choosePlan(input: {
     // V4 forecast scenarios: the fight budget follows the probability (a likely build gets most fights, an unlikely one
     // keeps the minimum), instead of an equal split that would starve the build that matters.
     const fightsFor = (sc: Scenario) => (input.opponents
-      ? Math.max(POLICY_CONFIG.minFightsPerScenario, Math.round(POLICY_CONFIG.fightBudgetPerPlan * (sc.weight ?? 0)))
+      ? Math.max(POLICY_CONFIG.minFightsPerScenario, Math.round(budget * (sc.weight ?? 0)))
       : fights);
     const out = scenarios.map((sc) => simulatedOutcome(snap, sc, `${input.seed}:mc`, fightsFor(sc), input.rules, input.playerDefense));
-    return { ...p, winRate: byStyle(out.map((o) => o.winRate)), margin: byStyle(out.map((o) => o.margin)), weighted: weigh(out.map((o) => o.margin)) };
+    const r: ScoredPlan = { ...p, winRate: byStyle(out.map((o) => o.winRate)), margin: byStyle(out.map((o) => o.margin)), weighted: weigh(out.map((o) => o.margin)) };
+    mcVals.set(r, out.map((o) => o.margin));
+    return r;
   };
 
   // Candidates: top-K analytic plans; v2 also adds the best analytic plan of every archetype (so the band can be diverse).
-  const candidates = scored.slice(0, POLICY_CONFIG.topK);
+  const candidates = scored.slice(0, topK);
   if (!v1) {
     for (const p of scored) if (!candidates.some((c) => c.archetype === p.archetype)) candidates.push(p);
   }
   const top = candidates.map(verify);
   const current = verify(scoreAnalytic({ allocation: {}, purchases: [], loadout: { ...boss.loadout }, cost: 0 }));
+  if (!v1 && objective !== 'expected') {
+    const best = bestPer([...top, current].map((p) => mcVals.get(p)!));
+    for (const p of [...top, current]) p.weighted = objectiveOf(mcVals.get(p)!, best);
+  }
 
   const pct = (x: number | null | undefined) => (x === null || x === undefined ? '—' : `${Math.round(x * 100)}%`);
   const pText = input.pRanged === null
@@ -513,7 +551,7 @@ export function choosePlan(input: {
 
   // v2: controlled diversity inside the band of equally strong plans.
   const best = Math.max(...top.map((p) => p.weighted));
-  const band = top.filter((p) => p.weighted >= best - POLICY_CONFIG.band);
+  const band = top.filter((p) => p.weighted >= best - bandWidth);
   const raw = band.map((p) => Math.exp((p.weighted - best) / POLICY_CONFIG.temperature)
     * (input.previousArchetype && p.archetype === input.previousArchetype ? POLICY_CONFIG.repeatArchetypePenalty : 1)
     / (1 + p.cost / 100));

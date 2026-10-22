@@ -25,7 +25,7 @@ import { oneHotHeads, type HeadProbs } from '../boss/forecast.js';
 import { summarizeCombat } from '../game/summary.js';
 import type { CombatantState, FighterSnapshot, Item, Loadout, PierceSpec, Side, StatKey, Stats } from '../game/types.js';
 import { BASE_STATS, INITIAL_STAT_POINTS, LEVEL_UP_INCREASE, STAT_ALLOCATION_INCREASE } from '../game/constants.js';
-import { analyticScore, applyPlan, bossChooser, forecastScenarios, bossDefense, bossStim, choosePlan, type Archetype as BossArchetype, type PolicyVersion, type Scenario } from '../boss/policy.js';
+import { analyticScore, applyPlan, bossChooser, forecastScenarios, bossDefense, bossStim, choosePlan, type Archetype as BossArchetype, type PlannerOptions, type PolicyResult, type PolicyVersion, type Scenario } from '../boss/policy.js';
 import { baselineProbability, rangedFeasibility, type RoundRecord } from '../ml/features.js';
 import { requireAgent, type RoundOutcome } from './agents.js';
 
@@ -165,12 +165,17 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
       const modes = snapshotOf(player).derived.attackModes;
       pRanged = !modes.includes('ranged') ? 0 : modes.length === 1 ? 1 : pRanged;
     }
+    const opponents = o?.exact
+      ? [exactScenario(player)]
+      : heads && !o?.build ? forecastScenarios(observed, heads, undefined, opts.scenarioBase ?? 'v4').scenarios : undefined;
     const policy = choosePlan({
       boss, observedPlayer: o?.build ? player : observed, pRanged, seed: String(deriveSeed(runSeed, `boss:${n}`)), previousArchetype, version: opts.policyVersion, rules: opts.rules,
-      opponents: heads && !o?.build ? forecastScenarios(observed, heads, undefined, opts.scenarioBase ?? 'v4').scenarios : undefined,
+      opponents,
       playerDefense: o?.defense && rules.v3 && !isMirror(strategy)
         ? defenseChooserFor(AGENT_DEFENSE[strategy] ?? 'smart', new Rng(deriveSeed(runSeed, `oracle-defense:${n}`)), rules) : undefined,
+      planner: opts.planner,
     });
+    opts.diagnose?.({ strategy, runSeed, roundNumber: n, boss, player, observed, policy, rules });
     previousArchetype = policy.selected.archetype;
     boss = applyPlan(boss, policy.selected);
     if (rules.v3) boss = autoSupplies(boss).state; // as boss/prepare.ts
@@ -212,11 +217,34 @@ function* runSteps(strategy: string, runSeed: string, maxRounds: number, opts: R
   return { strategy, seed: runSeed, rounds, player, boss };
 }
 
+/**
+ * Harness-only EXACT oracle scenario: the player's real prepared build as the boss's single opponent scenario (weight 1).
+ * `oracle.build` is weaker: it re-derives V2 reachable scenarios from the prepared state, so the boss still spreads its
+ * plan over weapons the player could still buy and over both styles.
+ */
+export function exactScenario(player: CombatantState): Scenario {
+  const snapshot = snapshotOf(player);
+  const modes = snapshot.derived.attackModes;
+  const ranged = modes.includes('ranged');
+  const melee = modes.includes('melee');
+  return {
+    kind: ranged && !melee ? 'ranged' : 'melee', snapshot, preferredMode: ranged && !melee ? 'ranged' : melee ? 'melee' : modes[0],
+    flexible: ranged && melee, hypotheticalItems: [], weight: 1, label: 'exact build',
+  };
+}
+
+/** What a harness diagnostic sees after the boss has planned a round (the player's real build included). */
+export interface RoundDiagnostic { strategy: string; runSeed: string; roundNumber: number; boss: CombatantState; player: CombatantState; observed: CombatantState; policy: PolicyResult; rules: RuleSet }
+
 /** One complete run without the database. Mirrors sim/runner.ts → services/rounds.ts (baseline predictor). */
 /** Harness run options: boss policy version and combat rules (default v2 = engine 2.0.0). */
-export interface RunOptions { policyVersion?: PolicyVersion; rules?: RuleSet; oracle?: { build?: boolean; style?: boolean; defense?: boolean; heads?: boolean };
+export interface RunOptions { policyVersion?: PolicyVersion; rules?: RuleSet; oracle?: { build?: boolean; style?: boolean; defense?: boolean; heads?: boolean; exact?: boolean };
   /** V4: build forecast scenarios from legal candidates ('v4') or reweight the V3 reachable scenarios ('v3'). */
-  scenarioBase?: 'v4' | 'v3' }
+  scenarioBase?: 'v4' | 'v3';
+  /** Harness-only planner knobs (policy.ts PlannerOptions); omitted = the live planner. */
+  planner?: PlannerOptions;
+  /** Called once per round after the boss's plan, before it is applied (diagnostics only; must not mutate). */
+  diagnose?: (d: RoundDiagnostic) => void }
 
 export function playInMemoryRun(strategy: string, runSeed: string, maxRounds = 10, opts: RunOptions = {}): RunResult {
   const it = runSteps(strategy, runSeed, maxRounds, opts);

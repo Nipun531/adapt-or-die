@@ -29,6 +29,8 @@
     "ml:v4-oracle": "npm run ml:v4-oracle -w server --",
     "ml:v4-data": "npm run ml:v4-data -w server --",
     "ml:v4-learning": "npm run ml:v4-learning -w server --",
+    "ml:planner-lab": "npm run ml:planner-lab -w server --",
+    "ml:planner-lab-combine": "npm run ml:planner-lab-combine -w server --",
     "test": "npm run test -w server && npm run test -w client",
     "test:unit": "npm run test:unit -w server",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client",

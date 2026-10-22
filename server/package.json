@@ -22,6 +22,8 @@
     "ml:v4-oracle": "tsx src/sim/v4-oracle-cli.ts",
     "ml:v4-data": "tsx src/sim/v4-data-cli.ts",
     "ml:v4-learning": "tsx src/sim/v4-learning-cli.ts",
+    "ml:planner-lab": "tsx src/sim/planner-lab-cli.ts",
+    "ml:planner-lab-combine": "tsx src/sim/planner-lab-combine-cli.ts",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "typecheck": "tsc --noEmit",
