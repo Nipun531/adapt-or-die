@@ -532,7 +532,7 @@ Value of the information at a fixed planner (paired on the same seeds):
    - The shortlist alone, without the knowledge, gives +0.000.
    - The shortlist was the bottleneck for using information, not the MC budget, the objective or the band.
 2. **Build *type* (heads) is still not enough**, even with the strong planner: +0.013 [−0.002, +0.029] over base-max. The value sits in the details the V4 candidates approximate: split stat points, non-strongest items and the exact item mix. A next-build target must predict those (richer candidates), or it cannot reach the +0.05.
-3. **A stronger planner helps with no new information: base-max +0.026 [+0.013, +0.038].** This needs both the wide shortlist and the larger budget or band 0; neither alone does it. It costs about 15× compute per decision (≈ 0.5 s instead of ≈ 0.03 s in the harness). It is a live-behaviour change, so it is **not applied** and waits for the owner's OK.
+3. **A stronger planner helps with no new information: base-max +0.026 [+0.013, +0.038].** This needs both the wide shortlist and the larger budget or band 0; neither alone does it. It costs about 15× compute per decision (≈ 0.5 s instead of ≈ 0.03 s in the harness). The owner asked for it to be planned live; see "Going live" below (merge pending the owner's OK).
 4. The persistence forecast adds nothing on top of base-max (−0.001). No current predictor captures the exact-build value.
 
 Caveats:
@@ -540,3 +540,41 @@ Caveats:
 - The mirror reacts to the boss, so pooled numbers include its large swings; the no-mirror columns are the safer read.
 - exact-max also uses the agent's real defence habit; exact-top30 does not.
 - Richer *non-oracle* scenario builds (split points, cheaper items in the candidate set) were not built here. Point 2 bounds them at roughly +0.04 over base-max with perfect prediction.
+
+### Going live: base-max as the live search (branch `claude/distracted-lehmann-09d3ea`, merge pending the owner's OK)
+
+**What changed.**
+- `POLICY_CONFIG` is now top-K 30, 160 fights per plan, band 0. The old settings stay as `V4_SEARCH` for rollback.
+- Each stored decision records `search: { topK, fightBudget, band }` (additive JSON field, no migration). Old and new decisions can therefore be told apart in `training_examples` and `build_examples`.
+- `policyVersion` stays `v2-diverse` (the client keys on it). Game rules and the engine are unchanged.
+- The planner lab pins its baseline and the mirror players to `V4_SEARCH`. All §15 numbers still reproduce exactly.
+
+**Is the band needed?** `base-wide` keeps the 0.03 band with top 30 and 160 fights. It gives only +0.013 [+0.000, +0.026], which is −0.013 [−0.023, −0.002] vs band 0 (n = 704). The gain needs band 0.
+
+**Diversity cost** (200 round-1 seeds, plus 2 runs × 22 strategies):
+
+| Search | Round-1 distinct plans / entropy | Archetype entropy, all rounds | Repeats last archetype |
+|---|---|---|---|
+| V4 (6 / 40 / 0.03) | 3 / 1.57 bits | 1.25 bits | 74% |
+| top 30 / 160 / 0.03 | 4 / 1.90 bits | 1.29 bits | 78% |
+| **live (30 / 160 / 0)** | 4 / 1.66 bits | 1.25 bits | **83%** |
+
+Round 1 stays varied, because the Monte-Carlo seed differs per run. Later rounds repeat the same archetype more often.
+
+**Latency** (`npm run boss:latency -w server`: 440 real decisions, one core, `choosePlan` only):
+
+| Search | Mean | p50 | p95 | Max |
+|---|---:|---:|---:|---:|
+| V4 | 39 ms | 38 | 62 | 77 ms |
+| top 30 / 160 / 0.03 | 464 ms | 486 | 670 | 1014 ms |
+| **live** | 487 ms | 513 | 671 | 810 ms |
+
+Boss preparation runs inside the round-start request and blocks the Node event loop for ≈ 0.5 s. This is fine for local hot-seat play, but it would matter with concurrent players.
+
+**Learning Boss** (it shares the planner; `npm run ml:v4-learning -- --campaign 4 --seed v4-learn --base v3 --temper 0.3`): learning − cold is −0.006 [−0.029, +0.018] over 84 runs (V4: −0.016). It is still no worse and still not measurably better.
+
+**Checks:**
+- server `npx vitest run`: 229/229 (21 files, 178 s);
+- client tests: 8/8;
+- `tsc`: clean (server and client);
+- client build: OK.
